@@ -15,13 +15,11 @@ setuptools.setup(
     url="https://github.com/cherenkov-plenoscope/merlict.git",
     author="Sebastian Achim Mueller",
     author_email="sebastian-achim.mueller@mpi-hd.mpg.de",
-    license="MIT",
     packages=["merlict"],
     package_data={"merlict": []},
     install_requires=["setuptools>=18.0", "cython",],
     zip_safe=False,
     ext_modules=[
-
         setuptools.Extension(
             "merlict.c89.wrapper",
             sources=[
@@ -29,15 +27,14 @@ setuptools.setup(
                     "merlict", "c89", "wrapper.pyx"
                 ),
                 os.path.join(
-                    "merlict", "c89", "mli_bridge.c"
+                    "merlict", "c89", "merlict_c89", "merlict", "mli.c"
                 ),
             ],
             include_dirs=[
                 numpy.get_include(),
-                os.path.join("merlict", "c89", ),
+                os.path.join("merlict", "c89"),
             ],
             language="c",
         ),
-
     ],
 )
