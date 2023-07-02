@@ -1,0 +1,3 @@
+[submodule "merlict/c89/merlict_c89"]
+	path = merlict/c89/merlict_c89
+	url = git@github.com:cherenkov-plenoscope/merlict_c89.git
