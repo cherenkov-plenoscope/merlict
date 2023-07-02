@@ -16,6 +16,7 @@ cdef extern from "subset.h":
 
     cdef mliArchive mliArchive_init()
     cdef void mliArchive_free(mliArchive *arc)
+    cdef int mliArchive_malloc(mliArchive *arc)
     cdef int mliArchive_malloc_from_path(mliArchive *arc, const char *path)
 
     cdef struct mliScenery:
@@ -95,13 +96,20 @@ cdef extern from "subset.h":
 
 
 cdef extern from "bridge.h":
+    cdef int mliArchive_push_back_cstr(
+        mliArchive *arc,
+        const char *filename,
+        const unsigned long filename_length,
+        const char *payload,
+        const unsigned long payload_length,
+    )
+
     cdef int mli_bridge_propagate_photons(
         const mliScenery *scenery,
         mliPrng *prng,
         unsigned long num_photons,
         mliPhoton *photons,
     )
-
 
 def _mliVec2py(mliVec mliv):
     return np.array([mliv.x, mliv.y, mliv.z], dtype=np.float64)
@@ -158,31 +166,68 @@ cdef class Prng:
         cdef unsigned int c = mliPrng_generate_uint32(&self.prng)
         return int(c)
 
+"""
+======================================
+"""
 
+cdef class Archihe:
+    cdef mliArchive archive
+
+    def __cinit__(self):
+        self.archive = mliArchive_init()
+
+    def __dealloc__(self):
+        mliArchive_free(&self.archive)
+
+    def __init__(self, path=None):
+        mliArchive_malloc(&self.archive)
+        if path:
+            self._from_path(path)
+
+    def _from_path(self, path):
+        cdef bytes py_bytes = path.encode()
+        cdef char* cpath = py_bytes
+        cdef int rc = mliArchive_malloc_from_path(&self.archive, cpath)
+        assert rc != 0
+
+    def push_back(self, filename, payload):
+        filename = str(filename)
+        payload = str(payload)
+
+        cdef unsigned long cfilename_length = len(filename)
+        cdef bytes py_filename = filename.encode()
+        cdef char* cfilename = py_filename
+
+        cdef unsigned long cpayload_length = len(payload)
+        cdef bytes py_payload = payload.encode()
+        cdef char* cpayload = py_payload
+
+        cdef int rc = mliArchive_push_back_cstr(
+            &self.archive,
+            cfilename,
+            cfilename_length,
+            cpayload,
+            cpayload_length)
+        assert rc != 0
+
+"""
 cdef class Scenery:
     cdef mliScenery scenery
     cdef mlivrConfig viewer_config
+    cdef mliArchive *archive
 
-    def __init__(self, path):
+    def __cinit__(self, mliArchive *archive):
         self.scenery = mliScenery_init()
+        self.viewer_config = mlivrConfig_default()
 
-        cdef mliArchive archive
-        archive = mliArchive_init()
-
-        cdef bytes py_bytes = path.encode()
-        cdef char* cpath = py_bytes
-
-        cdef int rc
-        rc = mliArchive_malloc_from_path(&archive, cpath)
+        rc = mliScenery_malloc_from_Archive(&self.scenery, archive)
         assert rc != 0
 
-        rc = mliScenery_malloc_from_Archive(&self.scenery, &archive)
-        assert rc != 0
-
-        mliArchive_free(&archive)
-
-    def __exit__(self):
+    def __dealloc__(self):
         mliScenery_free(&self.scenery)
+
+    def __init__(self):
+        pass
 
     def view(self, config=None):
         self.viewer_config = _mlivrConfig_from_dict(config)
@@ -202,3 +247,4 @@ cdef class Scenery:
 
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
+"""
