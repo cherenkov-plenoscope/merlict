@@ -29,6 +29,12 @@ setuptools.setup(
                 os.path.join(
                     "merlict", "c89", "merlict_c89", "merlict", "mli.c"
                 ),
+                os.path.join(
+                    "merlict", "c89", "merlict_c89", "merlict", "mli_viewer.c"
+                ),
+                os.path.join(
+                    "merlict", "c89", "bridge.c"
+                ),
             ],
             include_dirs=[
                 numpy.get_include(),
