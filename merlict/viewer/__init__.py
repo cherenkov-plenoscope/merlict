@@ -1,6 +1,14 @@
 import numpy as np
 
 
+def start(scenery, config=None):
+    if config == None:
+        config = init_config()
+
+
+
+
+
 def init_config():
     return {
         "random_seed": 42,

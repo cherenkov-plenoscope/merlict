@@ -34,9 +34,15 @@ cdef extern from "subset.h":
     cdef unsigned int mliPrng_generate_uint32(mliPrng *prng)
     cdef double mli_random_uniform(mliPrng *prng)
 
-    # =======
-    # PHOTONS
-    # =======
+    # GeometryId
+    # ----------
+    cdef struct mliGeometryId:
+        unsigned int robj
+        unsigned int face
+
+    # ===
+    # RAY
+    # ===
 
     # Ray
     # ---
@@ -44,18 +50,34 @@ cdef extern from "subset.h":
         mliVec support
         mliVec direction
 
+    # mliIntersection
+    # ---------------
+    cdef struct mliIntersection:
+        mliGeometryId geometry_id
+        mliVec position_local
+        double distance_of_ray
+
+    # mliIntersectionSurfaceNormal
+    # ----------------------------
+    cdef struct mliIntersectionSurfaceNormal:
+        mliGeometryId geometry_id
+        mliVec position
+        mliVec surface_normal
+        mliVec position_local
+        mliVec surface_normal_local
+        double distance_of_ray
+        int from_outside_to_inside
+
+    # =======
+    # PHOTONS
+    # =======
+
     # Photon
     # ------
     cdef struct mliPhoton:
         mliRay ray
         double wavelength
         long id
-
-    # GeometryId
-    # ----------
-    cdef struct mliGeometryId:
-        unsigned int robj
-        unsigned int face
 
     # PhotonInteraction
     # -----------------
@@ -210,24 +232,27 @@ cdef class Archihe:
             cpayload_length)
         assert rc != 0
 
-"""
+
 cdef class Scenery:
     cdef mliScenery scenery
     cdef mlivrConfig viewer_config
-    cdef mliArchive *archive
 
-    def __cinit__(self, mliArchive *archive):
+    def __cinit__(self):
         self.scenery = mliScenery_init()
         self.viewer_config = mlivrConfig_default()
-
-        rc = mliScenery_malloc_from_Archive(&self.scenery, archive)
-        assert rc != 0
 
     def __dealloc__(self):
         mliScenery_free(&self.scenery)
 
-    def __init__(self):
-        pass
+    def __init__(self, path):
+        cdef int rc
+        cdef bytes py_path = path.encode()
+        cdef char* cpath= py_path
+        cdef mliArchive archive = mliArchive_init()
+        rc = mliArchive_malloc_from_path(&archive, cpath)
+        assert rc != 0
+        rc = mliScenery_malloc_from_Archive(&self.scenery, &archive)
+        assert rc != 0
 
     def view(self, config=None):
         self.viewer_config = _mlivrConfig_from_dict(config)
@@ -242,9 +267,11 @@ cdef class Scenery:
             termios.tcsetattr(fd, termios.TCSADRAIN, new)
 
             # ----
-            rc = mlivr_run_interactive_viewer(&self.scenery, self.viewer_config)
+            rc = mlivr_run_interactive_viewer(
+                &self.scenery,
+                self.viewer_config
+            )
             # ----
 
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
-"""
