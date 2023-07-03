@@ -17,7 +17,9 @@ setuptools.setup(
     author_email="sebastian-achim.mueller@mpi-hd.mpg.de",
     packages=["merlict"],
     package_data={"merlict": []},
-    install_requires=["setuptools>=18.0", "cython",],
+    install_requires=[
+        "setuptools>=18.0", "cython", "json_numpy_sebastian-achim-mueller"
+    ],
     zip_safe=False,
     ext_modules=[
         setuptools.Extension(

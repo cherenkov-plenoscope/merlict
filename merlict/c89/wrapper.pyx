@@ -235,27 +235,30 @@ cdef class Archihe:
 
 cdef class Scenery:
     cdef mliScenery scenery
-    cdef mlivrConfig viewer_config
 
     def __cinit__(self):
         self.scenery = mliScenery_init()
-        self.viewer_config = mlivrConfig_default()
 
     def __dealloc__(self):
         mliScenery_free(&self.scenery)
 
-    def __init__(self, path):
-        cdef int rc
-        cdef bytes py_path = path.encode()
-        cdef char* cpath= py_path
-        cdef mliArchive archive = mliArchive_init()
-        rc = mliArchive_malloc_from_path(&archive, cpath)
-        assert rc != 0
-        rc = mliScenery_malloc_from_Archive(&self.scenery, &archive)
-        assert rc != 0
+    def __init__(self, path=None, sceneryPy=None):
+        if path and not sceneryPy:
+            self.init_from_path(path)
+        elif sceneryPy and not path:
+            self.init_from_sceneryPy(sceneryPy)
+        else:
+            raise ValueError("Either 'path' or 'sceneryPy', but not both.")
 
     def view(self, config=None):
-        self.viewer_config = _mlivrConfig_from_dict(config)
+        """
+        Viewer will print to stdout.
+        """
+        cdef mlivrConfig viewer_config
+        if config:
+            viewer_config = _mlivrConfig_from_dict(config)
+        else:
+            viewer_config = mlivrConfig_default()
 
         fd = sys.stdin.fileno()
         old = termios.tcgetattr(fd)
@@ -269,9 +272,34 @@ cdef class Scenery:
             # ----
             rc = mlivr_run_interactive_viewer(
                 &self.scenery,
-                self.viewer_config
+                viewer_config
             )
             # ----
 
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+    def init_from_path(self, path):
+        _path = str(path)
+        cdef int rc
+        cdef bytes _py_path = _path.encode()
+        cdef char* _cpath = _py_path  # Who is responsible for this memory?
+
+        cdef mliArchive archive = mliArchive_init()
+        try:
+            rc = mliArchive_malloc_from_path(&archive, _cpath)
+            assert rc != 0
+            rc = mliScenery_malloc_from_Archive(&self.scenery, &archive)
+            assert rc != 0
+        finally:
+            mliArchive_free(&archive)
+
+    def init_from_sceneryPy(self, sceneryPy):
+        cdef int rc
+        cdef mliArchive archive = mliArchive_init()
+        try:
+            rc = mliArchive_malloc(&archive)
+            assert rc != 0
+
+        finally:
+            mliArchive_free(&archive)

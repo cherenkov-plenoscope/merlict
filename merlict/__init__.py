@@ -1,5 +1,6 @@
 from . import c89
 from . import viewer
+from . import scenery
 
 import numpy as np
 
