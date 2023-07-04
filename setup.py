@@ -8,7 +8,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="merlict_sebastian-achim-mueller",
-    version="0.0.0",
+    version="0.0.1",
     description="Ray tracing in python",
     long_description=long_description,
     long_description_content_type="text/markdown",
