@@ -18,25 +18,23 @@ setuptools.setup(
     packages=["merlict"],
     package_data={"merlict": []},
     install_requires=[
-        "setuptools>=18.0", "cython", "json_numpy_sebastian-achim-mueller"
+        "setuptools>=18.0",
+        "cython",
+        "json_numpy_sebastian-achim-mueller",
     ],
     zip_safe=False,
     ext_modules=[
         setuptools.Extension(
             "merlict.c89.wrapper",
             sources=[
-                os.path.join(
-                    "merlict", "c89", "wrapper.pyx"
-                ),
+                os.path.join("merlict", "c89", "wrapper.pyx"),
                 os.path.join(
                     "merlict", "c89", "merlict_c89", "merlict", "mli.c"
                 ),
                 os.path.join(
                     "merlict", "c89", "merlict_c89", "merlict", "mli_viewer.c"
                 ),
-                os.path.join(
-                    "merlict", "c89", "bridge.c"
-                ),
+                os.path.join("merlict", "c89", "bridge.c"),
             ],
             include_dirs=[
                 numpy.get_include(),

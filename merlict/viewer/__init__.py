@@ -6,9 +6,6 @@ def start(scenery, config=None):
         config = init_config()
 
 
-
-
-
 def init_config():
     return {
         "random_seed": 42,
@@ -20,7 +17,7 @@ def init_config():
         "view": {
             "position": [0, 0, 0],
             "rotation": [np.deg2rad(90), 0, 0],
-            "field_of_view": np.deg2rad(80.)
+            "field_of_view": np.deg2rad(80.0),
         },
         "aperture_camera_f_stop_ratio": 2.0,
         "aperture_camera_image_sensor_width": 24e-3,
