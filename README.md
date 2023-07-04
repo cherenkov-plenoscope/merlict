@@ -1,7 +1,8 @@
-Ray Tracing!
-============
+![merlict python logo](/readme/merlict-python-logo-inkscape.png)
 
-More light than you can handle!
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+More light than you can handle! Also: This is in beta state!
 
 
 Sceneries
