@@ -12,3 +12,6 @@
 #include "merlict_c89/merlict/mliView.h"
 #include "merlict_c89/merlict/mli_viewer_viewer.h"
 #include "merlict_c89/merlict/mli_viewer_Config.h"
+
+#include "merlict_c89/merlict/mliColor.h"
+#include "merlict_c89/merlict/mliImage.h"

@@ -1,4 +1,4 @@
-
+from libc cimport stdint
 
 cdef extern from "subset.h":
     cdef struct mliVec:
@@ -116,6 +116,16 @@ cdef extern from "subset.h":
         const mliScenery *scn,
         const mlivrConfig cfg
     )
+
+    cdef struct mliColor:
+        float r
+        float g
+        float b
+
+    cdef struct mliImage {
+        uint32_t num_cols
+        uint32_t num_rows
+        mliColor *raw
 
 
 cdef extern from "bridge.h":
