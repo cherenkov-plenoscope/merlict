@@ -23,20 +23,27 @@ cdef extern from "subset.h":
         mliScenery *scn,
         const mliArchive *arc
     )
+    # this is the binary dump ```sceneryCa```
+    cdef int mliScenery_malloc_from_path(
+        mliScenery *scenery, const char *path
+    )
+    cdef int mliScenery_write_to_path(
+        const mliScenery *scenery, const char *path
+    )
 
     cdef struct mliPrng:
         pass
 
-    cdef mliPrng mliPrng_init_MT19937(const unsigned int seed)
-    cdef mliPrng mliPrng_init_PCG32(const unsigned int seed)
-    cdef unsigned int mliPrng_generate_uint32(mliPrng *prng)
+    cdef mliPrng mliPrng_init_MT19937(const stdint.uint32_t seed)
+    cdef mliPrng mliPrng_init_PCG32(const stdint.uint32_t seed)
+    cdef stdint.uint32_t mliPrng_generate_uint32(mliPrng *prng)
     cdef double mli_random_uniform(mliPrng *prng)
 
     # GeometryId
     # ----------
     cdef struct mliGeometryId:
-        unsigned int robj
-        unsigned int face
+        stdint.uint32_t robj
+        stdint.uint32_t face
 
     # ===
     # RAY
@@ -85,8 +92,8 @@ cdef extern from "subset.h":
         mliVec position
         mliVec position_local
         double distance_of_ray
-        unsigned long medium_coming_from
-        unsigned long medium_going_to
+        stdint.uint64_t medium_coming_from
+        stdint.uint64_t medium_going_to
         int from_outside_to_inside
         int type
 
@@ -100,11 +107,11 @@ cdef extern from "subset.h":
         double field_of_view
 
     cdef struct mlivrConfig:
-        unsigned int random_seed
-        unsigned long preview_num_cols
-        unsigned long preview_num_rows
-        unsigned long export_num_cols
-        unsigned long export_num_rows
+        stdint.uint32_t random_seed
+        stdint.uint64_t preview_num_cols
+        stdint.uint64_t preview_num_rows
+        stdint.uint64_t export_num_cols
+        stdint.uint64_t export_num_rows
         double step_length
         mliView view
         double aperture_camera_f_stop_ratio
@@ -122,9 +129,9 @@ cdef extern from "subset.h":
         float g
         float b
 
-    cdef struct mliImage {
-        uint32_t num_cols
-        uint32_t num_rows
+    cdef struct mliImage:
+        stdint.uint32_t num_cols
+        stdint.uint32_t num_rows
         mliColor *raw
 
 
@@ -132,14 +139,14 @@ cdef extern from "bridge.h":
     cdef int mliArchive_push_back_cstr(
         mliArchive *arc,
         const char *filename,
-        const unsigned long filename_length,
+        const stdint.uint64_t filename_length,
         const char *payload,
-        const unsigned long payload_length,
+        const stdint.uint64_t payload_length,
     )
 
     cdef int mli_bridge_propagate_photons(
         const mliScenery *scenery,
         mliPrng *prng,
-        unsigned long num_photons,
+        stdint.uint64_t num_photons,
         mliPhoton *photons,
     )

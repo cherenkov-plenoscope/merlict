@@ -155,8 +155,8 @@ cdef class Scenery:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
     def init_from_path(self, path):
-        _path = str(path)
         cdef int rc
+        _path = str(path)
         cdef bytes _py_path = _path.encode()
         cdef char* _cpath = _py_path  # Who is responsible for this memory?
 
@@ -168,6 +168,22 @@ cdef class Scenery:
             assert rc != 0
         finally:
             mliArchive_free(&archive)
+
+    def init_from_dump_in_path(self, path):
+        cdef int rc
+        _path = str(path)
+        cdef bytes _py_path = _path.encode()
+        cdef char* _cpath = _py_path
+        rc = mliScenery_malloc_from_path(&self.scenery, _cpath)
+        assert rc != 0
+
+    def dump_to_path(self, path):
+        cdef int rc
+        _path = str(path)
+        cdef bytes _py_path = _path.encode()
+        cdef char* _cpath = _py_path
+        rc = mliScenery_write_to_path(&self.scenery, _cpath)
+        assert rc != 0
 
     def init_from_sceneryPy(self, sceneryPy):
         cdef int rc

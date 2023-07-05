@@ -3,6 +3,7 @@
 #include "merlict_c89/merlict/mliArchive.h"
 #include "merlict_c89/merlict/mliScenery.h"
 #include "merlict_c89/merlict/mliScenery_tar.h"
+#include "merlict_c89/merlict/mliScenery_serialize.h"
 #include "merlict_c89/merlict/mli_random_generator.h"
 
 #include "merlict_c89/merlict/mliIntersection.h"
