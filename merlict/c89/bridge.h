@@ -2,12 +2,8 @@
 #include "merlict_c89/merlict/mliPhoton.h"
 #include "merlict_c89/merlict/mliScenery.h"
 #include "merlict_c89/merlict/mliArchive.h"
+#include "merlict_c89/merlict/mliIntersection.h"
 
-int mli_bridge_propagate_photons(
-        const struct mliScenery *scenery,
-        struct mliPrng *prng,
-        uint64_t num_photons,
-        struct mliPhoton *photons);
 
 int mliArchive_push_back_cstr(
         struct mliArchive *arc,
@@ -15,3 +11,11 @@ int mliArchive_push_back_cstr(
         const uint64_t filename_length,
         const char *payload,
         const uint64_t payload_length);
+
+
+int mliBridge_query_many_intersection(
+        const struct mliScenery *scenery,
+        const uint64_t num_rays,
+        const struct mliRay *rays,
+        struct mliIntersection *isecs,
+        int64_t *is_valid_isecs);

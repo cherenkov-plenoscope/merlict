@@ -1,10 +1,13 @@
 from wrapper cimport *
 cimport numpy as np
 cimport cython
+from libc cimport stdint
 
 import termios
 import sys
 import numpy as np
+from .. import rays as _rays
+from .. import intersections as _intersections
 
 
 def _mliVec2py(mliVec mliv):
@@ -65,47 +68,6 @@ cdef class Prng:
 """
 ======================================
 """
-
-cdef class Archihe:
-    cdef mliArchive archive
-
-    def __cinit__(self):
-        self.archive = mliArchive_init()
-
-    def __dealloc__(self):
-        mliArchive_free(&self.archive)
-
-    def __init__(self, path=None):
-        mliArchive_malloc(&self.archive)
-        if path:
-            self._from_path(path)
-
-    def _from_path(self, path):
-        cdef bytes py_bytes = path.encode()
-        cdef char* cpath = py_bytes
-        cdef int rc = mliArchive_malloc_from_path(&self.archive, cpath)
-        assert rc != 0
-
-    def push_back(self, filename, payload):
-        filename = str(filename)
-        payload = str(payload)
-
-        cdef unsigned long cfilename_length = len(filename)
-        cdef bytes py_filename = filename.encode()
-        cdef char* cfilename = py_filename
-
-        cdef unsigned long cpayload_length = len(payload)
-        cdef bytes py_payload = payload.encode()
-        cdef char* cpayload = py_payload
-
-        cdef int rc = mliArchive_push_back_cstr(
-            &self.archive,
-            cfilename,
-            cfilename_length,
-            cpayload,
-            cpayload_length)
-        assert rc != 0
-
 
 
 cdef class Scenery:
@@ -194,3 +156,34 @@ cdef class Scenery:
 
         finally:
             mliArchive_free(&archive)
+
+    def query_intersection(self, rays):
+        cdef int rc
+        assert _rays.is_rays(records=rays)
+
+        isecs = _intersections.init(size=rays.shape[0])
+
+        cdef stdint.uint64_t num_rays = rays.shape[0]
+
+        cdef np.ndarray[mliRay,mode="c"] crays = np.ascontiguousarray(
+            rays
+        )
+
+        cdef np.ndarray[mliIntersection,mode="c"] cisecs = np.ascontiguousarray(
+            isecs
+        )
+
+        cdef np.ndarray[stdint.int64_t,mode="c"] cis_valid_isecs = np.ascontiguousarray(
+            np.zeros(rays.shape[0], dtype=np.int64)
+        )
+
+        rc = mliBridge_query_many_intersection(
+            &self.scenery,
+            num_rays,
+            &crays[0],
+            &cisecs[0],
+            &cis_valid_isecs[0])
+
+        assert rc == 1
+
+        return cis_valid_isecs, isecs

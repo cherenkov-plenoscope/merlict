@@ -141,12 +141,11 @@ cdef extern from "bridge.h":
         const char *filename,
         const stdint.uint64_t filename_length,
         const char *payload,
-        const stdint.uint64_t payload_length,
-    )
+        const stdint.uint64_t payload_length)
 
-    cdef int mli_bridge_propagate_photons(
+    cdef int mliBridge_query_many_intersection(
         const mliScenery *scenery,
-        mliPrng *prng,
-        stdint.uint64_t num_photons,
-        mliPhoton *photons,
-    )
+        const stdint.uint64_t num_rays,
+        const mliRay *rays,
+        mliIntersection *isecs,
+        stdint.int64_t *is_valid_isecs)

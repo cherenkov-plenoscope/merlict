@@ -1,5 +1,7 @@
 #include "bridge.h"
 #include "merlict_c89/merlict/chk_debug.h"
+#include "merlict_c89/merlict/mli_ray_scenery_query.h"
+
 
 int mliArchive_push_back_cstr(
         struct mliArchive *arc,
@@ -27,11 +29,29 @@ error:
         return 0;
 }
 
-int mli_bridge_propagate_photons(
+int mliBridge_query_many_intersection(
         const struct mliScenery *scenery,
-        struct mliPrng *prng,
-        uint64_t num_photons,
-        struct mliPhoton *photons)
+        const uint64_t num_rays,
+        const struct mliRay *rays,
+        struct mliIntersection *isecs,
+        int64_t *is_valid_isecs)
 {
+        uint64_t i;
+        for (i = 0; i < num_rays; i++) {
+                struct mliRay ray = rays[i];
+                struct mliIntersection isec = mliIntersection_init();
+                int is_valid_isec = mli_query_intersection(
+                        scenery,
+                        ray,
+                        &isec
+                );
+                if (is_valid_isec == 1) {
+                        isecs[i] = isec;
+                        is_valid_isecs[i] = 1u;
+                } else {
+                        is_valid_isecs[i] = 0u;
+                        isecs[i] = mliIntersection_init();
+                }
+        }
         return 1;
 }

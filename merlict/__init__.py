@@ -1,26 +1,11 @@
 from . import c89
 from . import viewer
 from . import scenery
+from . import rays
+from . import intersections
+from . import photons
 
 import numpy as np
-
-
-def photons(size):
-    # np.core.records.fromstring(bbb, dtype=[("a", np.uint8), ("b", np.float64)])
-
-    return np.core.records.recarray(
-        shape=size,
-        dtype=[
-            ("id", np.int64),
-            ("ray.support.x", np.float64),
-            ("ray.support.y", np.float64),
-            ("ray.support.z", np.float64),
-            ("ray.direction.x", np.float64),
-            ("ray.direction.y", np.float64),
-            ("ray.direction.z", np.float64),
-            ("wavelength", np.float64),
-        ],
-    )
 
 
 def photon_interactions(size):
