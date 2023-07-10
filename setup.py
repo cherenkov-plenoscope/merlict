@@ -16,7 +16,7 @@ setuptools.setup(
     author="Sebastian Achim Mueller",
     author_email="sebastian-achim.mueller@mpi-hd.mpg.de",
     packages=["merlict"],
-    package_data={"merlict": []},
+    package_data={"merlict": [os.path.join("test", "resources", "*")]},
     install_requires=[
         "setuptools>=18.0",
         "cython",

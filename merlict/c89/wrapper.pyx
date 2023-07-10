@@ -160,10 +160,8 @@ cdef class Scenery:
     def query_intersection(self, rays):
         cdef int rc
         assert _rays.is_rays(records=rays)
-
-        isecs = _intersections.init(size=rays.shape[0])
-
         cdef stdint.uint64_t num_rays = rays.shape[0]
+        isecs = _intersections.init(size=num_rays)
 
         cdef np.ndarray[mliRay,mode="c"] crays = np.ascontiguousarray(
             rays
@@ -177,13 +175,16 @@ cdef class Scenery:
             np.zeros(rays.shape[0], dtype=np.int64)
         )
 
-        rc = mliBridge_query_many_intersection(
-            &self.scenery,
-            num_rays,
-            &crays[0],
-            &cisecs[0],
-            &cis_valid_isecs[0])
+        if num_rays:
+            rc = mliBridge_query_many_intersection(
+                &self.scenery,
+                num_rays,
+                &crays[0],
+                &cisecs[0],
+                &cis_valid_isecs[0])
 
-        assert rc == 1
+            assert rc == 1
 
-        return cis_valid_isecs, isecs
+        isecs_mask = cis_valid_isecs.astype(dtype=np.bool)
+
+        return isecs_mask, isecs
