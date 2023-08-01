@@ -8,6 +8,9 @@ def get_materials_dir():
 
 
 def surface(key):
+    """
+    Returns the surface's properties from merlict's own library of surfaces.
+    """
     MATERIALS_DIR = get_materials_dir()
     SURFACES_DIR = os.path.join(MATERIALS_DIR, "surfaces")
 
@@ -30,6 +33,9 @@ def surface(key):
 
 
 def medium(key):
+    """
+    Returns the medium's properties from merlict's own library of media.
+    """
     MATERIALS_DIR = get_materials_dir()
     MEDIA_DIR = os.path.join(MATERIALS_DIR, "media")
 
