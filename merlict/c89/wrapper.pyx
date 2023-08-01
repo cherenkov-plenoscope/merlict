@@ -92,30 +92,23 @@ cdef class Scenery:
         """
         Viewer will print to stdout.
         """
-        cdef mlivrConfig viewer_config
+        cdef mlivrConfig cconfig
         if config:
-            viewer_config = _mlivrConfig_from_dict(config)
+            cconfig = _mlivrConfig_from_dict(config)
         else:
-            viewer_config = mlivrConfig_default()
+            cconfig = mlivrConfig_default()
 
         fd = sys.stdin.fileno()
-        old = termios.tcgetattr(fd)
-        new = termios.tcgetattr(fd)
+        old_attr = termios.tcgetattr(fd)
+        new_attr = termios.tcgetattr(fd)
         C_FLAG = 3
 
-        new[C_FLAG] = new[C_FLAG] & ~termios.ICANON
+        new_attr[C_FLAG] = new_attr[C_FLAG] & ~termios.ICANON
         try:
-            termios.tcsetattr(fd, termios.TCSADRAIN, new)
-
-            # ----
-            rc = mlivr_run_interactive_viewer(
-                &self.scenery,
-                viewer_config
-            )
-            # ----
-
+            termios.tcsetattr(fd, termios.TCSADRAIN, new_attr)
+            rc = mlivr_run_interactive_viewer(&self.scenery, cconfig)
         finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_attr)
 
     def init_from_path(self, path):
         cdef int rc
