@@ -71,7 +71,7 @@ cdef class Prng:
 """
 
 
-cdef class Scenery:
+cdef class Server:
     cdef mliScenery scenery
 
     def __cinit__(self):

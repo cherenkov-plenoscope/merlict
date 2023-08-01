@@ -11,7 +11,7 @@ SCENERY_PATH = pkg_resources.resource_filename(
 
 
 def test_intersection_size_zero():
-    scenery = merlict.c89.wrapper.Scenery(path=SCENERY_PATH)
+    scenery = merlict.c89.wrapper.Server(path=SCENERY_PATH)
     rays = merlict.ray.zeros(size=0)
 
     assert rays.shape[0] == 0
@@ -25,7 +25,7 @@ def test_intersection_size_zero():
 
 def test_intersection_simple():
     prng = np.random.Generator(np.random.PCG64(13))
-    scenery = merlict.c89.wrapper.Scenery(path=SCENERY_PATH)
+    scenery = merlict.c89.wrapper.Server(path=SCENERY_PATH)
     N = 10 * 1000
     rays = merlict.ray.zeros(size=N)
 

@@ -1,4 +1,34 @@
+import numpy as np
+import tarfile
+import io
 import json_numpy
+from .. import materials
+
+
+def init(default_medium="vacuum"):
+    """
+    Returns a Scenery.
+    A scenery is a tree of references to primitives.
+    A reference is a translation and rotation to describe the object's
+    relations w.r.t. each other.
+
+    Further, the Scenery contains the materials.
+
+    A scenery can be exported to the merlict_c89 ray-tracer.
+    """
+    scenery = {
+        "materials": {
+            "media": {},
+            "surfaces": {},
+            "boundary_layers": {},
+            "default_medium": default_medium,
+        },
+        "geometry": {"objects": {}, "relations": {"children": []},},
+    }
+    scenery["materials"]["media"][default_medium] = materials.medium(
+        key=default_medium
+    )
+    return scenery
 
 
 def sceneryDs_from_scenery(scenery, indent=4, relations_indent=0, readme=None):
