@@ -1,3 +1,4 @@
+from .version import __version__
 from . import c89
 from . import viewer
 from . import scenery

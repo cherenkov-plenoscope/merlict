@@ -6,9 +6,18 @@ import os
 with open("README.md", "r") as f:
     long_description = f.read()
 
+
+_version_path = os.path.join("merlict", "version", "__init__.py")
+with open(_version_path, "r") as f:
+    _txt = f.read()
+    _version_line = _txt.splitlines()[-1]
+    _version_expression = _version_line.split()[-1]
+    version = _version_expression.strip("\"'")
+
+
 setuptools.setup(
     name="merlict_sebastian-achim-mueller",
-    version="0.0.1",
+    version=version,
     description="Ray tracing in python",
     long_description=long_description,
     long_description_content_type="text/markdown",
