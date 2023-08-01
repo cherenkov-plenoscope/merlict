@@ -1,4 +1,5 @@
 import numpy as np
+from .. import utils
 
 
 def dtype():
@@ -13,14 +14,7 @@ def dtype():
 
 
 def is_rays(records):
-    if not isinstance(records, np.core.records.recarray):
-        return False
-    for expected_name, expected_dtype in dtype():
-        if expected_name not in records.dtype.names:
-            return False
-        if not records.dtype[expected_name] == expected_dtype:
-            return False
-    return True
+    return utils.recarray.isdtype(recarray=records, dtype=dtype())
 
 
 def init(size):
