@@ -2,14 +2,14 @@ import merlict
 
 
 def test_init():
-    rays = merlict.rays.zeros(size=13)
+    rays = merlict.ray.zeros(size=13)
     assert rays.shape[0] == 13
 
 
 def test_bytes():
-    rays = merlict.rays.zeros(size=13)
-    raysb = merlict.rays.tobytes(rays)
-    rays_back = merlict.rays.frombytes(raysb)
+    rays = merlict.ray.zeros(size=13)
+    raysb = merlict.ray.tobytes(rays)
+    rays_back = merlict.ray.frombytes(raysb)
 
     for i in range(rays.shape[0]):
         for key in rays.dtype.names:
@@ -17,8 +17,8 @@ def test_bytes():
 
 
 def test_fromphotons():
-    photons = merlict.photons.zeros(size=43)
-    rays = merlict.rays.fromphotons(photons)
+    photons = merlict.photon.zeros(size=43)
+    rays = merlict.ray.fromphotons(photons)
 
     for i in range(rays.shape[0]):
         for rays_key in rays.dtype.names:

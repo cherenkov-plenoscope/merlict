@@ -6,8 +6,9 @@ from libc cimport stdint
 import termios
 import sys
 import numpy as np
-from .. import rays as _rays
-from .. import intersections as _intersections
+from .. import ray as _ray
+from .. import intersection as _intersection
+from .. import intersectionSurfaceNormal as _intersectionSurfaceNormal
 
 
 def _mliVec2py(mliVec mliv):
@@ -159,9 +160,9 @@ cdef class Scenery:
 
     def query_intersection(self, rays):
         cdef int rc
-        assert _rays.is_rays(records=rays)
-        cdef stdint.uint64_t num_rays = rays.shape[0]
-        isecs = _intersections.init(size=num_rays)
+        assert _ray.israys(rays)
+        cdef stdint.uint64_t num_ray = rays.shape[0]
+        isecs = _intersection.init(size=num_ray)
 
         cdef np.ndarray[mliRay,mode="c"] crays = np.ascontiguousarray(
             rays
@@ -175,10 +176,42 @@ cdef class Scenery:
             np.zeros(rays.shape[0], dtype=np.int64)
         )
 
-        if num_rays:
+        if num_ray:
             rc = mliBridge_query_many_intersection(
                 &self.scenery,
-                num_rays,
+                num_ray,
+                &crays[0],
+                &cisecs[0],
+                &cis_valid_isecs[0])
+
+            assert rc == 1
+
+        isecs_mask = cis_valid_isecs.astype(dtype=np.bool)
+
+        return isecs_mask, isecs
+
+    def query_intersectionurfaceNormal(self, rays):
+        cdef int rc
+        assert _ray.israys(rays)
+        cdef stdint.uint64_t num_ray = rays.shape[0]
+        isecs = _intersectionSurfaceNormal.init(size=num_ray)
+
+        cdef np.ndarray[mliRay,mode="c"] crays = np.ascontiguousarray(
+            rays
+        )
+
+        cdef np.ndarray[mliIntersectionSurfaceNormal,mode="c"] cisecs = np.ascontiguousarray(
+            isecs
+        )
+
+        cdef np.ndarray[stdint.int64_t,mode="c"] cis_valid_isecs = np.ascontiguousarray(
+            np.zeros(rays.shape[0], dtype=np.int64)
+        )
+
+        if num_ray:
+            rc = mliBridge_query_many_intersectionSurfaceNormal(
+                &self.scenery,
+                num_ray,
                 &crays[0],
                 &cisecs[0],
                 &cis_valid_isecs[0])

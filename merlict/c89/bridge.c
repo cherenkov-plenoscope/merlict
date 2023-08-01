@@ -55,3 +55,31 @@ int mliBridge_query_many_intersection(
         }
         return 1;
 }
+
+
+int mliBridge_query_many_intersectionSurfaceNormal(
+        const struct mliScenery *scenery,
+        const uint64_t num_rays,
+        const struct mliRay *rays,
+        struct mliIntersectionSurfaceNormal *isecs,
+        int64_t *is_valid_isecs)
+{
+        uint64_t i;
+        for (i = 0; i < num_rays; i++) {
+                struct mliRay ray = rays[i];
+                struct mliIntersectionSurfaceNormal isec = mliIntersectionSurfaceNormal_init();
+                int is_valid_isec = mli_query_intersection(
+                        scenery,
+                        ray,
+                        &isec
+                );
+                if (is_valid_isec == 1) {
+                        isecs[i] = isec;
+                        is_valid_isecs[i] = 1u;
+                } else {
+                        is_valid_isecs[i] = 0u;
+                        isecs[i] = mliIntersectionSurfaceNormal_init();
+                }
+        }
+        return 1;
+}

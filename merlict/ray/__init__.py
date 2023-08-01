@@ -13,8 +13,8 @@ def dtype():
     ]
 
 
-def is_rays(records):
-    return utils.recarray.isdtype(recarray=records, dtype=dtype())
+def israys(r):
+    return utils.recarray.isdtype(r=r, dtype=dtype())
 
 
 def init(size):
@@ -22,10 +22,7 @@ def init(size):
 
 
 def zeros(size):
-    out = init(size=size)
-    for key in out.dtype.names:
-        out[key] = np.zeros(size, dtype=out.dtype[key])
-    return out
+    return utils.recarray.zeros(size=size, dtype=dtype())
 
 
 def frombytes(s):

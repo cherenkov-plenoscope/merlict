@@ -149,3 +149,10 @@ cdef extern from "bridge.h":
         const mliRay *rays,
         mliIntersection *isecs,
         stdint.int64_t *is_valid_isecs)
+
+    cdef int mliBridge_query_many_intersectionSurfaceNormal(
+        const mliScenery *scenery,
+        const stdint.uint64_t num_rays,
+        const mliRay *rays,
+        mliIntersectionSurfaceNormal *isecs,
+        stdint.int64_t *is_valid_isecs)

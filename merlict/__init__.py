@@ -1,9 +1,10 @@
 from . import c89
 from . import viewer
 from . import scenery
-from . import rays
-from . import intersections
-from . import photons
+from . import ray
+from . import photon
+from . import intersection
+from . import intersectionSurfaceNormal
 
 import numpy as np
 
