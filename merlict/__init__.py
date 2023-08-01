@@ -1,11 +1,12 @@
 from .version import __version__
 from . import c89
-from . import viewer
+from . import materials
 from . import scenery
 from . import ray
 from . import photon
 from . import intersection
 from . import intersectionSurfaceNormal
+from . import viewer
 
 import numpy as np
 
