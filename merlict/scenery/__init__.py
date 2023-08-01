@@ -25,13 +25,17 @@ def sceneryDs_from_scenery(scenery, indent=4, relations_indent=0, readme=None):
     sceneryDs["materials"]["media"] = {}
     for mkey in scenery["materials"]["media"]:
         mkey_filename = "{:s}.json".format(mkey)
-        mjsn = json_numpy.dumps(scenery["materials"]["media"][mkey], indent=indent)
+        mjsn = json_numpy.dumps(
+            scenery["materials"]["media"][mkey], indent=indent
+        )
         sceneryDs["materials"]["media"][mkey_filename] = mjsn
 
     sceneryDs["materials"]["surfaces"] = {}
     for skey in scenery["materials"]["surfaces"]:
         skey_filename = "{:s}.json".format(skey)
-        sjsn = json_numpy.dumps(scenery["materials"]["surfaces"][skey], indent=indent)
+        sjsn = json_numpy.dumps(
+            scenery["materials"]["surfaces"][skey], indent=indent
+        )
         sceneryDs["materials"]["media"][mkey_filename] = sjsn
 
     sceneryDs["materials"]["boundary_layers.json"] = json_numpy.dumps(
@@ -43,4 +47,3 @@ def sceneryDs_from_scenery(scenery, indent=4, relations_indent=0, readme=None):
     )
 
     return sceneryDs
-

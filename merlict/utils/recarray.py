@@ -29,7 +29,6 @@ def isdtype(r, dtype):
     return True
 
 
-
 def zeros(size, dtype):
     out = np.core.records.recarray(shape=size, dtype=dtype)
     for key in out.dtype.names:
