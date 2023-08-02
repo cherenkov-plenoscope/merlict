@@ -1,69 +1,33 @@
 from libc cimport stdint
 
-cdef extern from "subset.h":
+
+cdef extern from "merlict_c89/merlict/mliVec.h":
     cdef struct mliVec:
         double x
         double y
         double z
 
-    cdef struct mliArchive:
-        pass
 
-    cdef mliArchive mliArchive_init()
-    cdef void mliArchive_free(mliArchive *arc)
-    cdef int mliArchive_malloc(mliArchive *arc)
-    cdef int mliArchive_malloc_from_path(mliArchive *arc, const char *path)
-
-    cdef struct mliScenery:
-        pass
-
-    cdef mliScenery mliScenery_init()
-    cdef void mliScenery_free(mliScenery *scn)
-    cdef int mliScenery_malloc_from_Archive(
-        mliScenery *scn,
-        const mliArchive *arc
-    )
-    # this is the binary dump ```sceneryCa```
-    cdef int mliScenery_malloc_from_path(
-        mliScenery *scenery, const char *path
-    )
-    cdef int mliScenery_write_to_path(
-        const mliScenery *scenery, const char *path
-    )
-
-    cdef struct mliPrng:
-        pass
-
-    cdef mliPrng mliPrng_init_MT19937(const stdint.uint32_t seed)
-    cdef mliPrng mliPrng_init_PCG32(const stdint.uint32_t seed)
-    cdef stdint.uint32_t mliPrng_generate_uint32(mliPrng *prng)
-    cdef double mli_random_uniform(mliPrng *prng)
-
-    # GeometryId
-    # ----------
-    cdef struct mliGeometryId:
-        stdint.uint32_t robj
-        stdint.uint32_t face
-
-    # ===
-    # RAY
-    # ===
-
-    # Ray
-    # ---
+cdef extern from "merlict_c89/merlict/mliRay.h":
     cdef struct mliRay:
         mliVec support
         mliVec direction
 
-    # mliIntersection
-    # ---------------
+
+cdef extern from "merlict_c89/merlict/mliGeometryId.h":
+    cdef struct mliGeometryId:
+        stdint.uint32_t robj
+        stdint.uint32_t face
+
+
+cdef extern from "merlict_c89/merlict/mliIntersection.h":
     cdef struct mliIntersection:
         mliGeometryId geometry_id
         mliVec position_local
         double distance_of_ray
 
-    # mliIntersectionSurfaceNormal
-    # ----------------------------
+
+cdef extern from "merlict_c89/merlict/mliIntersectionSurfaceNormal.h":
     cdef struct mliIntersectionSurfaceNormal:
         mliGeometryId geometry_id
         mliVec position
@@ -73,19 +37,72 @@ cdef extern from "subset.h":
         double distance_of_ray
         int from_outside_to_inside
 
-    # =======
-    # PHOTONS
-    # =======
 
-    # Photon
-    # ------
+cdef extern from "merlict_c89/merlict/mliPhoton.h":
     cdef struct mliPhoton:
         mliRay ray
         double wavelength
-        long id
+        stdint.int64_t id
 
-    # PhotonInteraction
-    # -----------------
+
+cdef extern from "merlict_c89/merlict/mliArchive.h":
+    cdef struct mliArchive:
+        pass
+
+    cdef mliArchive mliArchive_init()
+    cdef void mliArchive_free(mliArchive *arc)
+    cdef int mliArchive_malloc(mliArchive *arc)
+    cdef int mliArchive_malloc_from_path(mliArchive *arc, const char *path)
+
+
+cdef extern from "merlict_c89/merlict/mliScenery.h":
+    cdef struct mliScenery:
+        pass
+
+    cdef mliScenery mliScenery_init()
+    cdef void mliScenery_free(mliScenery *scn)
+
+
+cdef extern from "merlict_c89/merlict/mliScenery_tar.h":
+    cdef int mliScenery_malloc_from_Archive(
+        mliScenery *scn,
+        const mliArchive *arc)
+
+
+cdef extern from "merlict_c89/merlict/mliScenery_serialize.h":
+    cdef int mliScenery_malloc_from_path(
+        mliScenery *scenery,
+        const char *path)
+    cdef int mliScenery_write_to_path(
+        const mliScenery *scenery,
+        const char *path)
+
+
+cdef extern from "merlict_c89/merlict/mliColor.h":
+    cdef struct mliColor:
+        float r
+        float g
+        float b
+
+
+cdef extern from "merlict_c89/merlict/mliImage.h":
+    cdef struct mliImage:
+        stdint.uint32_t num_cols
+        stdint.uint32_t num_rows
+        mliColor *raw
+
+
+cdef extern from "merlict_c89/merlict/mli_random_generator.h":
+    cdef struct mliPrng:
+        pass
+
+    cdef mliPrng mliPrng_init_MT19937(const stdint.uint32_t seed)
+    cdef mliPrng mliPrng_init_PCG32(const stdint.uint32_t seed)
+    cdef stdint.uint32_t mliPrng_generate_uint32(mliPrng *prng)
+    cdef double mli_random_uniform(mliPrng *prng)
+
+
+cdef extern from "merlict_c89/merlict/mliPhotonInteraction.h":
     cdef struct mliPhotonInteraction:
         int on_geometry_surface
         mliGeometryId geometry_id
@@ -97,15 +114,15 @@ cdef extern from "subset.h":
         int from_outside_to_inside
         int type
 
-    # ======
-    # VIEWER
-    # ======
 
+cdef extern from "merlict_c89/merlict/mliView.h":
     cdef struct mliView:
         mliVec position
         mliVec rotation
         double field_of_view
 
+
+cdef extern from "merlict_c89/merlict/mli_viewer_Config.h":
     cdef struct mlivrConfig:
         stdint.uint32_t random_seed
         stdint.uint64_t preview_num_cols
@@ -119,20 +136,11 @@ cdef extern from "subset.h":
 
     cdef mlivrConfig mlivrConfig_default()
 
+
+cdef extern from "merlict_c89/merlict/mli_viewer_viewer.h":
     cdef int mlivr_run_interactive_viewer(
         const mliScenery *scn,
-        const mlivrConfig cfg
-    )
-
-    cdef struct mliColor:
-        float r
-        float g
-        float b
-
-    cdef struct mliImage:
-        stdint.uint32_t num_cols
-        stdint.uint32_t num_rows
-        mliColor *raw
+        const mlivrConfig cfg)
 
 
 cdef extern from "bridge.h":
