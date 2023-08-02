@@ -91,6 +91,17 @@ cdef extern from "merlict_c89/merlict/mliImage.h":
         stdint.uint32_t num_rows
         mliColor *raw
 
+    cdef mliColor mliImage_at(
+        const mliImage *img,
+        const stdint.uint32_t col,
+        const stdint.uint32_t row)
+
+    cdef void mliImage_set(
+        const mliImage *img,
+        const stdint.uint32_t col,
+        const stdint.uint32_t row,
+        const mliColor color)
+
 
 cdef extern from "merlict_c89/merlict/mli_random_generator.h":
     cdef struct mliPrng:
@@ -141,6 +152,33 @@ cdef extern from "merlict_c89/merlict/mli_viewer_viewer.h":
     cdef int mlivr_run_interactive_viewer(
         const mliScenery *scn,
         const mlivrConfig cfg)
+
+
+cdef extern from "merlict_c89/merlict/mliAtmosphere.h":
+    cdef struct mliAtmosphere:
+        double sunLatitude
+        double sunHourAngle
+        mliVec sunDirection
+        double sunDistance
+        double sunRadius
+        double earthRadius
+        double atmosphereRadius
+        double Height_Rayleigh
+        double Height_Mie
+        mliColor beta_Rayleigh
+        mliColor beta_Mie
+        stdint.uint64_t numSamples
+        stdint.uint64_t numSamplesLight
+        double power
+        double altitude
+
+
+cdef extern from "merlict_c89/merlict/mliTracer.h":
+    cdef struct mliTracerConfig:
+        stdint.uint64_t num_trails_global_light_source
+        int have_atmosphere
+        mliAtmosphere atmosphere
+        mliColor background_color
 
 
 cdef extern from "bridge.h":

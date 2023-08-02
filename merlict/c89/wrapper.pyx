@@ -11,11 +11,11 @@ from .. import intersection as _intersection
 from .. import intersectionSurfaceNormal as _intersectionSurfaceNormal
 
 
-def _mliVec2py(mliVec mliv):
+cdef _mliVec2py(mliVec mliv):
     return np.array([mliv.x, mliv.y, mliv.z], dtype=np.float64)
 
 
-def _mliVec(v):
+cdef _mliVec(v):
     cdef mliVec mliv
     mliv.x = v[0]
     mliv.y = v[1]
@@ -23,7 +23,21 @@ def _mliVec(v):
     return mliv
 
 
-def _mliView(position, rotation, field_of_view):
+cdef _mliImage2py(mliImage mliimg):
+    out = np.zeros(
+        shape=(mliimg.num_cols, mliimg.num_rows, 3),
+        dtype=np.float32)
+    cdef mliColor c
+    for ix in range(mliimg.num_cols):
+        for iy in range(mliimg.num_rows):
+            c = mliImage_at(&mliimg, ix, iy)
+            out[ix, iy, 0] = c.r
+            out[ix, iy, 1] = c.g
+            out[ix, iy, 2] = c.b
+    return out
+
+
+cdef _mliView(position, rotation, field_of_view):
     cdef mliView view
     view.position = _mliVec(position)
     view.rotation = _mliVec(rotation)
@@ -31,7 +45,7 @@ def _mliView(position, rotation, field_of_view):
     return view
 
 
-def _mlivrConfig_from_dict(config):
+cdef _mlivrConfig_from_dict(config):
     c = config
     cdef mlivrConfig _c
     _c.random_seed = c["random_seed"]
@@ -183,7 +197,7 @@ cdef class Server:
 
         return isecs_mask, isecs
 
-    def query_intersectionurfaceNormal(self, rays):
+    def query_intersectionSurfaceNormal(self, rays):
         cdef int rc
         assert _ray.israys(rays)
         cdef stdint.uint64_t num_ray = rays.shape[0]
