@@ -1,6 +1,5 @@
 from .wrapper cimport *
 cimport numpy as np
-cimport cython
 from libc cimport stdint
 
 import termios
@@ -60,7 +59,9 @@ cdef _mlivrConfig_from_dict(config):
         field_of_view=c["view"]["field_of_view"],
     )
     _c.aperture_camera_f_stop_ratio = c["aperture_camera_f_stop_ratio"]
-    _c.aperture_camera_image_sensor_width = c["aperture_camera_image_sensor_width"]
+    _c.aperture_camera_image_sensor_width = c[
+        "aperture_camera_image_sensor_width"
+    ]
     return _c
 
 
@@ -79,10 +80,6 @@ cdef class Prng:
     def uint32(self):
         cdef unsigned int c = mliPrng_generate_uint32(&self.prng)
         return int(c)
-
-"""
-======================================
-"""
 
 
 cdef class Server:
@@ -120,7 +117,7 @@ cdef class Server:
         new_attr[C_FLAG] = new_attr[C_FLAG] & ~termios.ICANON
         try:
             termios.tcsetattr(fd, termios.TCSADRAIN, new_attr)
-            rc = mlivr_run_interactive_viewer(&self.scenery, cconfig)
+            _rc = mlivr_run_interactive_viewer(&self.scenery, cconfig)
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_attr)
 
@@ -171,15 +168,19 @@ cdef class Server:
         cdef stdint.uint64_t num_ray = rays.shape[0]
         isecs = _intersection.init(size=num_ray)
 
-        cdef np.ndarray[mliRay,mode="c"] crays = np.ascontiguousarray(
+        cdef np.ndarray[mliRay, mode="c"] crays = np.ascontiguousarray(
             rays
         )
 
-        cdef np.ndarray[mliIntersection,mode="c"] cisecs = np.ascontiguousarray(
+        cdef np.ndarray[
+            mliIntersection, mode="c"
+        ] cisecs = np.ascontiguousarray(
             isecs
         )
 
-        cdef np.ndarray[stdint.int64_t,mode="c"] cis_valid_isecs = np.ascontiguousarray(
+        cdef np.ndarray[
+            stdint.int64_t, mode="c"
+        ] cis_valid_isecs = np.ascontiguousarray(
             np.zeros(rays.shape[0], dtype=np.int64)
         )
 
@@ -203,15 +204,19 @@ cdef class Server:
         cdef stdint.uint64_t num_ray = rays.shape[0]
         isecs = _intersectionSurfaceNormal.init(size=num_ray)
 
-        cdef np.ndarray[mliRay,mode="c"] crays = np.ascontiguousarray(
+        cdef np.ndarray[mliRay, mode="c"] crays = np.ascontiguousarray(
             rays
         )
 
-        cdef np.ndarray[mliIntersectionSurfaceNormal,mode="c"] cisecs = np.ascontiguousarray(
+        cdef np.ndarray[
+            mliIntersectionSurfaceNormal, mode="c"
+        ] cisecs = np.ascontiguousarray(
             isecs
         )
 
-        cdef np.ndarray[stdint.int64_t,mode="c"] cis_valid_isecs = np.ascontiguousarray(
+        cdef np.ndarray[
+            stdint.int64_t, mode="c"
+        ] cis_valid_isecs = np.ascontiguousarray(
             np.zeros(rays.shape[0], dtype=np.int64)
         )
 
