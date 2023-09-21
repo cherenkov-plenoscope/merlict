@@ -101,7 +101,10 @@ cdef class Server:
 
     def view(self, config=None):
         """
-        Viewer will print to stdout.
+        Prints a rendered image of the scenery to stdout. Waits for user-input
+        (the user pressing keys) to manipulate the view.
+
+        Press [h] to print the help.
         """
         cdef mlivrConfig cconfig
         if config:
@@ -194,7 +197,7 @@ cdef class Server:
 
             assert rc == 1
 
-        isecs_mask = cis_valid_isecs.astype(dtype=np.bool)
+        isecs_mask = cis_valid_isecs.astype(dtype=np.bool_)
 
         return isecs_mask, isecs
 
@@ -230,6 +233,10 @@ cdef class Server:
 
             assert rc == 1
 
-        isecs_mask = cis_valid_isecs.astype(dtype=np.bool)
+        isecs_mask = cis_valid_isecs.astype(dtype=np.bool_)
 
         return isecs_mask, isecs
+
+    def __repr__(self):
+        out = "{:s}()".format(self.__class__.__name__)
+        return out

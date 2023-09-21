@@ -1,7 +1,6 @@
-|TestStatus| |PyPiStatus| |BlackStyle| |PackStyleBlack| |GPLv3Logo|
-
-
 |ImgMerlictPythonLogo|
+
+|TestStatus| |PyPiStatus| |BlackStyle| |PackStyleBlack| |GPLv3Logo|
 
 
 More light than you can handle! Also: This is in beta state. Don't judge me!
