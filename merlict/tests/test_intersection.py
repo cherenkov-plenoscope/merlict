@@ -21,7 +21,7 @@ def test_intersection_size_zero():
     isecs_valid, isecs = scenery.query_intersection(rays)
 
     assert isecs_valid.shape[0] == 0
-    assert isecs_valid.dtype == np.bool
+    assert isecs_valid.dtype == np.bool_
     assert isecs.shape[0] == 0
 
 
