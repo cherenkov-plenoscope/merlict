@@ -5,7 +5,7 @@ import os
 
 # merlict python package's version
 # --------------------------------
-MERLICT_PYTHON_VERSION_STR = "0.0.2"
+MERLICT_PYTHON_VERSION_STR = "0.0.3"
 
 c89_src_dir = os.path.join("..", "c89", "merlict_c89", "merlict")
 
@@ -37,7 +37,8 @@ MERLICT_C89_VERSION_STR = "{:d}.{:d}.{:d}".format(
 # combine versions
 # ----------------
 VERSION_STR = "{:s}.{:s}".format(
-    MERLICT_PYTHON_VERSION_STR, MERLICT_C89_VERSION_STR,
+    MERLICT_PYTHON_VERSION_STR,
+    MERLICT_C89_VERSION_STR,
 )
 
 # export version

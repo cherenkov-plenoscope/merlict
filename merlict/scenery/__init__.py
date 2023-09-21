@@ -23,7 +23,10 @@ def init(default_medium="vacuum"):
             "boundary_layers": {},
             "default_medium": default_medium,
         },
-        "geometry": {"objects": {}, "relations": {"children": []},},
+        "geometry": {
+            "objects": {},
+            "relations": {"children": []},
+        },
     }
     scenery["materials"]["media"][default_medium] = materials.medium(
         key=default_medium
@@ -69,7 +72,8 @@ def sceneryDs_from_scenery(scenery, indent=4, relations_indent=0, readme=None):
         sceneryDs["materials"]["media"][mkey_filename] = sjsn
 
     sceneryDs["materials"]["boundary_layers.json"] = json_numpy.dumps(
-        scenery["materials"]["boundary_layers"], indent=indent,
+        scenery["materials"]["boundary_layers"],
+        indent=indent,
     )
 
     sceneryDs["materials"]["default_medium.txt"] = str(

@@ -24,7 +24,19 @@ setuptools.setup(
     url="https://github.com/cherenkov-plenoscope/merlict.git",
     author="Sebastian Achim Mueller",
     author_email="sebastian-achim.mueller@mpi-hd.mpg.de",
-    packages=["merlict"],
+    packages=[
+        "merlict",
+        "merlict.materials",
+        "merlict.photon",
+        "merlict.c89",
+        "merlict.viewer",
+        "merlict.utils",
+        "merlict.intersectionSurfaceNormal",
+        "merlict.intersection",
+        "merlict.ray",
+        "merlict.scenery",
+        "merlict.version",
+    ],
     package_data={
         "merlict": [
             os.path.join("test", "resources", "*"),

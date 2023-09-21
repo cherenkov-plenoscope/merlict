@@ -18,7 +18,10 @@ def israys(r):
 
 
 def init(size):
-    return np.core.records.recarray(shape=size, dtype=dtype(),)
+    return np.core.records.recarray(
+        shape=size,
+        dtype=dtype(),
+    )
 
 
 def zeros(size):
