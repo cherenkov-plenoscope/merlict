@@ -60,11 +60,18 @@ setuptools.setup(
     package_data={
         "merlict": [
             os.path.join("tests", "resources", "*"),
-            os.path.join("materials", "media", "*"),
-            os.path.join("materials", "surfaces", "*"),
-            os.path.join("c89", "*"),
-            os.path.join("c89", "merlict_c89", "*"),
-            os.path.join("c89", "merlict_c89", "merlict", "*"),
+        ],
+        "merlict.materials": [
+            os.path.join("media", "*"),
+            os.path.join("surfaces", "*"),
+        ],
+        "merlict.c89": [
+            os.path.join("*.pyx"),
+            os.path.join("*.pxd"),
+            os.path.join("*.h"),
+            os.path.join("*.c"),
+            os.path.join("merlict_c89", "*"),
+            os.path.join("merlict_c89", "merlict", "*"),
         ]
     },
     install_requires=[
