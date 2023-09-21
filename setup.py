@@ -1,7 +1,7 @@
 import setuptools
 import os
 import Cython
-from Cython import Build
+from Cython import Build as _
 import numpy
 
 
@@ -9,12 +9,11 @@ with open("README.rst", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 
-_version_path = os.path.join("merlict", "version", "__init__.py")
-with open(_version_path, "r") as f:
-    _txt = f.read()
-    _version_line = _txt.splitlines()[-1]
-    _version_expression = _version_line.split()[-1]
-    version = _version_expression.strip("\"'")
+with open(os.path.join("merlict", "version.py")) as f:
+    txt = f.read()
+    last_line = txt.splitlines()[-1]
+    version_string = last_line.split()[-1]
+    version = version_string.strip("\"'")
 
 
 setuptools.setup(
