@@ -1,9 +1,11 @@
 import setuptools
-import numpy
 import os
+import Cython
+from Cython import Build
+import numpy
 
 
-with open("README.md", "r") as f:
+with open("README.rst", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 
@@ -16,12 +18,12 @@ with open(_version_path, "r") as f:
 
 
 setuptools.setup(
-    name="merlict_sebastian-achim-mueller",
+    name="merlict",
     version=version,
     description="Ray tracing in python",
     long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/cherenkov-plenoscope/merlict.git",
+    long_description_content_type="text/x-rst",
+    url="https://github.com/cherenkov-plenoscope/merlict",
     author="Sebastian Achim Mueller",
     author_email="sebastian-achim.mueller@mpi-hd.mpg.de",
     packages=[
@@ -69,5 +71,12 @@ setuptools.setup(
             ],
             language="c",
         ),
+    ],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Operating System :: OS Independent",
+        "Natural Language :: English",
+        "Topic :: Scientific/Engineering :: Physics",
     ],
 )
