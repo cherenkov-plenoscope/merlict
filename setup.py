@@ -35,6 +35,7 @@ extensions = [
     )
 ]
 
+
 setuptools.setup(
     name="merlict",
     version=version,
@@ -58,9 +59,12 @@ setuptools.setup(
     ],
     package_data={
         "merlict": [
-            os.path.join("test", "resources", "*"),
+            os.path.join("tests", "resources", "*"),
             os.path.join("materials", "media", "*"),
             os.path.join("materials", "surfaces", "*"),
+            os.path.join("c89", "*"),
+            os.path.join("c89", "merlict_c89", "*"),
+            os.path.join("c89", "merlict_c89", "merlict", "*"),
         ]
     },
     install_requires=[
