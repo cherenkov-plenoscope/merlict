@@ -6,7 +6,7 @@ import os
 
 SCENERY_PATH = pkg_resources.resource_filename(
     package_or_requirement="merlict",
-    resource_name=os.path.join("test", "resources", "segmented_reflector.tar"),
+    resource_name=os.path.join("tests", "resources", "segmented_reflector.tar"),
 )
 
 

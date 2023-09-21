@@ -16,6 +16,23 @@ with open(os.path.join("merlict", "version.py")) as f:
     version = version_string.strip("\"'")
 
 
+extensions = [
+    setuptools.Extension(
+        name="merlict.c89.wrapper",
+        sources=[
+            os.path.join("merlict", "c89", "wrapper.pyx"),
+            os.path.join("merlict", "c89", "bridge.c"),
+            os.path.join("merlict", "c89", "merlict_c89", "merlict", "mli.c"),
+            os.path.join("merlict", "c89", "merlict_c89", "merlict", "mli_viewer.c"),
+        ],
+        include_dirs=[
+            numpy.get_include(),
+            os.path.join("merlict", "c89"),
+        ],
+        language="c",
+    )
+]
+
 setuptools.setup(
     name="merlict",
     version=version,
@@ -36,7 +53,6 @@ setuptools.setup(
         "merlict.intersection",
         "merlict.ray",
         "merlict.scenery",
-        "merlict.version",
     ],
     package_data={
         "merlict": [
@@ -46,12 +62,20 @@ setuptools.setup(
         ]
     },
     install_requires=[
-        "setuptools>=18.0",
-        "cython",
         "json_numpy_sebastian-achim-mueller",
     ],
-    zip_safe=False,
-    ext_modules=[
+    ext_modules=Cython.Build.cythonize(extensions, language_level=3),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Operating System :: OS Independent",
+        "Natural Language :: English",
+        "Topic :: Scientific/Engineering :: Physics",
+    ],
+)
+
+"""
+ext_modules=[
         setuptools.Extension(
             "merlict.c89.wrapper",
             sources=[
@@ -71,11 +95,4 @@ setuptools.setup(
             language="c",
         ),
     ],
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-        "Operating System :: OS Independent",
-        "Natural Language :: English",
-        "Topic :: Scientific/Engineering :: Physics",
-    ],
-)
+"""

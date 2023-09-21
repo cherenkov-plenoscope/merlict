@@ -68,7 +68,7 @@ int mliBridge_query_many_intersectionSurfaceNormal(
         for (i = 0; i < num_rays; i++) {
                 struct mliRay ray = rays[i];
                 struct mliIntersectionSurfaceNormal isec = mliIntersectionSurfaceNormal_init();
-                int is_valid_isec = mli_query_intersection(
+                int is_valid_isec = mli_query_intersection_with_surface_normal(
                         scenery,
                         ray,
                         &isec

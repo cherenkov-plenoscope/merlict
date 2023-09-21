@@ -1,4 +1,4 @@
-from wrapper cimport *
+from .wrapper cimport *
 cimport numpy as np
 cimport cython
 from libc cimport stdint
