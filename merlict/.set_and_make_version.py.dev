@@ -7,7 +7,7 @@ import os
 # --------------------------------
 MERLICT_PYTHON_VERSION_STR = "0.0.3"
 
-c89_src_dir = os.path.join("..", "c89", "merlict_c89", "merlict")
+c89_src_dir = os.path.join(".", "c89", "merlict_c89", "merlict")
 
 # gather c89 merlict version
 # --------------------------
@@ -43,9 +43,7 @@ VERSION_STR = "{:s}.{:s}".format(
 
 # export version
 # --------------
-version_path = os.path.join("__init__.py")
-
-with open(os.path.join(version_path), "wt") as f:
+with open(os.path.join(os.path.join("version.py")), "wt") as f:
     f.write("# I was written by: ")
     f.write("merlict/version/set_and_make_version_script.py\n")
     f.write('__version__ = "' + VERSION_STR + '"')
