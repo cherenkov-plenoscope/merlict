@@ -22,6 +22,8 @@ extensions = [
         sources=[
             os.path.join("merlict", "c89", "__init__.pyx"),
             os.path.join("merlict", "c89", "bridge.c"),
+            os.path.join("merlict", "c89", "merlict_c89", "src", "mli.c"),
+            os.path.join("merlict", "c89", "merlict_c89", "src", "mli_viewer.c"),
         ],
         include_dirs=[numpy.get_include()],
     )

@@ -1,9 +1,9 @@
-#include "merlict_c89/merlict/mli_random_generator.h"
-#include "merlict_c89/merlict/mliPhoton.h"
-#include "merlict_c89/merlict/mliScenery.h"
-#include "merlict_c89/merlict/mliArchive.h"
-#include "merlict_c89/merlict/mliIntersection.h"
-#include "merlict_c89/merlict/mliIntersectionSurfaceNormal.h"
+#include "merlict_c89/src/mli_random_generator.h"
+#include "merlict_c89/src/mliPhoton.h"
+#include "merlict_c89/src/mliScenery.h"
+#include "merlict_c89/src/mliArchive.h"
+#include "merlict_c89/src/mliIntersection.h"
+#include "merlict_c89/src/mliIntersectionSurfaceNormal.h"
 
 
 int mliArchive_push_back_cstr(

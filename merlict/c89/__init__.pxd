@@ -1,33 +1,33 @@
 from libc cimport stdint
 
 
-cdef extern from "merlict_c89/merlict/mliVec.h":
+cdef extern from "merlict_c89/src/mliVec.h":
     cdef struct mliVec:
         double x
         double y
         double z
 
 
-cdef extern from "merlict_c89/merlict/mliRay.h":
+cdef extern from "merlict_c89/src/mliRay.h":
     cdef struct mliRay:
         mliVec support
         mliVec direction
 
 
-cdef extern from "merlict_c89/merlict/mliGeometryId.h":
+cdef extern from "merlict_c89/src/mliGeometryId.h":
     cdef struct mliGeometryId:
         stdint.uint32_t robj
         stdint.uint32_t face
 
 
-cdef extern from "merlict_c89/merlict/mliIntersection.h":
+cdef extern from "merlict_c89/src/mliIntersection.h":
     cdef struct mliIntersection:
         mliGeometryId geometry_id
         mliVec position_local
         double distance_of_ray
 
 
-cdef extern from "merlict_c89/merlict/mliIntersectionSurfaceNormal.h":
+cdef extern from "merlict_c89/src/mliIntersectionSurfaceNormal.h":
     cdef struct mliIntersectionSurfaceNormal:
         mliGeometryId geometry_id
         mliVec position
@@ -38,14 +38,14 @@ cdef extern from "merlict_c89/merlict/mliIntersectionSurfaceNormal.h":
         int from_outside_to_inside
 
 
-cdef extern from "merlict_c89/merlict/mliPhoton.h":
+cdef extern from "merlict_c89/src/mliPhoton.h":
     cdef struct mliPhoton:
         mliRay ray
         double wavelength
         stdint.int64_t id
 
 
-cdef extern from "merlict_c89/merlict/mliArchive.h":
+cdef extern from "merlict_c89/src/mliArchive.h":
     cdef struct mliArchive:
         pass
 
@@ -55,7 +55,7 @@ cdef extern from "merlict_c89/merlict/mliArchive.h":
     cdef int mliArchive_malloc_from_path(mliArchive *arc, const char *path)
 
 
-cdef extern from "merlict_c89/merlict/mliScenery.h":
+cdef extern from "merlict_c89/src/mliScenery.h":
     cdef struct mliScenery:
         pass
 
@@ -63,13 +63,13 @@ cdef extern from "merlict_c89/merlict/mliScenery.h":
     cdef void mliScenery_free(mliScenery *scn)
 
 
-cdef extern from "merlict_c89/merlict/mliScenery_tar.h":
+cdef extern from "merlict_c89/src/mliScenery_tar.h":
     cdef int mliScenery_malloc_from_Archive(
         mliScenery *scn,
         const mliArchive *arc)
 
 
-cdef extern from "merlict_c89/merlict/mliScenery_serialize.h":
+cdef extern from "merlict_c89/src/mliScenery_serialize.h":
     cdef int mliScenery_malloc_from_path(
         mliScenery *scenery,
         const char *path)
@@ -78,14 +78,14 @@ cdef extern from "merlict_c89/merlict/mliScenery_serialize.h":
         const char *path)
 
 
-cdef extern from "merlict_c89/merlict/mliColor.h":
+cdef extern from "merlict_c89/src/mliColor.h":
     cdef struct mliColor:
         float r
         float g
         float b
 
 
-cdef extern from "merlict_c89/merlict/mliImage.h":
+cdef extern from "merlict_c89/src/mliImage.h":
     cdef struct mliImage:
         stdint.uint32_t num_cols
         stdint.uint32_t num_rows
@@ -103,7 +103,7 @@ cdef extern from "merlict_c89/merlict/mliImage.h":
         const mliColor color)
 
 
-cdef extern from "merlict_c89/merlict/mli_random_generator.h":
+cdef extern from "merlict_c89/src/mli_random_generator.h":
     cdef struct mliPrng:
         pass
 
@@ -113,7 +113,7 @@ cdef extern from "merlict_c89/merlict/mli_random_generator.h":
     cdef double mli_random_uniform(mliPrng *prng)
 
 
-cdef extern from "merlict_c89/merlict/mliPhotonInteraction.h":
+cdef extern from "merlict_c89/src/mliPhotonInteraction.h":
     cdef struct mliPhotonInteraction:
         int on_geometry_surface
         mliGeometryId geometry_id
@@ -126,14 +126,14 @@ cdef extern from "merlict_c89/merlict/mliPhotonInteraction.h":
         int type
 
 
-cdef extern from "merlict_c89/merlict/mliView.h":
+cdef extern from "merlict_c89/src/mliView.h":
     cdef struct mliView:
         mliVec position
         mliVec rotation
         double field_of_view
 
 
-cdef extern from "merlict_c89/merlict/mli_viewer_Config.h":
+cdef extern from "merlict_c89/src/mli_viewer_Config.h":
     cdef struct mlivrConfig:
         stdint.uint32_t random_seed
         stdint.uint64_t preview_num_cols
@@ -148,13 +148,13 @@ cdef extern from "merlict_c89/merlict/mli_viewer_Config.h":
     cdef mlivrConfig mlivrConfig_default()
 
 
-cdef extern from "merlict_c89/merlict/mli_viewer_viewer.h":
+cdef extern from "merlict_c89/src/mli_viewer_viewer.h":
     cdef int mlivr_run_interactive_viewer(
         const mliScenery *scn,
         const mlivrConfig cfg)
 
 
-cdef extern from "merlict_c89/merlict/mliAtmosphere.h":
+cdef extern from "merlict_c89/src/mliAtmosphere.h":
     cdef struct mliAtmosphere:
         double sunLatitude
         double sunHourAngle
@@ -173,7 +173,7 @@ cdef extern from "merlict_c89/merlict/mliAtmosphere.h":
         double altitude
 
 
-cdef extern from "merlict_c89/merlict/mliTracer.h":
+cdef extern from "merlict_c89/src/mliTracer.h":
     cdef struct mliTracerConfig:
         stdint.uint64_t num_trails_global_light_source
         int have_atmosphere
