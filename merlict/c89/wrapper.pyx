@@ -1,4 +1,4 @@
-from . cimport *
+from .c89 cimport *
 cimport numpy as np
 from libc cimport stdint
 
