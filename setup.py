@@ -25,7 +25,6 @@ extensions = [
         ],
         include_dirs=[
             numpy.get_include(),
-            os.path.join("merlict", "c89", "merlict_c89"),
         ],
         language="c",
     )
@@ -60,11 +59,6 @@ setuptools.setup(
         "merlict.materials": [
             os.path.join("media", "*"),
             os.path.join("surfaces", "*"),
-        ],
-        "merlict.c89": [
-            os.path.join("*"),
-            os.path.join("merlict_c89", "*"),
-            os.path.join("merlict_c89", "merlict", "*"),
         ],
     },
     install_requires=[
