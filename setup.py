@@ -20,13 +20,10 @@ extensions = [
     setuptools.Extension(
         name="merlict.c89",
         sources=[
-            os.path.join("merlict", "c89", "wrapper.pyx"),
+            os.path.join("merlict", "c89", "__init__.pyx"),
             os.path.join("merlict", "c89", "bridge.c"),
         ],
-        include_dirs=[
-            numpy.get_include(),
-        ],
-        language="c",
+        include_dirs=[numpy.get_include()],
     )
 ]
 
@@ -60,6 +57,9 @@ setuptools.setup(
             os.path.join("media", "*"),
             os.path.join("surfaces", "*"),
         ],
+        "merlict.c89": [
+            os.path.join("merlict_c89", "merlict", "*"),
+        ]
     },
     install_requires=[
         "json_numpy_sebastian-achim-mueller",
@@ -73,3 +73,12 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Physics",
     ],
 )
+
+
+"""
+"merlict.c89": [
+    os.path.join("*"),
+    os.path.join("merlict_c89", "*"),
+    os.path.join("merlict_c89", "merlict", "*"),
+],
+"""
