@@ -1,7 +1,4 @@
-# distutils: sources = merlict_c89/merlict/mli.c
-# distutils: include_dirs = merlict_c89/merlict
-
-from .wrapper cimport *
+from . cimport *
 cimport numpy as np
 from libc cimport stdint
 
