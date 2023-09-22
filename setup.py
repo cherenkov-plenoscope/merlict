@@ -25,6 +25,7 @@ extensions = [
         ],
         include_dirs=[
             numpy.get_include(),
+            os.path.join("merlict", "c89", "merlict_c89"),
         ],
         language="c",
     )
