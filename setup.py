@@ -26,6 +26,7 @@ extensions = [
         include_dirs=[
             numpy.get_include(),
             os.path.join("merlict", "c89", "merlict_c89"),
+            os.path.join("merlict", "c89", "merlict_c89", "merlict"),
         ],
         language="c",
     )
@@ -68,7 +69,7 @@ setuptools.setup(
             os.path.join("*.c"),
             os.path.join("merlict_c89", "*"),
             os.path.join("merlict_c89", "merlict", "*"),
-        ]
+        ],
     },
     install_requires=[
         "json_numpy_sebastian-achim-mueller",
