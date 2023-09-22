@@ -18,12 +18,14 @@ with open(os.path.join("merlict", "version.py")) as f:
 
 extensions = [
     setuptools.Extension(
-        name="merlict.c89",
+        name="merlict.c89.wrapper",
         sources=[
             os.path.join("merlict", "c89", "wrapper.pyx"),
             os.path.join("merlict", "c89", "bridge.c"),
             os.path.join("merlict", "c89", "merlict_c89", "src", "mli.c"),
-            os.path.join("merlict", "c89", "merlict_c89", "src", "mli_viewer.c"),
+            os.path.join(
+                "merlict", "c89", "merlict_c89", "src", "mli_viewer.c"
+            ),
         ],
         include_dirs=[numpy.get_include()],
     )
@@ -61,7 +63,7 @@ setuptools.setup(
         ],
         "merlict.c89": [
             os.path.join("merlict_c89", "merlict", "*"),
-        ]
+        ],
     },
     install_requires=[
         "json_numpy_sebastian-achim-mueller",
