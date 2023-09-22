@@ -61,10 +61,7 @@ setuptools.setup(
             os.path.join("surfaces", "*"),
         ],
         "merlict.c89": [
-            os.path.join("*.pyx"),
-            os.path.join("*.pxd"),
-            os.path.join("*.h"),
-            os.path.join("*.c"),
+            os.path.join("*"),
             os.path.join("merlict_c89", "*"),
             os.path.join("merlict_c89", "merlict", "*"),
         ],
