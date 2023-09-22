@@ -1,5 +1,3 @@
-#include "merlict_c89/src/mli_random_generator.h"
-#include "merlict_c89/src/mliPhoton.h"
 #include "merlict_c89/src/mliScenery.h"
 #include "merlict_c89/src/mliArchive.h"
 #include "merlict_c89/src/mliIntersection.h"
