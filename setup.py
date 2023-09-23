@@ -29,8 +29,7 @@ extensions = [
         ],
         language="c",
         include_dirs=[
-            numpy.get_include(),
-            os.path.join("merlict", "c89"),
+            numpy.get_include()
         ],
     )
 ]
@@ -66,7 +65,12 @@ setuptools.setup(
             os.path.join("surfaces", "*"),
         ],
         "merlict.c89": [
-            os.path.join("merlict_c89", "merlict", "wrapper.pyx"),
+            os.path.join("*.pyx"),
+            os.path.join("*.pxd"),
+            os.path.join("bridge.h"),
+            os.path.join("bridge.c"),
+            os.path.join("merlict_c89", "src", "*.h"),
+            os.path.join("merlict_c89", "src", "*.c"),
         ],
     },
     install_requires=[
