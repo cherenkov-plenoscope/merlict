@@ -18,7 +18,7 @@ with open(os.path.join("merlict", "version.py")) as f:
 
 extensions = [
     setuptools.Extension(
-        name="merlict.c89",
+        name="merlict.c89.wrapper",
         sources=[
             os.path.join("merlict", "c89", "wrapper.pyx"),
             os.path.join("merlict", "c89", "bridge.c"),
@@ -27,7 +27,11 @@ extensions = [
                 "merlict", "c89", "merlict_c89", "src", "mli_viewer.c"
             ),
         ],
-        include_dirs=[numpy.get_include()],
+        language="c",
+        include_dirs=[
+            numpy.get_include(),
+            os.path.join("merlict", "c89"),
+        ],
     )
 ]
 
