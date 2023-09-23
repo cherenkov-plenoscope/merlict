@@ -28,9 +28,7 @@ extensions = [
             ),
         ],
         language="c",
-        include_dirs=[
-            numpy.get_include()
-        ],
+        include_dirs=[numpy.get_include()],
     )
 ]
 
@@ -85,12 +83,3 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Physics",
     ],
 )
-
-
-"""
-"merlict.c89": [
-    os.path.join("*"),
-    os.path.join("merlict_c89", "*"),
-    os.path.join("merlict_c89", "merlict", "*"),
-],
-"""
