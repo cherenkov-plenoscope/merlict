@@ -5,7 +5,7 @@ import os
 
 # merlict python package's version
 # --------------------------------
-MERLICT_PYTHON_VERSION_STR = "0.0.7"
+MERLICT_PYTHON_VERSION_STR = "0.0.8"
 
 c89_src_dir = os.path.join(".", "c89", "merlict_c89", "src")
 
