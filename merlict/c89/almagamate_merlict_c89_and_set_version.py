@@ -7,7 +7,7 @@ import subprocess
 
 # merlict python package's version
 # --------------------------------
-MERLICT_PYTHON_VERSION_STR = "0.0.8"
+MERLICT_PYTHON_VERSION_STR = "0.1.0"
 
 merlict_c89_libs = ["chk_debug", "mli_core", "mli_viewer"]
 
