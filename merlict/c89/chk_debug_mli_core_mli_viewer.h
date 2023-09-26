@@ -1,12 +1,12 @@
-#include <string.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <inttypes.h>
 #include <termios.h>
-#include <stdio.h>
-#include <stdint.h>
+#include <errno.h>
+#include <string.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdint.h>
 #include <stddef.h>
+#include <inttypes.h>
 
 /* mliVec */
 /* ------ */
@@ -46,25 +46,37 @@ void mliVec_set(struct mliVec *a, const uint64_t dim, const double val);
 double mliVec_get(const struct mliVec *a, const uint64_t dim);
 #endif
 
-/* mli_barycentric */
-/* --------------- */
+/* mli_random_MT19937 */
+/* ------------------ */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_BARYCENTRIC_H_
-#define MLI_BARYCENTRIC_H_
+#ifndef MLI_RANDOM_MT19937_H_
+#define MLI_RANDOM_MT19937_H_
 
 
-struct mliBarycentrigWeights {
-        double a;
-        double b;
-        double c;
+struct mliMT19937 {
+        uint32_t N;
+        uint32_t M;
+        int R;
+        int A;
+        int F;
+        int U;
+        int S;
+        int B;
+        int T;
+        int C;
+        int L;
+        int MASK_LOWER;
+        int MASK_UPPER;
+        uint32_t mt[624];
+        uint16_t index;
 };
 
-struct mliBarycentrigWeights mli_barycentric_weights(
-        const struct mliVec a,
-        const struct mliVec b,
-        const struct mliVec c,
-        const struct mliVec t);
+uint32_t mliMT19937_generate_uint32(struct mliMT19937 *mt);
+void mliMT19937_twist(struct mliMT19937 *mt);
+struct mliMT19937 mliMT19937_init(const uint32_t seed);
+void mliMT19937_reinit(struct mliMT19937 *mt, const uint32_t seed);
+void mliMT19937_set_constants(struct mliMT19937 *mt);
 #endif
 
 /* mli_cstr_numbers */
@@ -101,87 +113,275 @@ int mli_cstr_print_uint64(
 
 #endif
 
-/* mliAABB */
+/* mli_barycentric */
+/* --------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_BARYCENTRIC_H_
+#define MLI_BARYCENTRIC_H_
+
+
+struct mliBarycentrigWeights {
+        double a;
+        double b;
+        double c;
+};
+
+struct mliBarycentrigWeights mli_barycentric_weights(
+        const struct mliVec a,
+        const struct mliVec b,
+        const struct mliVec c,
+        const struct mliVec t);
+#endif
+
+/* mliMat */
+/* ------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIMAT_H_
+#define MLIMAT_H_
+
+
+struct mliMat {
+        double r00;
+        double r01;
+        double r02;
+        double r10;
+        double r11;
+        double r12;
+        double r20;
+        double r21;
+        double r22;
+};
+
+void mliMat_set(struct mliMat *a, uint64_t col, uint64_t row, const double v);
+double mliMat_get(const struct mliMat *a, uint64_t col, uint64_t row);
+struct mliMat mliMat_unity(void);
+int mliMat_equal_margin(
+        const struct mliMat a,
+        const struct mliMat b,
+        const double margin);
+struct mliMat mliMat_init_axis_angle(
+        const struct mliVec axis,
+        const double angle);
+struct mliMat mliMat_init_tait_bryan(
+        const double rx,
+        const double ry,
+        const double rz);
+struct mliMat mliMat_init_columns(
+        const struct mliVec c0,
+        const struct mliVec c1,
+        const struct mliVec c2);
+struct mliMat mliMat_covariance(
+        const struct mliVec *vecs,
+        const uint64_t num_vecs,
+        const struct mliVec vecs_mean);
+struct mliMat mliMat_transpose(const struct mliMat m);
+struct mliMat mliMat_multiply(const struct mliMat x, const struct mliMat y);
+struct mliMat mliMat_minor(const struct mliMat x, const int d);
+struct mliMat mliMat_vector_outer_product(const struct mliVec v);
+void mliMat_qr_decompose(
+        const struct mliMat m,
+        struct mliMat *q,
+        struct mliMat *r);
+int mliMat_has_shurform(const struct mliMat m, const double margin);
+void mliMat_find_eigenvalues(
+        const struct mliMat a,
+        double *e0,
+        double *e1,
+        double *e2,
+        const double margin,
+        const uint64_t max_num_iterations);
+int mliMat_find_eigenvector_for_eigenvalue(
+        struct mliMat a,
+        const double eigen_value,
+        struct mliVec *eigen_vector,
+        const double tolerance);
+int mliMat_lup_decompose(struct mliMat *A, int *pivots, const double tolerance);
+void mliMat_lup_solve(
+        const struct mliMat *A,
+        const int *P,
+        const struct mliVec *b,
+        struct mliVec *x);
+#endif
+
+/* mliFace */
 /* ------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIAABB_H_
-#define MLIAABB_H_
+#ifndef MLIFACE_H_
+#define MLIFACE_H_
 
 
-struct mliAABB {
-        /*
-         * Rectangular (A)xis-(A)ligned-(B)ounding-(B)ox
-         * oriented w.r.t. the unit-vectors.
-         *
-         *                     O----------------------O
-         *                    /.                     /|
-         *                   / .                    / |
-         *                  /  .                   /  |
-         *                 /   .                  /   |
-         *                O----------------------O upper
-         *                |    .                 |    |
-         *      Z         |    .                 |    |
-         *      |       lo|wer O- - - - - - - - -| - -O
-         *      |         |   .                  |   /
-         *      |         |  .                   |  /
-         *      /-----Y   | .                    | /
-         *     /          |.                     |/
-         *    X           O----------------------O
-         *
-         *
-         */
-        struct mliVec lower;
-        struct mliVec upper;
+struct mliFace {
+        uint32_t a;
+        uint32_t b;
+        uint32_t c;
 };
 
-struct mliAABB mliAABB_set(
-        const struct mliVec lower,
-        const struct mliVec upper);
-struct mliVec mliAABB_center(const struct mliAABB a);
-struct mliAABB mliAABB_outermost(
-        const struct mliAABB a,
-        const struct mliAABB b);
-int mliAABB_valid(const struct mliAABB a);
-int mliAABB_equal(const struct mliAABB a, const struct mliAABB b);
-int mliAABB_overlapp_aabb(const struct mliAABB a, const struct mliAABB b);
+int mliFace_equal(const struct mliFace a, const struct mliFace b);
+struct mliFace mliFace_set(
+        const uint32_t a,
+        const uint32_t b,
+        const uint32_t c);
 #endif
 
-/* mliName */
-/* ------- */
+/* mliQuaternion */
+/* ------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLINAME_H_
-#define MLINAME_H_
+#ifndef MLIQUATERNION_H_
+#define MLIQUATERNION_H_
 
 
-#define MLI_NAME_CAPACITY 128
-
-struct mliName {
-        char cstr[MLI_NAME_CAPACITY];
+struct mliQuaternion {
+        double w;
+        double x;
+        double y;
+        double z;
 };
 
-struct mliName mliName_init(void);
-int mliName_valid(const struct mliName *name);
-int mliName_equal(const struct mliName *a, const struct mliName *b);
-int mliName_find_idx(
-        const struct mliName *names,
-        const uint64_t num_names,
-        const char *key,
-        uint64_t *idx);
+void mliQuaternion_print(const struct mliQuaternion q);
+struct mliQuaternion mliQuaternion_set_tait_bryan(
+        const double rx,
+        const double ry,
+        const double rz);
+struct mliMat mliQuaternion_to_matrix(const struct mliQuaternion quat);
+struct mliQuaternion mliQuaternion_set_rotaxis_and_angle(
+        const struct mliVec rot_axis,
+        const double angle);
+double mliQuaternion_norm(const struct mliQuaternion q);
+double mliQuaternion_product_complex_conjugate(const struct mliQuaternion p);
+struct mliQuaternion mliQuaternion_product(
+        const struct mliQuaternion p,
+        const struct mliQuaternion q);
+struct mliQuaternion mliQuaternion_complex_conjugate(
+        const struct mliQuaternion q);
+int mliQuaternion_equal_margin(
+        const struct mliQuaternion a,
+        const struct mliQuaternion b,
+        const double margin);
+int mliQuaternion_equal(
+        const struct mliQuaternion a,
+        const struct mliQuaternion b);
+struct mliQuaternion mliQuaternion_set(
+        const double w,
+        const double x,
+        const double y,
+        const double z);
+struct mliQuaternion mliQuaternion_set_unit_xyz(
+        const double x,
+        const double y,
+        const double z);
 #endif
 
-/* mli_from_outside_to_inside */
-/* -------------------------- */
+/* mli_viewer_toggle_stdin */
+/* ----------------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_FROM_OUTSIDE_TO_INSIDE_H_
-#define MLI_FROM_OUTSIDE_TO_INSIDE_H_
+#ifndef MLI_VIEWER_TOGGLE_STDIN_H_
+#define MLI_VIEWER_TOGGLE_STDIN_H_
+
+#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+#define HAVE_TERMIOS_H 1
+#endif
+
+#ifdef HAVE_TERMIOS_H
+struct termios mlivr_non_canonical_stdin(void);
+void mlivr_restore_stdin(struct termios *old_terminal);
+#endif
+
+#endif
+
+/* mli_random_pcg_variants_32bit_subset */
+/* ------------------------------------ */
+
+/**
+ *  2021 March 23, Sebastian Achim Mueller
+ *
+ *  Based on 'pcg_variants.h' written by Melissa O'Neill.
+ *
+ *  I only kept the version with the 64bit sequence state to generate
+ *  32bit numbers.
+ *  I dropped 'advance', and 'boundedrand'.
+ *  I only kept the seeding and the generation.
+ *  I split the original header-only into a source.c and a header.h.
+ */
+
+/*
+ * PCG Random Number Generation for C.
+ *
+ * Copyright 2014 Melissa O'Neill <oneill@pcg-random.org>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For additional information about the PCG random number generation scheme,
+ * including its license and other licensing options, visit
+ *
+ *     http://www.pcg-random.org
+ */
+
+#ifndef MLI_RANDOM_PCG_VARIANTS_32BIT_SUBSET_H_INCLUDED
+#define MLI_RANDOM_PCG_VARIANTS_32BIT_SUBSET_H_INCLUDED
 
 
-int mli_ray_runs_from_outside_to_inside(
-        const struct mliVec ray_direction_local,
-        const struct mliVec surface_normal_local);
+struct pcg_state_setseq_64 {
+        uint64_t state;
+        uint64_t inc;
+};
+
+void pcg_setseq_64_srandom_r(
+        struct pcg_state_setseq_64 *rng,
+        uint64_t initstate,
+        uint64_t initseq);
+
+uint32_t pcg_setseq_64_xsh_rr_32_random_r(struct pcg_state_setseq_64 *rng);
+
+#endif
+
+/* mli_frame_to_scenery */
+/* -------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_FRAME_TO_SCENERY_H_
+#define MLI_FRAME_TO_SCENERY_H_
+
+struct mliFrame;
+struct mliGeometry;
+struct mliGeometryToMaterialMap;
+
+int mliFrame_set_robjects_and_material_map(
+        const struct mliFrame *frame,
+        struct mliGeometry *geometry,
+        struct mliGeometryToMaterialMap *geomap);
+
+int mliFrame_set_robjects_and_material_map_walk(
+        const struct mliFrame *frame,
+        struct mliGeometry *geometry,
+        struct mliGeometryToMaterialMap *geomap,
+        uint64_t *num_robjects,
+        uint64_t *total_num_boundary_layers);
+
+int mliFrame_estimate_num_robjects_and_total_num_boundary_layers(
+        const struct mliFrame *frame,
+        uint64_t *num_robjects,
+        uint64_t *total_num_boundary_layers);
+
+int mliFrame_estimate_num_robjects_and_total_num_boundary_layers_walk(
+        const struct mliFrame *frame,
+        uint64_t *num_robjects,
+        uint64_t *total_num_boundary_layers);
+
 #endif
 
 /* mli_json_jsmn */
@@ -273,236 +473,6 @@ int jsmn_parse(
         struct jsmntok_t *tokens,
         const unsigned int num_tokens);
 void jsmn_init(struct jsmn_parser *parser);
-
-#endif
-
-/* mliMagicId */
-/* ---------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIMAGICID_H_
-#define MLIMAGICID_H_
-
-
-#define MLI_MAGICID_WORD_CAPACITY 52
-#define MLI_MAGICID_SIZE MLI_MAGICID_WORD_CAPACITY + 12
-
-struct mliMagicId {
-        char word[MLI_MAGICID_WORD_CAPACITY];
-        uint32_t mayor;
-        uint32_t minor;
-        uint32_t patch;
-};
-
-struct mliMagicId mliMagicId_init(void);
-int mliMagicId_set(struct mliMagicId *magic, const char *word);
-int mliMagicId_has_word(const struct mliMagicId *magic, const char *word);
-void mliMagicId_warn_version(const struct mliMagicId *magic);
-#endif
-
-/* mli_random_pcg_variants_32bit_subset */
-/* ------------------------------------ */
-
-/**
- *  2021 March 23, Sebastian Achim Mueller
- *
- *  Based on 'pcg_variants.h' written by Melissa O'Neill.
- *
- *  I only kept the version with the 64bit sequence state to generate
- *  32bit numbers.
- *  I dropped 'advance', and 'boundedrand'.
- *  I only kept the seeding and the generation.
- *  I split the original header-only into a source.c and a header.h.
- */
-
-/*
- * PCG Random Number Generation for C.
- *
- * Copyright 2014 Melissa O'Neill <oneill@pcg-random.org>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * For additional information about the PCG random number generation scheme,
- * including its license and other licensing options, visit
- *
- *     http://www.pcg-random.org
- */
-
-#ifndef MLI_RANDOM_PCG_VARIANTS_32BIT_SUBSET_H_INCLUDED
-#define MLI_RANDOM_PCG_VARIANTS_32BIT_SUBSET_H_INCLUDED
-
-
-struct pcg_state_setseq_64 {
-        uint64_t state;
-        uint64_t inc;
-};
-
-void pcg_setseq_64_srandom_r(
-        struct pcg_state_setseq_64 *rng,
-        uint64_t initstate,
-        uint64_t initseq);
-
-uint32_t pcg_setseq_64_xsh_rr_32_random_r(struct pcg_state_setseq_64 *rng);
-
-#endif
-
-/* mli_quadratic_equation */
-/* ---------------------- */
-
-/* Copyright 2019 Sebastian A. Mueller */
-#ifndef MLI_QUADRATIC_EQUATION_H_
-#define MLI_QUADRATIC_EQUATION_H_
-
-int mli_quadratic_equation(
-        const double p,
-        const double q,
-        double *minus_solution,
-        double *plus_solution);
-
-#endif
-
-/* mli_random_PCG32 */
-/* ---------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_RANDOM_PCG32_H_
-#define MLI_RANDOM_PCG32_H_
-
-
-/*      Wrapping the pcg implementation by Melissa O'Neill in
- *      pcg_variants_32bit_subset.h
- */
-
-struct mliPCG32 {
-        struct pcg_state_setseq_64 state_setseq_64;
-};
-
-struct mliPCG32 mliPCG32_init(const uint32_t seed);
-uint32_t mliPCG32_generate_uint32(struct mliPCG32 *pcg32);
-void mliPCG32_reinit(struct mliPCG32 *pcg32, const uint32_t seed);
-
-#endif
-
-/* mliTriangle_AABB */
-/* ---------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLITRIANGLE_AABB_H_
-#define MLITRIANGLE_AABB_H_
-
-
-struct mliTriangle {
-        struct mliVec v1;
-        struct mliVec v2;
-        struct mliVec v3;
-};
-
-struct mliAABB mliTriangle_aabb(
-        const struct mliVec a,
-        const struct mliVec b,
-        const struct mliVec c);
-int mliTriangle_has_overlap_aabb(
-        const struct mliVec a,
-        const struct mliVec b,
-        const struct mliVec c,
-        const struct mliAABB aabb);
-struct mliTriangle mliTriangle_set_in_norm_aabb(
-        const struct mliVec a,
-        const struct mliVec b,
-        const struct mliVec c,
-        const struct mliAABB aabb);
-int64_t mliTriangle_intersects_norm_aabb(struct mliTriangle t);
-int64_t mliTriangle_intersects_point(struct mliTriangle t, struct mliVec p);
-int64_t mli_triangle_aabb_check_line(
-        struct mliVec p1,
-        struct mliVec p2,
-        int64_t outcode_diff);
-int64_t mli_triangle_aabb_check_point(
-        struct mliVec p1,
-        struct mliVec p2,
-        double alpha,
-        int64_t mask);
-int64_t mli_triangle_aabb_bevel_3d(struct mliVec p);
-int64_t mli_triangle_aabb_bevel_2d(struct mliVec p);
-int64_t mli_triangle_aabb_face_plane(struct mliVec p);
-#endif
-
-/* mli_version */
-/* ----------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_VERSION_H_
-#define MLI_VERSION_H_
-
-
-#define MLI_VERSION_MAYOR 1
-#define MLI_VERSION_MINOR 8
-#define MLI_VERSION_PATCH 0
-
-void mli_logo_fprint(FILE *f);
-void mli_authors_and_affiliations_fprint(FILE *f);
-#endif
-
-/* mliFresnel */
-/* ---------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIFRESNEL_H_
-#define MLIFRESNEL_H_
-
-
-struct mliFresnel {
-        struct mliVec incident;
-        struct mliVec normal;
-        double n_from;
-        double n_to;
-
-        double _cosI;
-        double _n_from_over_n_to;
-        double _sinT2;
-        double _cosT;
-};
-
-struct mliVec mliFresnel_refraction_direction(const struct mliFresnel fresnel);
-struct mliVec mliFresnel_reflection_direction(const struct mliFresnel fresnel);
-double mliFresnel_reflection_propability(const struct mliFresnel fresnel);
-struct mliFresnel mliFresnel_init(
-        const struct mliVec incident,
-        const struct mliVec normal,
-        const double n_from,
-        const double n_to);
-#endif
-
-/* mli_viewer_Cursor */
-/* ----------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_VIEWER_CURSOR_H_
-#define MLI_VIEWER_CURSOR_H_
-
-
-struct mlivrCursor {
-        int64_t active;
-        uint64_t col;
-        uint64_t row;
-        uint64_t num_cols;
-        uint64_t num_rows;
-};
-
-void mlivrCursor_move_up(struct mlivrCursor *cursor);
-void mlivrCursor_move_down(struct mlivrCursor *cursor);
-void mlivrCursor_move_right(struct mlivrCursor *cursor);
-void mlivrCursor_move_left(struct mlivrCursor *cursor);
 
 #endif
 
@@ -633,124 +603,153 @@ int mliTar_write_finalize(struct mliTar *tar);
 
 #endif
 
-/* mliMat */
+/* mliAABB */
+/* ------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIAABB_H_
+#define MLIAABB_H_
+
+
+struct mliAABB {
+        /*
+         * Rectangular (A)xis-(A)ligned-(B)ounding-(B)ox
+         * oriented w.r.t. the unit-vectors.
+         *
+         *                     O----------------------O
+         *                    /.                     /|
+         *                   / .                    / |
+         *                  /  .                   /  |
+         *                 /   .                  /   |
+         *                O----------------------O upper
+         *                |    .                 |    |
+         *      Z         |    .                 |    |
+         *      |       lo|wer O- - - - - - - - -| - -O
+         *      |         |   .                  |   /
+         *      |         |  .                   |  /
+         *      /-----Y   | .                    | /
+         *     /          |.                     |/
+         *    X           O----------------------O
+         *
+         *
+         */
+        struct mliVec lower;
+        struct mliVec upper;
+};
+
+struct mliAABB mliAABB_set(
+        const struct mliVec lower,
+        const struct mliVec upper);
+struct mliVec mliAABB_center(const struct mliAABB a);
+struct mliAABB mliAABB_outermost(
+        const struct mliAABB a,
+        const struct mliAABB b);
+int mliAABB_valid(const struct mliAABB a);
+int mliAABB_equal(const struct mliAABB a, const struct mliAABB b);
+int mliAABB_overlapp_aabb(const struct mliAABB a, const struct mliAABB b);
+#endif
+
+/* mli_quadratic_equation */
+/* ---------------------- */
+
+/* Copyright 2019 Sebastian A. Mueller */
+#ifndef MLI_QUADRATIC_EQUATION_H_
+#define MLI_QUADRATIC_EQUATION_H_
+
+int mli_quadratic_equation(
+        const double p,
+        const double q,
+        double *minus_solution,
+        double *plus_solution);
+
+#endif
+
+/* mli_version */
+/* ----------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_VERSION_H_
+#define MLI_VERSION_H_
+
+
+#define MLI_VERSION_MAYOR 1
+#define MLI_VERSION_MINOR 8
+#define MLI_VERSION_PATCH 0
+
+void mli_logo_fprint(FILE *f);
+void mli_authors_and_affiliations_fprint(FILE *f);
+#endif
+
+/* mliRay */
 /* ------ */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIMAT_H_
-#define MLIMAT_H_
+#ifndef MLIRAY_H_
+#define MLIRAY_H_
 
 
-struct mliMat {
-        double r00;
-        double r01;
-        double r02;
-        double r10;
-        double r11;
-        double r12;
-        double r20;
-        double r21;
-        double r22;
+struct mliRay {
+        struct mliVec support;
+        struct mliVec direction;
 };
 
-void mliMat_set(struct mliMat *a, uint64_t col, uint64_t row, const double v);
-double mliMat_get(const struct mliMat *a, uint64_t col, uint64_t row);
-struct mliMat mliMat_unity(void);
-int mliMat_equal_margin(
-        const struct mliMat a,
-        const struct mliMat b,
-        const double margin);
-struct mliMat mliMat_init_axis_angle(
-        const struct mliVec axis,
-        const double angle);
-struct mliMat mliMat_init_tait_bryan(
-        const double rx,
-        const double ry,
-        const double rz);
-struct mliMat mliMat_init_columns(
-        const struct mliVec c0,
-        const struct mliVec c1,
-        const struct mliVec c2);
-struct mliMat mliMat_covariance(
-        const struct mliVec *vecs,
-        const uint64_t num_vecs,
-        const struct mliVec vecs_mean);
-struct mliMat mliMat_transpose(const struct mliMat m);
-struct mliMat mliMat_multiply(const struct mliMat x, const struct mliMat y);
-struct mliMat mliMat_minor(const struct mliMat x, const int d);
-struct mliMat mliMat_vector_outer_product(const struct mliVec v);
-void mliMat_qr_decompose(
-        const struct mliMat m,
-        struct mliMat *q,
-        struct mliMat *r);
-int mliMat_has_shurform(const struct mliMat m, const double margin);
-void mliMat_find_eigenvalues(
-        const struct mliMat a,
-        double *e0,
-        double *e1,
-        double *e2,
-        const double margin,
-        const uint64_t max_num_iterations);
-int mliMat_find_eigenvector_for_eigenvalue(
-        struct mliMat a,
-        const double eigen_value,
-        struct mliVec *eigen_vector,
-        const double tolerance);
-int mliMat_lup_decompose(struct mliMat *A, int *pivots, const double tolerance);
-void mliMat_lup_solve(
-        const struct mliMat *A,
-        const int *P,
-        const struct mliVec *b,
-        struct mliVec *x);
+struct mliVec mliRay_at(const struct mliRay *ray, const double t);
+struct mliRay mliRay_set(
+        const struct mliVec support,
+        const struct mliVec direction);
+int mliRay_sphere_intersection(
+        const struct mliVec support,
+        const struct mliVec direction,
+        const double radius,
+        double *minus_solution,
+        double *plus_solution);
 #endif
 
-/* mliQuaternion */
-/* ------------- */
+/* mli_viewer_Cursor */
+/* ----------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIQUATERNION_H_
-#define MLIQUATERNION_H_
+#ifndef MLI_VIEWER_CURSOR_H_
+#define MLI_VIEWER_CURSOR_H_
 
 
-struct mliQuaternion {
-        double w;
-        double x;
-        double y;
-        double z;
+struct mlivrCursor {
+        int64_t active;
+        uint64_t col;
+        uint64_t row;
+        uint64_t num_cols;
+        uint64_t num_rows;
 };
 
-void mliQuaternion_print(const struct mliQuaternion q);
-struct mliQuaternion mliQuaternion_set_tait_bryan(
-        const double rx,
-        const double ry,
-        const double rz);
-struct mliMat mliQuaternion_to_matrix(const struct mliQuaternion quat);
-struct mliQuaternion mliQuaternion_set_rotaxis_and_angle(
-        const struct mliVec rot_axis,
-        const double angle);
-double mliQuaternion_norm(const struct mliQuaternion q);
-double mliQuaternion_product_complex_conjugate(const struct mliQuaternion p);
-struct mliQuaternion mliQuaternion_product(
-        const struct mliQuaternion p,
-        const struct mliQuaternion q);
-struct mliQuaternion mliQuaternion_complex_conjugate(
-        const struct mliQuaternion q);
-int mliQuaternion_equal_margin(
-        const struct mliQuaternion a,
-        const struct mliQuaternion b,
-        const double margin);
-int mliQuaternion_equal(
-        const struct mliQuaternion a,
-        const struct mliQuaternion b);
-struct mliQuaternion mliQuaternion_set(
-        const double w,
-        const double x,
-        const double y,
-        const double z);
-struct mliQuaternion mliQuaternion_set_unit_xyz(
-        const double x,
-        const double y,
-        const double z);
+void mlivrCursor_move_up(struct mlivrCursor *cursor);
+void mlivrCursor_move_down(struct mlivrCursor *cursor);
+void mlivrCursor_move_right(struct mlivrCursor *cursor);
+void mlivrCursor_move_left(struct mlivrCursor *cursor);
+
+#endif
+
+/* mliName */
+/* ------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLINAME_H_
+#define MLINAME_H_
+
+
+#define MLI_NAME_CAPACITY 128
+
+struct mliName {
+        char cstr[MLI_NAME_CAPACITY];
+};
+
+struct mliName mliName_init(void);
+int mliName_valid(const struct mliName *name);
+int mliName_equal(const struct mliName *a, const struct mliName *b);
+int mliName_find_idx(
+        const struct mliName *names,
+        const uint64_t num_names,
+        const char *key,
+        uint64_t *idx);
 #endif
 
 /* mli_cstr */
@@ -802,69 +801,34 @@ int mli_cstr_match_templeate(
 
 #endif
 
-/* mliGeometryId */
-/* ------------- */
+/* mliFresnel */
+/* ---------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIGEOMETRYID_H_
-#define MLIGEOMETRYID_H_
+#ifndef MLIFRESNEL_H_
+#define MLIFRESNEL_H_
 
 
-struct mliGeometryId {
-        uint32_t robj;
-        uint32_t face;
+struct mliFresnel {
+        struct mliVec incident;
+        struct mliVec normal;
+        double n_from;
+        double n_to;
+
+        double _cosI;
+        double _n_from_over_n_to;
+        double _sinT2;
+        double _cosT;
 };
 
-struct mliGeometryId mliGeometryId_init(void);
-#endif
-
-/* mliPixels */
-/* --------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIPIXELS_H_
-#define MLIPIXELS_H_
-
-
-struct mliPixel {
-        uint16_t row;
-        uint16_t col;
-};
-
-struct mliPixels {
-        uint32_t num_pixels_to_do;
-        uint32_t num_pixels;
-        struct mliPixel *pixels;
-};
-
-int mliPixels_malloc(struct mliPixels *pix, const uint32_t num_pixels);
-void mliPixels_free(struct mliPixels *pix);
-struct mliPixels mliPixels_init(void);
-#endif
-
-/* mliRay */
-/* ------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIRAY_H_
-#define MLIRAY_H_
-
-
-struct mliRay {
-        struct mliVec support;
-        struct mliVec direction;
-};
-
-struct mliVec mliRay_at(const struct mliRay *ray, const double t);
-struct mliRay mliRay_set(
-        const struct mliVec support,
-        const struct mliVec direction);
-int mliRay_sphere_intersection(
-        const struct mliVec support,
-        const struct mliVec direction,
-        const double radius,
-        double *minus_solution,
-        double *plus_solution);
+struct mliVec mliFresnel_refraction_direction(const struct mliFresnel fresnel);
+struct mliVec mliFresnel_reflection_direction(const struct mliFresnel fresnel);
+double mliFresnel_reflection_propability(const struct mliFresnel fresnel);
+struct mliFresnel mliFresnel_init(
+        const struct mliVec incident,
+        const struct mliVec normal,
+        const double n_from,
+        const double n_to);
 #endif
 
 /* mliDynArray */
@@ -956,47 +920,318 @@ int mliRay_sphere_intersection(
 
 #endif
 
-/* mliBoundaryLayer */
-/* ---------------- */
+/* mliFunc */
+/* ------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIBOUNDARYLAYER_H_
-#define MLIBOUNDARYLAYER_H_
+#ifndef MLIFUNC_H_
+#define MLIFUNC_H_
 
 
-struct mliSide {
-        uint32_t surface;
-        uint32_t medium;
+struct mliFunc {
+        uint32_t num_points;
+        double *x;
+        double *y;
 };
 
-struct mliBoundaryLayer {
-        struct mliSide inner;
-        struct mliSide outer;
-};
-
-int mliBoundaryLayer_equal(
-        const struct mliBoundaryLayer a,
-        const struct mliBoundaryLayer b);
-
-void mliBoundaryLayer_print(const struct mliBoundaryLayer a);
+int mliFunc_equal(const struct mliFunc a, const struct mliFunc b);
+int mliFunc_fold_numeric(
+        const struct mliFunc *a,
+        const struct mliFunc *b,
+        double *fold);
+int mliFunc_evaluate(const struct mliFunc *f, const double xarg, double *out);
+int mliFunc_x_is_strictly_increasing(const struct mliFunc *f);
+int mliFunc_malloc(struct mliFunc *f, const uint32_t num_points);
+void mliFunc_free(struct mliFunc *f);
+struct mliFunc mliFunc_init(void);
+int mliFunc_is_valid(const struct mliFunc *func);
 #endif
 
-/* mli_viewer_toggle_stdin */
-/* ----------------------- */
+/* mliPixels */
+/* --------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_VIEWER_TOGGLE_STDIN_H_
-#define MLI_VIEWER_TOGGLE_STDIN_H_
+#ifndef MLIPIXELS_H_
+#define MLIPIXELS_H_
 
-#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
-#define HAVE_TERMIOS_H 1
+
+struct mliPixel {
+        uint16_t row;
+        uint16_t col;
+};
+
+struct mliPixels {
+        uint32_t num_pixels_to_do;
+        uint32_t num_pixels;
+        struct mliPixel *pixels;
+};
+
+int mliPixels_malloc(struct mliPixels *pix, const uint32_t num_pixels);
+void mliPixels_free(struct mliPixels *pix);
+struct mliPixels mliPixels_init(void);
 #endif
 
-#ifdef HAVE_TERMIOS_H
-struct termios mlivr_non_canonical_stdin(void);
-void mlivr_restore_stdin(struct termios *old_terminal);
+/* mliObject */
+/* --------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIOBJECT_H_
+#define MLIOBJECT_H_
+
+
+struct mliObject {
+        uint32_t num_vertices;
+        struct mliVec *vertices;
+
+        uint32_t num_vertex_normals;
+        struct mliVec *vertex_normals;
+
+        uint32_t num_faces;
+        struct mliFace *faces_vertices;
+        struct mliFace *faces_vertex_normals;
+        uint16_t *faces_materials;
+
+        uint32_t num_materials;
+        struct mliName *material_names;
+};
+
+int mliObject_malloc(
+        struct mliObject *obj,
+        const uint64_t num_vertices,
+        const uint64_t num_vertex_normals,
+        const uint64_t num_faces,
+        const uint64_t num_materials);
+void mliObject_free(struct mliObject *obj);
+struct mliObject mliObject_init(void);
+int mliObject_equal(const struct mliObject *a, const struct mliObject *b);
+uint32_t mliObject_resolve_material_idx(
+        const struct mliObject *obj,
+        const uint32_t face_idx);
 #endif
 
+/* mliMedium */
+/* --------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIMEDIUM_H_
+#define MLIMEDIUM_H_
+
+
+struct mliMedium {
+        struct mliFunc refraction;
+        struct mliFunc absorbtion;
+};
+struct mliMedium mliMedium_init(void);
+void mliMedium_free(struct mliMedium *medium);
+
+int mliMedium_equal(const struct mliMedium *a, const struct mliMedium *b);
+
+#endif
+
+/* mli_triangle_intersection */
+/* ------------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLITRIANGLE_INTERSECTION_H_
+#define MLITRIANGLE_INTERSECTION_H_
+
+
+struct mliVec mliTriangle_interpolate_surface_normal(
+        const struct mliVec vertex_normal_a,
+        const struct mliVec vertex_normal_b,
+        const struct mliVec vertex_normal_c,
+        const struct mliBarycentrigWeights weights);
+
+int mliRay_intersects_triangle(
+        const struct mliRay ray,
+        const struct mliVec vertex_a,
+        const struct mliVec vertex_b,
+        const struct mliVec vertex_c,
+        double *intersection_ray_parameter);
+
+struct mliVec mliTriangle_surface_normal(
+        const struct mliVec vertex_a,
+        const struct mliVec vertex_b,
+        const struct mliVec vertex_c,
+        const struct mliVec vertex_normal_a,
+        const struct mliVec vertex_normal_b,
+        const struct mliVec vertex_normal_c,
+        const struct mliVec intersection_position);
+#endif
+
+/* mliHomTra */
+/* --------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIHOMTRA_H_
+#define MLIHOMTRA_H_
+
+
+struct mliHomTraComp {
+        struct mliVec translation;
+        struct mliQuaternion rotation;
+};
+
+struct mliHomTra {
+        struct mliVec translation;
+        struct mliMat rotation;
+};
+
+void mliHomTra_print(const struct mliHomTra h);
+struct mliHomTraComp mliHomTraComp_set(
+        const struct mliVec translation,
+        const struct mliQuaternion rotation);
+struct mliHomTraComp mliHomTraComp_sequence(
+        const struct mliHomTraComp a,
+        const struct mliHomTraComp b);
+int mliHomTraComp_equal(
+        const struct mliHomTraComp a,
+        const struct mliHomTraComp b);
+struct mliVec mliHomTra_dir_inverse(
+        const struct mliHomTra *t,
+        const struct mliVec in);
+struct mliVec mliHomTra_dir(const struct mliHomTra *t, const struct mliVec in);
+struct mliVec mliHomTra_pos_inverse(
+        const struct mliHomTra *t,
+        const struct mliVec in);
+struct mliVec mliHomTra_pos(const struct mliHomTra *t, const struct mliVec in);
+struct mliRay mliHomTra_ray_inverse(
+        const struct mliHomTra *t,
+        const struct mliRay in);
+struct mliRay mliHomTra_ray(const struct mliHomTra *t, const struct mliRay in);
+struct mliRay mli_transform_ray_inverse(
+        const struct mliMat *rotation,
+        const struct mliVec translation,
+        const struct mliRay in);
+struct mliRay mli_transform_ray(
+        const struct mliMat *rotation,
+        const struct mliVec translation,
+        const struct mliRay in);
+struct mliVec mli_transform_position_inverse(
+        const struct mliMat *rotation,
+        const struct mliVec translation,
+        const struct mliVec in);
+struct mliVec mli_transform_position(
+        const struct mliMat *rotation,
+        const struct mliVec translation,
+        const struct mliVec in);
+struct mliVec mli_transform_orientation_inverse(
+        const struct mliMat *rotation,
+        const struct mliVec in);
+struct mliVec mli_transform_orientation(
+        const struct mliMat *rotation,
+        const struct mliVec in);
+struct mliHomTra mliHomTra_from_compact(const struct mliHomTraComp trafo);
+#endif
+
+/* mliPixelWalk */
+/* ------------ */
+
+/* Copyright 2020-2021 Sebastian Achim Mueller */
+#ifndef MLIPIXELWALK_H_
+#define MLIPIXELWALK_H_
+
+
+struct mliPixelWalk {
+        /*
+         * PixelWalk walks over the pixels of a rectangular image in a
+         * cache-aware-way with respect to raytracing.
+         * The goal is to bundle rays that will go to similar directions.
+         * Instead of running fast along one axis of the image, and slow along
+         * the other, PixelWalk spreads the walk among both axis by walking
+         * small quadratic chunks of pixels.
+         */
+        uint32_t chunk_size;
+        uint32_t num_chunks_row;
+        uint32_t num_chunks_col;
+        uint32_t chunk_row;
+        uint32_t sub_row;
+        uint32_t chunk_col;
+        uint32_t sub_col;
+        uint32_t num_rows;
+        uint32_t num_cols;
+        uint32_t i;
+};
+
+struct mliPixelWalk mliPixelWalk_set(
+        const uint32_t num_cols,
+        const uint32_t num_rows,
+        const uint32_t chunk_size);
+struct mliPixel mliPixelWalk_get(const struct mliPixelWalk *walk);
+void mliPixelWalk_walk(struct mliPixelWalk *walk);
+#endif
+
+/* mliDynDouble */
+/* ------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNARRAY_DOUBLE_H_
+#define MLIDYNARRAY_DOUBLE_H_
+
+MLIDYNARRAY_DEFINITON(mli, Double, double)
+#endif
+
+/* mliRay_AABB */
+/* ----------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIRAY_AABB_H_
+#define MLIRAY_AABB_H_
+
+
+int mliRay_has_overlap_aabb(
+        const struct mliRay ray,
+        const struct mliAABB aabb,
+        double *ray_parameter);
+#endif
+
+/* mliDynFace */
+/* ---------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNARRAY_FACE_H_
+#define MLIDYNARRAY_FACE_H_
+
+MLIDYNARRAY_DEFINITON(mli, Face, struct mliFace)
+#endif
+
+/* mliGeometryId */
+/* ------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIGEOMETRYID_H_
+#define MLIGEOMETRYID_H_
+
+
+struct mliGeometryId {
+        uint32_t robj;
+        uint32_t face;
+};
+
+struct mliGeometryId mliGeometryId_init(void);
+#endif
+
+/* mliDynUint32 */
+/* ------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNARRAY_UINT32_H_
+#define MLIDYNARRAY_UINT32_H_
+
+MLIDYNARRAY_DEFINITON(mli, Uint32, uint32_t)
+#endif
+
+/* mli_from_outside_to_inside */
+/* -------------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_FROM_OUTSIDE_TO_INSIDE_H_
+#define MLI_FROM_OUTSIDE_TO_INSIDE_H_
+
+
+int mli_ray_runs_from_outside_to_inside(
+        const struct mliVec ray_direction_local,
+        const struct mliVec surface_normal_local);
 #endif
 
 /* chk_debug */
@@ -1078,46 +1313,72 @@ int chk_eprintf(const char *format, ...);
 
 #endif
 
-/* mliView */
-/* ------- */
+/* mliMagicId */
+/* ---------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIVIEW_H_
-#define MLIVIEW_H_
+#ifndef MLIMAGICID_H_
+#define MLIMAGICID_H_
 
 
-struct mliView {
-        struct mliVec position;
-        struct mliVec rotation;
-        double field_of_view;
+#define MLI_MAGICID_WORD_CAPACITY 52
+#define MLI_MAGICID_SIZE MLI_MAGICID_WORD_CAPACITY + 12
+
+struct mliMagicId {
+        char word[MLI_MAGICID_WORD_CAPACITY];
+        uint32_t mayor;
+        uint32_t minor;
+        uint32_t patch;
 };
 
-struct mliView mliView_look_up_when_possible(
-        const struct mliView camin,
-        const double rate);
-struct mliView mliView_decrease_fov(
-        const struct mliView camin,
-        const double rate);
-struct mliView mliView_increase_fov(
-        const struct mliView camin,
-        const double rate);
-struct mliView mliView_look_down_when_possible(
-        const struct mliView camin,
-        const double rate);
-struct mliView mliView_look_right(
-        const struct mliView camin,
-        const double rate);
-struct mliView mliView_move_up(const struct mliView camin, const double rate);
-struct mliView mliView_move_right(
-        const struct mliView camin,
-        const double rate);
-struct mliView mliView_move_forward(
-        const struct mliView camin,
-        const double rate);
-struct mliVec mliView_direction_up(const struct mliView cam);
-struct mliVec mliView_direction_right(const struct mliView cam);
-struct mliVec mliView_optical_axis(const struct mliView cam);
-struct mliHomTraComp mliView_to_HomTraComp(const struct mliView view);
+struct mliMagicId mliMagicId_init(void);
+int mliMagicId_set(struct mliMagicId *magic, const char *word);
+int mliMagicId_has_word(const struct mliMagicId *magic, const char *word);
+void mliMagicId_warn_version(const struct mliMagicId *magic);
+#endif
+
+/* mliTriangle_AABB */
+/* ---------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLITRIANGLE_AABB_H_
+#define MLITRIANGLE_AABB_H_
+
+
+struct mliTriangle {
+        struct mliVec v1;
+        struct mliVec v2;
+        struct mliVec v3;
+};
+
+struct mliAABB mliTriangle_aabb(
+        const struct mliVec a,
+        const struct mliVec b,
+        const struct mliVec c);
+int mliTriangle_has_overlap_aabb(
+        const struct mliVec a,
+        const struct mliVec b,
+        const struct mliVec c,
+        const struct mliAABB aabb);
+struct mliTriangle mliTriangle_set_in_norm_aabb(
+        const struct mliVec a,
+        const struct mliVec b,
+        const struct mliVec c,
+        const struct mliAABB aabb);
+int64_t mliTriangle_intersects_norm_aabb(struct mliTriangle t);
+int64_t mliTriangle_intersects_point(struct mliTriangle t, struct mliVec p);
+int64_t mli_triangle_aabb_check_line(
+        struct mliVec p1,
+        struct mliVec p2,
+        int64_t outcode_diff);
+int64_t mli_triangle_aabb_check_point(
+        struct mliVec p1,
+        struct mliVec p2,
+        double alpha,
+        int64_t mask);
+int64_t mli_triangle_aabb_bevel_3d(struct mliVec p);
+int64_t mli_triangle_aabb_bevel_2d(struct mliVec p);
+int64_t mli_triangle_aabb_face_plane(struct mliVec p);
 #endif
 
 /* mli_math */
@@ -1230,269 +1491,38 @@ double mli_linear_interpolate_2d(
 double mli_relative_ratio(const double a, const double b);
 #endif
 
-/* mliColor */
-/* -------- */
+/* mliFunc_serialize */
+/* ----------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLICOLOR_H_
-#define MLICOLOR_H_
+#ifndef MLIFUNC_SERIALIZE_H_
+#define MLIFUNC_SERIALIZE_H_
 
 
-struct mliColor {
-        float r;
-        float g;
-        float b;
+int mliFunc_malloc_fread(struct mliFunc *func, FILE *f);
+int mliFunc_fwrite(const struct mliFunc *func, FILE *f);
+#endif
+
+/* mli_random_PCG32 */
+/* ---------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_RANDOM_PCG32_H_
+#define MLI_RANDOM_PCG32_H_
+
+
+/*      Wrapping the pcg implementation by Melissa O'Neill in
+ *      pcg_variants_32bit_subset.h
+ */
+
+struct mliPCG32 {
+        struct pcg_state_setseq_64 state_setseq_64;
 };
 
-int mliColor_equal(const struct mliColor a, const struct mliColor b);
-struct mliColor mliColor_truncate_to_uint8(const struct mliColor color);
-struct mliColor mliColor_mean(
-        const struct mliColor colors[],
-        const uint32_t num_colors);
-struct mliColor mliColor_mix(
-        const struct mliColor a,
-        const struct mliColor b,
-        const float refl);
-struct mliColor mliColor_set(const float r, const float g, const float b);
-int mliColor_is_valid_8bit_range(const struct mliColor c);
+struct mliPCG32 mliPCG32_init(const uint32_t seed);
+uint32_t mliPCG32_generate_uint32(struct mliPCG32 *pcg32);
+void mliPCG32_reinit(struct mliPCG32 *pcg32, const uint32_t seed);
 
-struct mliColor mliColor_add(const struct mliColor a, const struct mliColor b);
-struct mliColor mliColor_multiply(const struct mliColor c, const double f);
-struct mliColor mliColor_multiply_elementwise(
-        const struct mliColor a,
-        const struct mliColor b);
-#endif
-
-/* mliFace */
-/* ------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIFACE_H_
-#define MLIFACE_H_
-
-
-struct mliFace {
-        uint32_t a;
-        uint32_t b;
-        uint32_t c;
-};
-
-int mliFace_equal(const struct mliFace a, const struct mliFace b);
-struct mliFace mliFace_set(
-        const uint32_t a,
-        const uint32_t b,
-        const uint32_t c);
-#endif
-
-/* mli_random_MT19937 */
-/* ------------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_RANDOM_MT19937_H_
-#define MLI_RANDOM_MT19937_H_
-
-
-struct mliMT19937 {
-        uint32_t N;
-        uint32_t M;
-        int R;
-        int A;
-        int F;
-        int U;
-        int S;
-        int B;
-        int T;
-        int C;
-        int L;
-        int MASK_LOWER;
-        int MASK_UPPER;
-        uint32_t mt[624];
-        uint16_t index;
-};
-
-uint32_t mliMT19937_generate_uint32(struct mliMT19937 *mt);
-void mliMT19937_twist(struct mliMT19937 *mt);
-struct mliMT19937 mliMT19937_init(const uint32_t seed);
-void mliMT19937_reinit(struct mliMT19937 *mt, const uint32_t seed);
-void mliMT19937_set_constants(struct mliMT19937 *mt);
-#endif
-
-/* mliDynFloat */
-/* ----------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNARRAY_FLOAT_H_
-#define MLIDYNARRAY_FLOAT_H_
-
-MLIDYNARRAY_DEFINITON(mli, Float, float)
-#endif
-
-/* mliDynColor */
-/* ----------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNARRAY_COLOR_H_
-#define MLIDYNARRAY_COLOR_H_
-
-MLIDYNARRAY_DEFINITON(mli, Color, struct mliColor)
-MLIDYNARRAY_DEFINITON(mli, ColorPtr, struct mliColor *)
-#endif
-
-/* mliIntersectionSurfaceNormal */
-/* ---------------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIINTERSECTIONSURFACENORMAL_H_
-#define MLIINTERSECTIONSURFACENORMAL_H_
-
-
-struct mliIntersectionSurfaceNormal {
-        struct mliGeometryId geometry_id;
-        struct mliVec position;
-        struct mliVec surface_normal;
-        struct mliVec position_local;
-        struct mliVec surface_normal_local;
-        double distance_of_ray;
-        int64_t from_outside_to_inside;
-};
-
-struct mliIntersectionSurfaceNormal mliIntersectionSurfaceNormal_init(void);
-
-#endif
-
-/* mli_frame_to_scenery */
-/* -------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_FRAME_TO_SCENERY_H_
-#define MLI_FRAME_TO_SCENERY_H_
-
-struct mliFrame;
-struct mliGeometry;
-struct mliGeometryToMaterialMap;
-
-int mliFrame_set_robjects_and_material_map(
-        const struct mliFrame *frame,
-        struct mliGeometry *geometry,
-        struct mliGeometryToMaterialMap *geomap);
-
-int mliFrame_set_robjects_and_material_map_walk(
-        const struct mliFrame *frame,
-        struct mliGeometry *geometry,
-        struct mliGeometryToMaterialMap *geomap,
-        uint64_t *num_robjects,
-        uint64_t *total_num_boundary_layers);
-
-int mliFrame_estimate_num_robjects_and_total_num_boundary_layers(
-        const struct mliFrame *frame,
-        uint64_t *num_robjects,
-        uint64_t *total_num_boundary_layers);
-
-int mliFrame_estimate_num_robjects_and_total_num_boundary_layers_walk(
-        const struct mliFrame *frame,
-        uint64_t *num_robjects,
-        uint64_t *total_num_boundary_layers);
-
-#endif
-
-/* mliImage */
-/* -------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIIMAGE_H_
-#define MLIIMAGE_H_
-
-
-struct mliImage {
-        uint32_t num_cols;
-        uint32_t num_rows;
-        struct mliColor *raw;
-};
-
-void mliImage_assign_pixel_colors_to_sum_and_exposure_image(
-        const struct mliPixels *pixels,
-        const struct mliImage *colors,
-        struct mliImage *sum_image,
-        struct mliImage *exposure_image);
-int mliPixels_malloc_from_image_above_threshold(
-        struct mliPixels *pixels,
-        const struct mliImage *image,
-        const float threshold);
-void mliPixels_above_threshold(
-        const struct mliImage *to_do_image,
-        const float threshold,
-        struct mliPixels *pixels);
-void mliImage_from_sum_and_exposure(
-        const struct mliImage *sum,
-        const struct mliImage *exposure,
-        struct mliImage *out);
-void mliImage_luminance_threshold_dilatation(
-        const struct mliImage *image,
-        const float threshold,
-        struct mliImage *out);
-void mliImage_sobel(const struct mliImage *image, struct mliImage *out);
-int mliImage_scale_down_twice(
-        const struct mliImage *source,
-        struct mliImage *destination);
-struct mliColor mliImage_at(
-        const struct mliImage *img,
-        const uint32_t col,
-        const uint32_t row);
-void mliImage_set(
-        const struct mliImage *img,
-        const uint32_t col,
-        const uint32_t row,
-        const struct mliColor color);
-void mliPixels_set_all_from_image(
-        struct mliPixels *pixels,
-        const struct mliImage *image);
-uint32_t mliImage_idx(
-        const struct mliImage *img,
-        const uint32_t col,
-        const uint32_t row);
-int mliImage_malloc(
-        struct mliImage *img,
-        const uint32_t num_cols,
-        const uint32_t num_rows);
-void mliImage_free(struct mliImage *img);
-
-void mliImage_copy(const struct mliImage *source, struct mliImage *destination);
-void mliImage_fabs_difference(
-        const struct mliImage *a,
-        const struct mliImage *b,
-        struct mliImage *out);
-struct mliImage mliImage_init(void);
-
-void mliImage_histogram(
-        struct mliImage *img,
-        const double *col_bin_edges,
-        const double *row_bin_edges,
-        const double x,
-        const double y,
-        const struct mliColor weight);
-struct mliColor mliImage_max(const struct mliImage *img);
-void mliImage_multiply(struct mliImage *img, const struct mliColor color);
-void mliImage_divide_pixelwise(
-        const struct mliImage *numerator,
-        const struct mliImage *denominator,
-        struct mliImage *out);
-#endif
-
-/* mliIntersection */
-/* --------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIINTERSECTION_H_
-#define MLIINTERSECTION_H_
-
-
-struct mliIntersection {
-        struct mliGeometryId geometry_id;
-        struct mliVec position_local;
-        double distance_of_ray;
-};
-
-struct mliIntersection mliIntersection_init(void);
 #endif
 
 /* mliStr */
@@ -1536,50 +1566,29 @@ uint64_t mliStr_countn(
 
 #endif
 
-/* mliFunc */
-/* ------- */
+/* mliBoundaryLayer */
+/* ---------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIFUNC_H_
-#define MLIFUNC_H_
+#ifndef MLIBOUNDARYLAYER_H_
+#define MLIBOUNDARYLAYER_H_
 
 
-struct mliFunc {
-        uint32_t num_points;
-        double *x;
-        double *y;
+struct mliSide {
+        uint32_t surface;
+        uint32_t medium;
 };
 
-int mliFunc_equal(const struct mliFunc a, const struct mliFunc b);
-int mliFunc_fold_numeric(
-        const struct mliFunc *a,
-        const struct mliFunc *b,
-        double *fold);
-int mliFunc_evaluate(const struct mliFunc *f, const double xarg, double *out);
-int mliFunc_x_is_strictly_increasing(const struct mliFunc *f);
-int mliFunc_malloc(struct mliFunc *f, const uint32_t num_points);
-void mliFunc_free(struct mliFunc *f);
-struct mliFunc mliFunc_init(void);
-int mliFunc_is_valid(const struct mliFunc *func);
-#endif
-
-/* mliMedium */
-/* --------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIMEDIUM_H_
-#define MLIMEDIUM_H_
-
-
-struct mliMedium {
-        struct mliFunc refraction;
-        struct mliFunc absorbtion;
+struct mliBoundaryLayer {
+        struct mliSide inner;
+        struct mliSide outer;
 };
-struct mliMedium mliMedium_init(void);
-void mliMedium_free(struct mliMedium *medium);
 
-int mliMedium_equal(const struct mliMedium *a, const struct mliMedium *b);
+int mliBoundaryLayer_equal(
+        const struct mliBoundaryLayer a,
+        const struct mliBoundaryLayer b);
 
+void mliBoundaryLayer_print(const struct mliBoundaryLayer a);
 #endif
 
 /* mliVec_AABB */
@@ -1596,150 +1605,107 @@ int mliVec_overlap_aabb(
         const struct mliVec aabb_upper);
 #endif
 
-/* mliCube */
-/* ------- */
+/* mliColor */
+/* -------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLICUBE_H_
-#define MLICUBE_H_
+#ifndef MLICOLOR_H_
+#define MLICOLOR_H_
 
 
-#define MLI_IS_BIT(var, pos) ((var) & (1 << (pos)))
-
-struct mliCube {
-        /*
-         * Cubic Oriented-Bounding-Box
-         * oriented w.r.t. the unit-vectors.
-         */
-        struct mliVec lower;
-        double edge_length;
+struct mliColor {
+        float r;
+        float g;
+        float b;
 };
 
-int mliCube_equal(const struct mliCube a, const struct mliCube b);
-struct mliCube mliCube_octree_child_code(
-        const struct mliCube cube,
-        const uint8_t a);
-struct mliCube mliCube_octree_child(
-        const struct mliCube cube,
-        const uint32_t sx,
-        const uint32_t sy,
-        const uint32_t sz);
-struct mliCube mliCube_outermost_cube(const struct mliAABB a);
-struct mliVec mliCube_center(const struct mliCube a);
-struct mliAABB mliCube_to_aabb(const struct mliCube a);
-struct mliVec mliCube_upper(const struct mliCube a);
+int mliColor_equal(const struct mliColor a, const struct mliColor b);
+struct mliColor mliColor_truncate_to_uint8(const struct mliColor color);
+struct mliColor mliColor_mean(
+        const struct mliColor colors[],
+        const uint32_t num_colors);
+struct mliColor mliColor_mix(
+        const struct mliColor a,
+        const struct mliColor b,
+        const float refl);
+struct mliColor mliColor_set(const float r, const float g, const float b);
+int mliColor_is_valid_8bit_range(const struct mliColor c);
+
+struct mliColor mliColor_add(const struct mliColor a, const struct mliColor b);
+struct mliColor mliColor_multiply(const struct mliColor c, const double f);
+struct mliColor mliColor_multiply_elementwise(
+        const struct mliColor a,
+        const struct mliColor b);
 #endif
 
-/* mliDynUint32 */
-/* ------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNARRAY_UINT32_H_
-#define MLIDYNARRAY_UINT32_H_
-
-MLIDYNARRAY_DEFINITON(mli, Uint32, uint32_t)
-#endif
-
-/* mliPixelWalk */
-/* ------------ */
-
-/* Copyright 2020-2021 Sebastian Achim Mueller */
-#ifndef MLIPIXELWALK_H_
-#define MLIPIXELWALK_H_
-
-
-struct mliPixelWalk {
-        /*
-         * PixelWalk walks over the pixels of a rectangular image in a
-         * cache-aware-way with respect to raytracing.
-         * The goal is to bundle rays that will go to similar directions.
-         * Instead of running fast along one axis of the image, and slow along
-         * the other, PixelWalk spreads the walk among both axis by walking
-         * small quadratic chunks of pixels.
-         */
-        uint32_t chunk_size;
-        uint32_t num_chunks_row;
-        uint32_t num_chunks_col;
-        uint32_t chunk_row;
-        uint32_t sub_row;
-        uint32_t chunk_col;
-        uint32_t sub_col;
-        uint32_t num_rows;
-        uint32_t num_cols;
-        uint32_t i;
-};
-
-struct mliPixelWalk mliPixelWalk_set(
-        const uint32_t num_cols,
-        const uint32_t num_rows,
-        const uint32_t chunk_size);
-struct mliPixel mliPixelWalk_get(const struct mliPixelWalk *walk);
-void mliPixelWalk_walk(struct mliPixelWalk *walk);
-#endif
-
-/* mliHomTra */
+/* mliPhoton */
 /* --------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIHOMTRA_H_
-#define MLIHOMTRA_H_
+#ifndef MLIPHOTON_H_
+#define MLIPHOTON_H_
 
 
-struct mliHomTraComp {
-        struct mliVec translation;
-        struct mliQuaternion rotation;
+struct mliPhoton {
+        struct mliRay ray;
+        double wavelength;
+        int64_t id;
 };
 
-struct mliHomTra {
-        struct mliVec translation;
-        struct mliMat rotation;
+#endif
+
+/* mliMedium_serialize */
+/* ------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIMEDIUM_SERIALIZE_H_
+#define MLIMEDIUM_SERIALIZE_H_
+
+
+int mliMedium_fwrite(const struct mliMedium *med, FILE *f);
+int mliMedium_malloc_fread(struct mliMedium *med, FILE *f);
+#endif
+
+/* mliView */
+/* ------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIVIEW_H_
+#define MLIVIEW_H_
+
+
+struct mliView {
+        struct mliVec position;
+        struct mliVec rotation;
+        double field_of_view;
 };
 
-void mliHomTra_print(const struct mliHomTra h);
-struct mliHomTraComp mliHomTraComp_set(
-        const struct mliVec translation,
-        const struct mliQuaternion rotation);
-struct mliHomTraComp mliHomTraComp_sequence(
-        const struct mliHomTraComp a,
-        const struct mliHomTraComp b);
-int mliHomTraComp_equal(
-        const struct mliHomTraComp a,
-        const struct mliHomTraComp b);
-struct mliVec mliHomTra_dir_inverse(
-        const struct mliHomTra *t,
-        const struct mliVec in);
-struct mliVec mliHomTra_dir(const struct mliHomTra *t, const struct mliVec in);
-struct mliVec mliHomTra_pos_inverse(
-        const struct mliHomTra *t,
-        const struct mliVec in);
-struct mliVec mliHomTra_pos(const struct mliHomTra *t, const struct mliVec in);
-struct mliRay mliHomTra_ray_inverse(
-        const struct mliHomTra *t,
-        const struct mliRay in);
-struct mliRay mliHomTra_ray(const struct mliHomTra *t, const struct mliRay in);
-struct mliRay mli_transform_ray_inverse(
-        const struct mliMat *rotation,
-        const struct mliVec translation,
-        const struct mliRay in);
-struct mliRay mli_transform_ray(
-        const struct mliMat *rotation,
-        const struct mliVec translation,
-        const struct mliRay in);
-struct mliVec mli_transform_position_inverse(
-        const struct mliMat *rotation,
-        const struct mliVec translation,
-        const struct mliVec in);
-struct mliVec mli_transform_position(
-        const struct mliMat *rotation,
-        const struct mliVec translation,
-        const struct mliVec in);
-struct mliVec mli_transform_orientation_inverse(
-        const struct mliMat *rotation,
-        const struct mliVec in);
-struct mliVec mli_transform_orientation(
-        const struct mliMat *rotation,
-        const struct mliVec in);
-struct mliHomTra mliHomTra_from_compact(const struct mliHomTraComp trafo);
+struct mliView mliView_look_up_when_possible(
+        const struct mliView camin,
+        const double rate);
+struct mliView mliView_decrease_fov(
+        const struct mliView camin,
+        const double rate);
+struct mliView mliView_increase_fov(
+        const struct mliView camin,
+        const double rate);
+struct mliView mliView_look_down_when_possible(
+        const struct mliView camin,
+        const double rate);
+struct mliView mliView_look_right(
+        const struct mliView camin,
+        const double rate);
+struct mliView mliView_move_up(const struct mliView camin, const double rate);
+struct mliView mliView_move_right(
+        const struct mliView camin,
+        const double rate);
+struct mliView mliView_move_forward(
+        const struct mliView camin,
+        const double rate);
+struct mliVec mliView_direction_up(const struct mliView cam);
+struct mliVec mliView_direction_right(const struct mliView cam);
+struct mliVec mliView_optical_axis(const struct mliView cam);
+struct mliHomTraComp mliView_to_HomTraComp(const struct mliView view);
 #endif
 
 /* mliStr_numbers */
@@ -1782,59 +1748,156 @@ int mliStr_print_uint64(
 
 #endif
 
-/* mli_triangle_intersection */
-/* ------------------------- */
+/* mliObject_valid */
+/* --------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLITRIANGLE_INTERSECTION_H_
-#define MLITRIANGLE_INTERSECTION_H_
+#ifndef MLIOBJECT_VALID_H_
+#define MLIOBJECT_VALID_H_
 
 
-struct mliVec mliTriangle_interpolate_surface_normal(
-        const struct mliVec vertex_normal_a,
-        const struct mliVec vertex_normal_b,
-        const struct mliVec vertex_normal_c,
-        const struct mliBarycentrigWeights weights);
-
-int mliRay_intersects_triangle(
-        const struct mliRay ray,
-        const struct mliVec vertex_a,
-        const struct mliVec vertex_b,
-        const struct mliVec vertex_c,
-        double *intersection_ray_parameter);
-
-struct mliVec mliTriangle_surface_normal(
-        const struct mliVec vertex_a,
-        const struct mliVec vertex_b,
-        const struct mliVec vertex_c,
-        const struct mliVec vertex_normal_a,
-        const struct mliVec vertex_normal_b,
-        const struct mliVec vertex_normal_c,
-        const struct mliVec intersection_position);
+int mliObject_is_valid(const struct mliObject *obj);
+int mliObject_has_valid_vertices(const struct mliObject *obj);
+int mliObject_has_valid_faces(const struct mliObject *obj);
+int mliObject_has_valid_normals(
+        const struct mliObject *obj,
+        const double epsilon);
+int mliObject_has_valid_materials(const struct mliObject *obj);
+int mliObject_num_unused(
+        const struct mliObject *obj,
+        uint32_t *num_unused_vertices,
+        uint32_t *num_unused_vertex_normals,
+        uint32_t *num_unused_materials);
 #endif
 
-/* mliRay_AABB */
+/* mliIntersectionSurfaceNormal */
+/* ---------------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIINTERSECTIONSURFACENORMAL_H_
+#define MLIINTERSECTIONSURFACENORMAL_H_
+
+
+struct mliIntersectionSurfaceNormal {
+        struct mliGeometryId geometry_id;
+        struct mliVec position;
+        struct mliVec surface_normal;
+        struct mliVec position_local;
+        struct mliVec surface_normal_local;
+        double distance_of_ray;
+        int64_t from_outside_to_inside;
+};
+
+struct mliIntersectionSurfaceNormal mliIntersectionSurfaceNormal_init(void);
+
+#endif
+
+/* mliDynFloat */
 /* ----------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIRAY_AABB_H_
-#define MLIRAY_AABB_H_
+#ifndef MLIDYNARRAY_FLOAT_H_
+#define MLIDYNARRAY_FLOAT_H_
 
-
-int mliRay_has_overlap_aabb(
-        const struct mliRay ray,
-        const struct mliAABB aabb,
-        double *ray_parameter);
+MLIDYNARRAY_DEFINITON(mli, Float, float)
 #endif
 
-/* mliDynFace */
-/* ---------- */
+/* mliObject_serialize */
+/* ------------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNARRAY_FACE_H_
-#define MLIDYNARRAY_FACE_H_
+#ifndef MLIOBJECT_SERIALIZE_H_
+#define MLIOBJECT_SERIALIZE_H_
 
-MLIDYNARRAY_DEFINITON(mli, Face, struct mliFace)
+
+int mliObject_fwrite(const struct mliObject *obj, FILE *f);
+int mliObject_malloc_fread(struct mliObject *obj, FILE *f);
+#endif
+
+/* mliCube */
+/* ------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLICUBE_H_
+#define MLICUBE_H_
+
+
+#define MLI_IS_BIT(var, pos) ((var) & (1 << (pos)))
+
+struct mliCube {
+        /*
+         * Cubic Oriented-Bounding-Box
+         * oriented w.r.t. the unit-vectors.
+         */
+        struct mliVec lower;
+        double edge_length;
+};
+
+int mliCube_equal(const struct mliCube a, const struct mliCube b);
+struct mliCube mliCube_octree_child_code(
+        const struct mliCube cube,
+        const uint8_t a);
+struct mliCube mliCube_octree_child(
+        const struct mliCube cube,
+        const uint32_t sx,
+        const uint32_t sy,
+        const uint32_t sz);
+struct mliCube mliCube_outermost_cube(const struct mliAABB a);
+struct mliVec mliCube_center(const struct mliCube a);
+struct mliAABB mliCube_to_aabb(const struct mliCube a);
+struct mliVec mliCube_upper(const struct mliCube a);
+#endif
+
+/* mli_viewer_Config */
+/* ----------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_VIEWER_CONFIG_H_
+#define MLI_VIEWER_CONFIG_H_
+
+
+struct mlivrConfig {
+        uint32_t random_seed;
+        uint64_t preview_num_cols;
+        uint64_t preview_num_rows;
+        uint64_t export_num_cols;
+        uint64_t export_num_rows;
+        double step_length;
+        struct mliView view;
+
+        double aperture_camera_f_stop_ratio;
+        double aperture_camera_image_sensor_width;
+};
+
+struct mlivrConfig mlivrConfig_default(void);
+
+#endif
+
+/* mliOctOverlaps */
+/* -------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIOCTOVERLAPS_H_
+#define MLIOCTOVERLAPS_H_
+
+
+#define mliOctOverlap mliDynUint32
+#define mliOctOverlap_init mliDynUint32_init
+#define mliOctOverlap_malloc mliDynUint32_malloc
+#define mliOctOverlap_free mliDynUint32_free
+#define mliOctOverlap_push_back mliDynUint32_push_back
+
+#endif
+
+/* mliDynColor */
+/* ----------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNARRAY_COLOR_H_
+#define MLIDYNARRAY_COLOR_H_
+
+MLIDYNARRAY_DEFINITON(mli, Color, struct mliColor)
+MLIDYNARRAY_DEFINITON(mli, ColorPtr, struct mliColor *)
 #endif
 
 /* mliDynVec */
@@ -1847,42 +1910,44 @@ MLIDYNARRAY_DEFINITON(mli, Face, struct mliFace)
 MLIDYNARRAY_DEFINITON(mli, Vec, struct mliVec)
 #endif
 
-/* mliObject */
-/* --------- */
+/* mliFrame */
+/* -------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIOBJECT_H_
-#define MLIOBJECT_H_
+#ifndef MLIFRAME_H_
+#define MLIFRAME_H_
 
 
-struct mliObject {
-        uint32_t num_vertices;
-        struct mliVec *vertices;
+#define MLI_FRAME 1000u
+#define MLI_OBJECT 1001u
 
-        uint32_t num_vertex_normals;
-        struct mliVec *vertex_normals;
+MLIDYNARRAY_DEFINITON(mli, FramePtr, struct mliFrame *)
 
-        uint32_t num_faces;
-        struct mliFace *faces_vertices;
-        struct mliFace *faces_vertex_normals;
-        uint16_t *faces_materials;
+struct mliFrame {
+        uint32_t type;
+        uint32_t id;
+        struct mliHomTraComp frame2mother;
+        struct mliHomTraComp frame2root;
+        struct mliFrame *mother;
 
-        uint32_t num_materials;
-        struct mliName *material_names;
+        struct mliDynFramePtr children;
+
+        uint32_t object;
+        struct mliDynUint32 boundary_layers;
 };
 
-int mliObject_malloc(
-        struct mliObject *obj,
-        const uint64_t num_vertices,
-        const uint64_t num_vertex_normals,
-        const uint64_t num_faces,
-        const uint64_t num_materials);
-void mliObject_free(struct mliObject *obj);
-struct mliObject mliObject_init(void);
-int mliObject_equal(const struct mliObject *a, const struct mliObject *b);
-uint32_t mliObject_resolve_material_idx(
-        const struct mliObject *obj,
-        const uint32_t face_idx);
+void mliFrame_set_frame2root(struct mliFrame *f);
+void mliFrame_print(struct mliFrame *f);
+void mliFrame_print_walk(const struct mliFrame *f, const uint64_t indention);
+int mli_string_to_type(const char *s, uint64_t *type);
+int mli_type_to_string(const uint64_t type, char *s);
+struct mliFrame *mliFrame_add(struct mliFrame *mother, const uint64_t type);
+int mliFrame_set_mother_and_child(
+        struct mliFrame *mother,
+        struct mliFrame *child);
+int mliFrame_malloc(struct mliFrame *f, const uint64_t type);
+void mliFrame_free(struct mliFrame *f);
+struct mliFrame mliFrame_init(void);
 #endif
 
 /* mliObject_AABB */
@@ -1986,16 +2051,139 @@ int mli_line_viewer_write(
 
 #endif
 
-/* mliMedium_serialize */
+/* mliDynPhoton */
+/* ------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNPHOTON_H_
+#define MLIDYNPHOTON_H_
+
+MLIDYNARRAY_DEFINITON(mli, Photon, struct mliPhoton)
+#endif
+
+/* mliObject_wavefront */
 /* ------------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIMEDIUM_SERIALIZE_H_
-#define MLIMEDIUM_SERIALIZE_H_
+#ifndef MLIOBJECT_WAVEFRONT_H_
+#define MLIOBJECT_WAVEFRONT_H_
 
 
-int mliMedium_fwrite(const struct mliMedium *med, FILE *f);
-int mliMedium_malloc_fread(struct mliMedium *med, FILE *f);
+int mliObject_malloc_from_wavefront(struct mliObject *obj, const char *str);
+int mliObject_fprint_to_wavefront(struct mliIo *f, const struct mliObject *obj);
+int mliObject_parse_face_line(
+        const char *line,
+        struct mliFace *faces_vertices,
+        struct mliFace *faces_texture_points,
+        struct mliFace *faces_vertex_normals,
+        int *line_mode);
+int mliObject_parse_three_float_line(const char *line, struct mliVec *v);
+#endif
+
+/* mliDynMap */
+/* --------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIMAP_H_
+#define MLIMAP_H_
+
+
+struct mliDynMapItem {
+        char key[MLI_NAME_CAPACITY];
+        uint64_t value;
+};
+MLIDYNARRAY_DEFINITON(mli, Map, struct mliDynMapItem)
+int mliDynMap_has(const struct mliDynMap *map, const char *key);
+int mliDynMap_insert(struct mliDynMap *map, const char *key, uint64_t value);
+int mliDynMap_find(const struct mliDynMap *map, const char *key, uint64_t *idx);
+int mliDynMap_get(
+        const struct mliDynMap *map,
+        const char *key,
+        uint64_t *value);
+
+#endif
+
+/* mliImage */
+/* -------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIIMAGE_H_
+#define MLIIMAGE_H_
+
+
+struct mliImage {
+        uint32_t num_cols;
+        uint32_t num_rows;
+        struct mliColor *raw;
+};
+
+void mliImage_assign_pixel_colors_to_sum_and_exposure_image(
+        const struct mliPixels *pixels,
+        const struct mliImage *colors,
+        struct mliImage *sum_image,
+        struct mliImage *exposure_image);
+int mliPixels_malloc_from_image_above_threshold(
+        struct mliPixels *pixels,
+        const struct mliImage *image,
+        const float threshold);
+void mliPixels_above_threshold(
+        const struct mliImage *to_do_image,
+        const float threshold,
+        struct mliPixels *pixels);
+void mliImage_from_sum_and_exposure(
+        const struct mliImage *sum,
+        const struct mliImage *exposure,
+        struct mliImage *out);
+void mliImage_luminance_threshold_dilatation(
+        const struct mliImage *image,
+        const float threshold,
+        struct mliImage *out);
+void mliImage_sobel(const struct mliImage *image, struct mliImage *out);
+int mliImage_scale_down_twice(
+        const struct mliImage *source,
+        struct mliImage *destination);
+struct mliColor mliImage_at(
+        const struct mliImage *img,
+        const uint32_t col,
+        const uint32_t row);
+void mliImage_set(
+        const struct mliImage *img,
+        const uint32_t col,
+        const uint32_t row,
+        const struct mliColor color);
+void mliPixels_set_all_from_image(
+        struct mliPixels *pixels,
+        const struct mliImage *image);
+uint32_t mliImage_idx(
+        const struct mliImage *img,
+        const uint32_t col,
+        const uint32_t row);
+int mliImage_malloc(
+        struct mliImage *img,
+        const uint32_t num_cols,
+        const uint32_t num_rows);
+void mliImage_free(struct mliImage *img);
+
+void mliImage_copy(const struct mliImage *source, struct mliImage *destination);
+void mliImage_fabs_difference(
+        const struct mliImage *a,
+        const struct mliImage *b,
+        struct mliImage *out);
+struct mliImage mliImage_init(void);
+
+void mliImage_histogram(
+        struct mliImage *img,
+        const double *col_bin_edges,
+        const double *row_bin_edges,
+        const double x,
+        const double y,
+        const struct mliColor weight);
+struct mliColor mliImage_max(const struct mliImage *img);
+void mliImage_multiply(struct mliImage *img, const struct mliColor color);
+void mliImage_divide_pixelwise(
+        const struct mliImage *numerator,
+        const struct mliImage *denominator,
+        struct mliImage *out);
 #endif
 
 /* mli_random_generator */
@@ -2060,147 +2248,21 @@ void mliPrng_PCG32_reinit(void *pcg, const uint32_t seed);
 
 #endif
 
-/* mliDynMap */
-/* --------- */
+/* mliIntersection */
+/* --------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIMAP_H_
-#define MLIMAP_H_
+#ifndef MLIINTERSECTION_H_
+#define MLIINTERSECTION_H_
 
 
-struct mliDynMapItem {
-        char key[MLI_NAME_CAPACITY];
-        uint64_t value;
-};
-MLIDYNARRAY_DEFINITON(mli, Map, struct mliDynMapItem)
-int mliDynMap_has(const struct mliDynMap *map, const char *key);
-int mliDynMap_insert(struct mliDynMap *map, const char *key, uint64_t value);
-int mliDynMap_find(const struct mliDynMap *map, const char *key, uint64_t *idx);
-int mliDynMap_get(
-        const struct mliDynMap *map,
-        const char *key,
-        uint64_t *value);
-
-#endif
-
-/* mli_random */
-/* ---------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_RANDOM_H_
-#define MLI_RANDOM_H_
-
-
-struct mliRandomUniformRange {
-        double start;
-        double range;
+struct mliIntersection {
+        struct mliGeometryId geometry_id;
+        struct mliVec position_local;
+        double distance_of_ray;
 };
 
-struct mliRandomZenithRange {
-        double z_min;
-        double z_range;
-};
-
-struct mliVec mli_random_position_on_disc(
-        const double radius,
-        struct mliPrng *prng);
-struct mliVec mli_random_draw_direction_in_zenith_azimuth_range(
-        const struct mliRandomZenithRange zenith,
-        const struct mliRandomUniformRange azimuth,
-        struct mliPrng *prng);
-double mli_random_draw_zenith(
-        const struct mliRandomZenithRange range,
-        struct mliPrng *prng);
-struct mliRandomZenithRange mliRandomZenithRange_set(
-        const double min_zenith_distance,
-        const double max_zenith_distance);
-double mli_random_draw_uniform(
-        const struct mliRandomUniformRange uniform_range,
-        struct mliPrng *prng);
-struct mliRandomUniformRange mliRandomUniformRange_set(
-        double start,
-        double stop);
-double mli_random_normal_Irwin_Hall_approximation(
-        struct mliPrng *prng,
-        const double mean,
-        const double std);
-double mli_random_expovariate(struct mliPrng *prng, const double rate);
-double mli_random_uniform(struct mliPrng *prng);
-struct mliVec mli_random_position_inside_unit_sphere(struct mliPrng *prng);
-#endif
-
-/* mliImage_print */
-/* -------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIIMAGE_PRINT_H_
-#define MLIIMAGE_PRINT_H_
-
-
-#define MLI_ASCII_MONOCHROME 100
-#define MLI_ANSI_ESCAPE_COLOR 101
-
-void mliImage_print(const struct mliImage *img, const uint64_t print_mode);
-void mliImage_print_chars(
-        const struct mliImage *img,
-        const char *symbols,
-        const uint64_t *rows,
-        const uint64_t *cols,
-        const uint64_t num_symbols,
-        const uint64_t print_mode);
-
-/* Colored ANSI escape sequences */
-
-void mliImage_print_ansi_escape_chars(
-        const struct mliImage *img,
-        const char *symbols,
-        const uint64_t *rows,
-        const uint64_t *cols,
-        const uint64_t num_symbols);
-
-/* Monochrome ASCII chars */
-
-void mliImage_print_ascii_chars(
-        const struct mliImage *img,
-        const char *symbols,
-        const uint64_t *rows,
-        const uint64_t *cols,
-        const uint64_t num_symbols);
-#endif
-
-/* mliObject_wavefront */
-/* ------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIOBJECT_WAVEFRONT_H_
-#define MLIOBJECT_WAVEFRONT_H_
-
-
-int mliObject_malloc_from_wavefront(struct mliObject *obj, const char *str);
-int mliObject_fprint_to_wavefront(struct mliIo *f, const struct mliObject *obj);
-int mliObject_parse_face_line(
-        const char *line,
-        struct mliFace *faces_vertices,
-        struct mliFace *faces_texture_points,
-        struct mliFace *faces_vertex_normals,
-        int *line_mode);
-int mliObject_parse_three_float_line(const char *line, struct mliVec *v);
-#endif
-
-/* mliPhoton */
-/* --------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIPHOTON_H_
-#define MLIPHOTON_H_
-
-
-struct mliPhoton {
-        struct mliRay ray;
-        double wavelength;
-        int64_t id;
-};
-
+struct mliIntersection mliIntersection_init(void);
 #endif
 
 /* mliUserScenery */
@@ -2241,258 +2303,6 @@ int mli_check_malloc_root_frame_from_Archive(
         const struct mliDynMap *object_names,
         const struct mliObject *objects,
         const struct mliDynMap *boundary_layer_names);
-#endif
-
-/* mli_json */
-/* -------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_JSON_H_
-#define MLI_JSON_H_
-
-
-struct mliJson {
-        struct mliStr raw;
-        uint64_t num_tokens;
-        struct jsmntok_t *tokens;
-};
-
-int mliJson_debug_to_path(const struct mliJson *json, const char *path);
-int mliJson_debug_fprint(FILE *f, const struct mliJson *json);
-int mliJson_debug_token_fprint(
-        FILE *f,
-        const struct mliJson *json,
-        const uint64_t token);
-uint64_t mliJson_token_by_index(
-        const struct mliJson *json,
-        const uint64_t start_token_idx,
-        const uint64_t child_idx);
-int mliJson_token_by_key(
-        const struct mliJson *json,
-        const uint64_t token,
-        const char *key,
-        uint64_t *key_token);
-int mliJson_token_by_key_eprint(
-        const struct mliJson *json,
-        const uint64_t token,
-        const char *key,
-        uint64_t *key_token);
-int mliJson_double_by_token(
-        const struct mliJson *json,
-        const uint64_t token,
-        double *val);
-int mliJson_double_by_key(
-        const struct mliJson *json,
-        const uint64_t token,
-        double *val,
-        const char *key);
-int mliJson_int64_by_token(
-        const struct mliJson *json,
-        const uint64_t token,
-        int64_t *return_int64);
-int mliJson_uint64_by_token(
-        const struct mliJson *json,
-        const uint64_t token,
-        uint64_t *return_uint64);
-int mliJson_cstr_by_token(
-        const struct mliJson *json,
-        const uint64_t token,
-        char *return_string,
-        const uint64_t return_string_size);
-int mliJson_int64_by_key(
-        const struct mliJson *json,
-        const uint64_t token,
-        int64_t *val,
-        const char *key);
-int mliJson_uint64_by_key(
-        const struct mliJson *json,
-        const uint64_t token,
-        uint64_t *val,
-        const char *key);
-int mliJson_cstrcmp(
-        const struct mliJson *json,
-        const uint64_t token,
-        const char *str);
-int mliJson_malloc_from_path(struct mliJson *json, const char *path);
-int mliJson_malloc_from_cstr(struct mliJson *json, const char *cstr);
-int mliJson_malloc_tokens__(struct mliJson *json);
-int mliJson_parse_tokens__(struct mliJson *json);
-void mliJson_free(struct mliJson *json);
-struct mliJson mliJson_init(void);
-#endif
-
-/* mliImage_ppm */
-/* ------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIIMAGE_PPM_H_
-#define MLIIMAGE_PPM_H_
-
-
-int mliImage_fwrite(const struct mliImage *img, FILE *f);
-int mliImage_malloc_fread(struct mliImage *img, FILE *f);
-
-int mliImage_malloc_from_path(struct mliImage *img, const char *path);
-int mliImage_write_to_path(const struct mliImage *img, const char *path);
-#endif
-
-/* mliSurface */
-/* ---------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLISURFACE_H_
-#define MLISURFACE_H_
-
-
-#define MLI_MATERIAL_PHONG 100u
-#define MLI_MATERIAL_TRANSPARENT 102u
-
-struct mliSurface {
-        uint32_t material;
-
-        struct mliFunc specular_reflection;
-        struct mliFunc diffuse_reflection;
-
-        /*
-         *  The color is only relevant for fast rendering of images.
-         *  Color will not effect the propagation of photons.
-         */
-        struct mliColor color;
-};
-
-int mliSurface_malloc(
-        struct mliSurface *surface,
-        const uint32_t num_points_specular_reflection,
-        const uint32_t num_points_diffuse_reflection);
-void mliSurface_free(struct mliSurface *surface);
-struct mliSurface mliSurface_init(void);
-int mliSurface_equal(const struct mliSurface *a, const struct mliSurface *b);
-
-int mliSurface_fwrite(const struct mliSurface *srf, FILE *f);
-int mliSurface_malloc_fread(struct mliSurface *srf, FILE *f);
-
-int mli_material_type_to_string(const uint32_t type, char *s);
-int mli_material_type_from_string(const char *s, uint32_t *id);
-
-int mliSurface_malloc_from_json_str(
-        struct mliSurface *surface,
-        const char *json_str);
-int mliSurface_malloc_from_json_token(
-        struct mliSurface *surface,
-        const struct mliJson *json,
-        const uint64_t token);
-#endif
-
-/* mli_lambertian_cosine_law */
-/* ------------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_LAMBERTIAN_COSINE_LAW_H_
-#define MLI_LAMBERTIAN_COSINE_LAW_H_
-
-
-struct mliVec mli_draw_lambertian_direction_wrt_surface_normal(
-        struct mliPrng *prng,
-        const struct mliVec surface_normal);
-struct mliVec mli_draw_lambertian_direction_wrt_z(struct mliPrng *prng);
-#endif
-
-/* mliOctOverlaps */
-/* -------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIOCTOVERLAPS_H_
-#define MLIOCTOVERLAPS_H_
-
-
-#define mliOctOverlap mliDynUint32
-#define mliOctOverlap_init mliDynUint32_init
-#define mliOctOverlap_malloc mliDynUint32_malloc
-#define mliOctOverlap_free mliDynUint32_free
-#define mliOctOverlap_push_back mliDynUint32_push_back
-
-#endif
-
-/* mli_viewer_Config */
-/* ----------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_VIEWER_CONFIG_H_
-#define MLI_VIEWER_CONFIG_H_
-
-
-struct mlivrConfig {
-        uint32_t random_seed;
-        uint64_t preview_num_cols;
-        uint64_t preview_num_rows;
-        uint64_t export_num_cols;
-        uint64_t export_num_rows;
-        double step_length;
-        struct mliView view;
-
-        double aperture_camera_f_stop_ratio;
-        double aperture_camera_image_sensor_width;
-};
-
-struct mlivrConfig mlivrConfig_default(void);
-
-#endif
-
-/* mliFunc_serialize */
-/* ----------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIFUNC_SERIALIZE_H_
-#define MLIFUNC_SERIALIZE_H_
-
-
-int mliFunc_malloc_fread(struct mliFunc *func, FILE *f);
-int mliFunc_fwrite(const struct mliFunc *func, FILE *f);
-#endif
-
-/* mliVec_json */
-/* ----------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIVEC_JSON_H_
-#define MLIVEC_JSON_H_
-
-
-int mliVec_from_json_token(
-        struct mliVec *v,
-        const struct mliJson *json,
-        const uint64_t token);
-#endif
-
-/* mliDynDouble */
-/* ------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNARRAY_DOUBLE_H_
-#define MLIDYNARRAY_DOUBLE_H_
-
-MLIDYNARRAY_DEFINITON(mli, Double, double)
-#endif
-
-/* mliSurface_json */
-/* --------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLISURFACE_JSON_H_
-#define MLISURFACE_JSON_H_
-
-
-int mliSurface_malloc_from_json_str(
-        struct mliSurface *surface,
-        const char *json_str);
-int mliSurface_malloc_from_json_token(
-        struct mliSurface *surface,
-        const struct mliJson *json,
-        const uint64_t token);
-int mli_material_type_from_json_token(
-        const struct mliJson *json,
-        const uint64_t token,
-        uint32_t *material);
 #endif
 
 /* mliAtmosphere */
@@ -2577,155 +2387,268 @@ struct mliColor mliAtmosphere_compute_depth(
 
 #endif
 
-/* mliFrame */
-/* -------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIFRAME_H_
-#define MLIFRAME_H_
-
-
-#define MLI_FRAME 1000u
-#define MLI_OBJECT 1001u
-
-MLIDYNARRAY_DEFINITON(mli, FramePtr, struct mliFrame *)
-
-struct mliFrame {
-        uint32_t type;
-        uint32_t id;
-        struct mliHomTraComp frame2mother;
-        struct mliHomTraComp frame2root;
-        struct mliFrame *mother;
-
-        struct mliDynFramePtr children;
-
-        uint32_t object;
-        struct mliDynUint32 boundary_layers;
-};
-
-void mliFrame_set_frame2root(struct mliFrame *f);
-void mliFrame_print(struct mliFrame *f);
-void mliFrame_print_walk(const struct mliFrame *f, const uint64_t indention);
-int mli_string_to_type(const char *s, uint64_t *type);
-int mli_type_to_string(const uint64_t type, char *s);
-struct mliFrame *mliFrame_add(struct mliFrame *mother, const uint64_t type);
-int mliFrame_set_mother_and_child(
-        struct mliFrame *mother,
-        struct mliFrame *child);
-int mliFrame_malloc(struct mliFrame *f, const uint64_t type);
-void mliFrame_free(struct mliFrame *f);
-struct mliFrame mliFrame_init(void);
-#endif
-
-/* mliObject_valid */
-/* --------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIOBJECT_VALID_H_
-#define MLIOBJECT_VALID_H_
-
-
-int mliObject_is_valid(const struct mliObject *obj);
-int mliObject_has_valid_vertices(const struct mliObject *obj);
-int mliObject_has_valid_faces(const struct mliObject *obj);
-int mliObject_has_valid_normals(
-        const struct mliObject *obj,
-        const double epsilon);
-int mliObject_has_valid_materials(const struct mliObject *obj);
-int mliObject_num_unused(
-        const struct mliObject *obj,
-        uint32_t *num_unused_vertices,
-        uint32_t *num_unused_vertex_normals,
-        uint32_t *num_unused_materials);
-#endif
-
-/* mliObject_serialize */
-/* ------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIOBJECT_SERIALIZE_H_
-#define MLIOBJECT_SERIALIZE_H_
-
-
-int mliObject_fwrite(const struct mliObject *obj, FILE *f);
-int mliObject_malloc_fread(struct mliObject *obj, FILE *f);
-#endif
-
-/* mliMaterials */
+/* mliImage_ppm */
 /* ------------ */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIMATERIALS_H_
-#define MLIMATERIALS_H_
+#ifndef MLIIMAGE_PPM_H_
+#define MLIIMAGE_PPM_H_
 
 
-struct mliMaterialsCapacity {
-        uint64_t num_surfaces;
-        uint64_t num_media;
-        uint64_t num_boundary_layers;
-};
+int mliImage_fwrite(const struct mliImage *img, FILE *f);
+int mliImage_malloc_fread(struct mliImage *img, FILE *f);
 
-struct mliMaterialsCapacity mliMaterialsCapacity_init(void);
-
-struct mliMaterials {
-        uint64_t num_surfaces;
-        struct mliSurface *surfaces;
-        struct mliName *surface_names;
-
-        uint64_t num_media;
-        struct mliMedium *media;
-        struct mliName *medium_names;
-
-        uint64_t num_boundary_layers;
-        struct mliBoundaryLayer *boundary_layers;
-        struct mliName *boundary_layer_names;
-
-        uint64_t default_medium;
-};
-
-int mliMaterials_malloc(
-        struct mliMaterials *res,
-        const struct mliMaterialsCapacity rescap);
-void mliMaterials_free(struct mliMaterials *res);
-struct mliMaterials mliMaterials_init(void);
-void mliMaterials_info_fprint(FILE *f, const struct mliMaterials *res);
+int mliImage_malloc_from_path(struct mliImage *img, const char *path);
+int mliImage_write_to_path(const struct mliImage *img, const char *path);
 #endif
 
-/* mliAtmosphere_json */
-/* ------------------ */
+/* mliImage_print */
+/* -------------- */
 
-/* Copyright 2018-2021 Sebastian Achim Mueller */
-#ifndef MLIATMOSPHERE_JSON_H_
-#define MLIATMOSPHERE_JSON_H_
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIIMAGE_PRINT_H_
+#define MLIIMAGE_PRINT_H_
 
 
-int mliAtmosphere_from_json_token(
-        struct mliAtmosphere *atm,
-        const struct mliJson *json,
-        const uint64_t tkn);
+#define MLI_ASCII_MONOCHROME 100
+#define MLI_ANSI_ESCAPE_COLOR 101
 
+void mliImage_print(const struct mliImage *img, const uint64_t print_mode);
+void mliImage_print_chars(
+        const struct mliImage *img,
+        const char *symbols,
+        const uint64_t *rows,
+        const uint64_t *cols,
+        const uint64_t num_symbols,
+        const uint64_t print_mode);
+
+/* Colored ANSI escape sequences */
+
+void mliImage_print_ansi_escape_chars(
+        const struct mliImage *img,
+        const char *symbols,
+        const uint64_t *rows,
+        const uint64_t *cols,
+        const uint64_t num_symbols);
+
+/* Monochrome ASCII chars */
+
+void mliImage_print_ascii_chars(
+        const struct mliImage *img,
+        const char *symbols,
+        const uint64_t *rows,
+        const uint64_t *cols,
+        const uint64_t num_symbols);
 #endif
 
-/* mliMaterials_equal */
+/* mli_photon_sources */
 /* ------------------ */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIMATERIALS_EQUAL_H_
-#define MLIMATERIALS_EQUAL_H_
+#ifndef MLI_PHOTON_SOURCES_H_
+#define MLI_PHOTON_SOURCES_H_
 
 
-int mliMaterials_equal(
-        const struct mliMaterials *a,
-        const struct mliMaterials *b);
-int mliMaterials_surfaces_equal(
-        const struct mliMaterials *a,
-        const struct mliMaterials *b);
-int mliMaterials_media_equal(
-        const struct mliMaterials *a,
-        const struct mliMaterials *b);
-int mliMaterials_boundary_layers_equal(
-        const struct mliMaterials *a,
-        const struct mliMaterials *b);
+int mli_photon_source_point_like_opening_cone_towards_z(
+        struct mliDynPhoton *out_photons,
+        const double wavelength,
+        const double opening_angle,
+        const uint64_t num_photons,
+        struct mliPrng *prng);
+int mli_photon_source_parallel_towards_z_from_xy_disc(
+        struct mliDynPhoton *out_photons,
+        const double wavelength,
+        const double radius,
+        const uint64_t num_photons,
+        struct mliPrng *prng);
+#endif
+
+/* mli_json */
+/* -------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_JSON_H_
+#define MLI_JSON_H_
+
+
+struct mliJson {
+        struct mliStr raw;
+        uint64_t num_tokens;
+        struct jsmntok_t *tokens;
+};
+
+int mliJson_debug_to_path(const struct mliJson *json, const char *path);
+int mliJson_debug_fprint(FILE *f, const struct mliJson *json);
+int mliJson_debug_token_fprint(
+        FILE *f,
+        const struct mliJson *json,
+        const uint64_t token);
+uint64_t mliJson_token_by_index(
+        const struct mliJson *json,
+        const uint64_t start_token_idx,
+        const uint64_t child_idx);
+int mliJson_token_by_key(
+        const struct mliJson *json,
+        const uint64_t token,
+        const char *key,
+        uint64_t *key_token);
+int mliJson_token_by_key_eprint(
+        const struct mliJson *json,
+        const uint64_t token,
+        const char *key,
+        uint64_t *key_token);
+int mliJson_double_by_token(
+        const struct mliJson *json,
+        const uint64_t token,
+        double *val);
+int mliJson_double_by_key(
+        const struct mliJson *json,
+        const uint64_t token,
+        double *val,
+        const char *key);
+int mliJson_int64_by_token(
+        const struct mliJson *json,
+        const uint64_t token,
+        int64_t *return_int64);
+int mliJson_uint64_by_token(
+        const struct mliJson *json,
+        const uint64_t token,
+        uint64_t *return_uint64);
+int mliJson_cstr_by_token(
+        const struct mliJson *json,
+        const uint64_t token,
+        char *return_string,
+        const uint64_t return_string_size);
+int mliJson_int64_by_key(
+        const struct mliJson *json,
+        const uint64_t token,
+        int64_t *val,
+        const char *key);
+int mliJson_uint64_by_key(
+        const struct mliJson *json,
+        const uint64_t token,
+        uint64_t *val,
+        const char *key);
+int mliJson_cstrcmp(
+        const struct mliJson *json,
+        const uint64_t token,
+        const char *str);
+int mliJson_malloc_from_path(struct mliJson *json, const char *path);
+int mliJson_malloc_from_cstr(struct mliJson *json, const char *cstr);
+int mliJson_malloc_tokens__(struct mliJson *json);
+int mliJson_parse_tokens__(struct mliJson *json);
+void mliJson_free(struct mliJson *json);
+struct mliJson mliJson_init(void);
+#endif
+
+/* mliDynMap_json */
+/* -------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNMAP_JSON_H_
+#define MLIDYNMAP_JSON_H_
+
+
+int mliDynMap_get_value_for_string_from_json(
+        const struct mliDynMap *map,
+        const struct mliJson *json,
+        const uint64_t token_name,
+        uint32_t *out_value);
+int mliDynMap_insert_key_from_json(
+        struct mliDynMap *map,
+        const struct mliJson *json,
+        const uint64_t token_name,
+        const uint64_t value);
+
+#endif
+
+/* mli_random */
+/* ---------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_RANDOM_H_
+#define MLI_RANDOM_H_
+
+
+struct mliRandomUniformRange {
+        double start;
+        double range;
+};
+
+struct mliRandomZenithRange {
+        double z_min;
+        double z_range;
+};
+
+struct mliVec mli_random_position_on_disc(
+        const double radius,
+        struct mliPrng *prng);
+struct mliVec mli_random_draw_direction_in_zenith_azimuth_range(
+        const struct mliRandomZenithRange zenith,
+        const struct mliRandomUniformRange azimuth,
+        struct mliPrng *prng);
+double mli_random_draw_zenith(
+        const struct mliRandomZenithRange range,
+        struct mliPrng *prng);
+struct mliRandomZenithRange mliRandomZenithRange_set(
+        const double min_zenith_distance,
+        const double max_zenith_distance);
+double mli_random_draw_uniform(
+        const struct mliRandomUniformRange uniform_range,
+        struct mliPrng *prng);
+struct mliRandomUniformRange mliRandomUniformRange_set(
+        double start,
+        double stop);
+double mli_random_normal_Irwin_Hall_approximation(
+        struct mliPrng *prng,
+        const double mean,
+        const double std);
+double mli_random_expovariate(struct mliPrng *prng, const double rate);
+double mli_random_uniform(struct mliPrng *prng);
+struct mliVec mli_random_position_inside_unit_sphere(struct mliPrng *prng);
+#endif
+
+/* mliUserScenery_json */
+/* ------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIUSERSCENERY_JSON_H_
+#define MLIUSERSCENERY_JSON_H_
+
+
+int mliSide_from_json(
+        struct mliSide *side,
+        const struct mliDynMap *surface_names,
+        const struct mliDynMap *medium_names,
+        const struct mliJson *json,
+        const uint64_t side_token);
+int mliBoundaryLayer_from_json(
+        struct mliBoundaryLayer *boundary_layer,
+        const struct mliDynMap *surface_names,
+        const struct mliDynMap *medium_names,
+        const struct mliJson *json,
+        const uint64_t token_surface);
+int mliMaterials_assign_boundary_layers_from_json(
+        struct mliMaterials *materials,
+        struct mliDynMap *boundary_layer_names,
+        const struct mliDynMap *surface_names,
+        const struct mliDynMap *medium_names,
+        const struct mliJson *json);
+
+#endif
+
+/* mli_lambertian_cosine_law */
+/* ------------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_LAMBERTIAN_COSINE_LAW_H_
+#define MLI_LAMBERTIAN_COSINE_LAW_H_
+
+
+struct mliVec mli_draw_lambertian_direction_wrt_surface_normal(
+        struct mliPrng *prng,
+        const struct mliVec surface_normal);
+struct mliVec mli_draw_lambertian_direction_wrt_z(struct mliPrng *prng);
 #endif
 
 /* mliFrame_json */
@@ -2769,32 +2692,54 @@ int mliFrame_object_reference_form_json_token(
         const struct mliDynMap *object_names);
 #endif
 
-/* mliFunc_json */
-/* ------------ */
+/* mliArchive */
+/* ---------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIFUNC_JSON_H_
-#define MLIFUNC_JSON_H_
+#ifndef ARCHIVE_H_
+#define ARCHIVE_H_
 
 
-int mliFunc_malloc_from_json_token(
-        struct mliFunc *func,
-        const struct mliJson *json,
-        const uint64_t token);
-#endif
+MLIDYNARRAY_DEFINITON(mli, TextFiles, struct mliStr)
 
-/* mliMaterials_valid */
-/* ------------------ */
+struct mliArchive {
+        struct mliDynTextFiles textfiles;
+        struct mliDynMap filenames;
+};
 
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIMATERIALS_VALID_H_
-#define MLIMATERIALS_VALID_H_
+struct mliArchive mliArchive_init(void);
 
+void mliArchive_free(struct mliArchive *arc);
+int mliArchive_malloc(struct mliArchive *arc);
+int mliArchive_malloc_fread(struct mliArchive *arc, FILE *f);
+int mliArchive_malloc_from_path(struct mliArchive *arc, const char *path);
 
-int mliMaterials_valid(const struct mliMaterials *materials);
-int mliMaterials_valid_surfaces(const struct mliMaterials *materials);
-int mliMaterials_valid_media(const struct mliMaterials *materials);
-int mliMaterials_valid_boundary_layers(const struct mliMaterials *materials);
+int mliArchive_push_back(
+        struct mliArchive *arc,
+        const struct mliStr *filename,
+        const struct mliStr *payload);
+
+int mliArchive_has(const struct mliArchive *arc, const char *filename);
+int mliArchive_get(
+        const struct mliArchive *arc,
+        const char *filename,
+        struct mliStr **str);
+int mliArchive_get_malloc_json(
+        const struct mliArchive *arc,
+        const char *filename,
+        struct mliJson *json);
+uint64_t mliArchive_num(const struct mliArchive *arc);
+void mliArchive_info_fprint(FILE *f, const struct mliArchive *arc);
+void mliArchive_mask_filename_prefix_sufix(
+        const struct mliArchive *arc,
+        uint64_t *mask,
+        const char *prefix,
+        const char *suffix);
+uint64_t mliArchive_num_filename_prefix_sufix(
+        const struct mliArchive *arc,
+        const char *prefix,
+        const char *sufix);
+
 #endif
 
 /* mliMedium_json */
@@ -2810,6 +2755,286 @@ int mliMedium_malloc_from_json_token(
         struct mliMedium *med,
         const struct mliJson *json,
         const uint64_t token);
+#endif
+
+/* mliAtmosphere_json */
+/* ------------------ */
+
+/* Copyright 2018-2021 Sebastian Achim Mueller */
+#ifndef MLIATMOSPHERE_JSON_H_
+#define MLIATMOSPHERE_JSON_H_
+
+
+int mliAtmosphere_from_json_token(
+        struct mliAtmosphere *atm,
+        const struct mliJson *json,
+        const uint64_t tkn);
+
+#endif
+
+/* mliSurface */
+/* ---------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLISURFACE_H_
+#define MLISURFACE_H_
+
+
+#define MLI_MATERIAL_PHONG 100u
+#define MLI_MATERIAL_TRANSPARENT 102u
+
+struct mliSurface {
+        uint32_t material;
+
+        struct mliFunc specular_reflection;
+        struct mliFunc diffuse_reflection;
+
+        /*
+         *  The color is only relevant for fast rendering of images.
+         *  Color will not effect the propagation of photons.
+         */
+        struct mliColor color;
+};
+
+int mliSurface_malloc(
+        struct mliSurface *surface,
+        const uint32_t num_points_specular_reflection,
+        const uint32_t num_points_diffuse_reflection);
+void mliSurface_free(struct mliSurface *surface);
+struct mliSurface mliSurface_init(void);
+int mliSurface_equal(const struct mliSurface *a, const struct mliSurface *b);
+
+int mliSurface_fwrite(const struct mliSurface *srf, FILE *f);
+int mliSurface_malloc_fread(struct mliSurface *srf, FILE *f);
+
+int mli_material_type_to_string(const uint32_t type, char *s);
+int mli_material_type_from_string(const char *s, uint32_t *id);
+
+int mliSurface_malloc_from_json_str(
+        struct mliSurface *surface,
+        const char *json_str);
+int mliSurface_malloc_from_json_token(
+        struct mliSurface *surface,
+        const struct mliJson *json,
+        const uint64_t token);
+#endif
+
+/* mliColor_json */
+/* ------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLICOLOR_JSON_H_
+#define MLICOLOR_JSON_H_
+
+
+int mliColor_from_json_token(
+        struct mliColor *c,
+        const struct mliJson *json,
+        const uint64_t token);
+#endif
+
+/* mliVec_json */
+/* ----------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIVEC_JSON_H_
+#define MLIVEC_JSON_H_
+
+
+int mliVec_from_json_token(
+        struct mliVec *v,
+        const struct mliJson *json,
+        const uint64_t token);
+#endif
+
+/* mliFunc_json */
+/* ------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIFUNC_JSON_H_
+#define MLIFUNC_JSON_H_
+
+
+int mliFunc_malloc_from_json_token(
+        struct mliFunc *func,
+        const struct mliJson *json,
+        const uint64_t token);
+#endif
+
+/* mliQuaternion_json */
+/* ------------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIQUATERNION_JSON_H_
+#define MLIQUATERNION_JSON_H_
+
+
+int mliQuaternion_tait_bryan_from_json(
+        struct mliQuaternion *quat,
+        const struct mliJson *json,
+        const uint64_t token);
+int mliQuaternion_axis_angle_from_json(
+        struct mliQuaternion *quat,
+        const struct mliJson *json,
+        const uint64_t token);
+int mliQuaternion_quaternion_from_json(
+        struct mliQuaternion *quat,
+        const struct mliJson *json,
+        const uint64_t token);
+int mliQuaternion_from_json(
+        struct mliQuaternion *quat,
+        const struct mliJson *json,
+        const uint64_t token);
+
+#endif
+
+/* mliMaterials */
+/* ------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIMATERIALS_H_
+#define MLIMATERIALS_H_
+
+
+struct mliMaterialsCapacity {
+        uint64_t num_surfaces;
+        uint64_t num_media;
+        uint64_t num_boundary_layers;
+};
+
+struct mliMaterialsCapacity mliMaterialsCapacity_init(void);
+
+struct mliMaterials {
+        uint64_t num_surfaces;
+        struct mliSurface *surfaces;
+        struct mliName *surface_names;
+
+        uint64_t num_media;
+        struct mliMedium *media;
+        struct mliName *medium_names;
+
+        uint64_t num_boundary_layers;
+        struct mliBoundaryLayer *boundary_layers;
+        struct mliName *boundary_layer_names;
+
+        uint64_t default_medium;
+};
+
+int mliMaterials_malloc(
+        struct mliMaterials *res,
+        const struct mliMaterialsCapacity rescap);
+void mliMaterials_free(struct mliMaterials *res);
+struct mliMaterials mliMaterials_init(void);
+void mliMaterials_info_fprint(FILE *f, const struct mliMaterials *res);
+#endif
+
+/* mliSurface_json */
+/* --------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLISURFACE_JSON_H_
+#define MLISURFACE_JSON_H_
+
+
+int mliSurface_malloc_from_json_str(
+        struct mliSurface *surface,
+        const char *json_str);
+int mliSurface_malloc_from_json_token(
+        struct mliSurface *surface,
+        const struct mliJson *json,
+        const uint64_t token);
+int mli_material_type_from_json_token(
+        const struct mliJson *json,
+        const uint64_t token,
+        uint32_t *material);
+#endif
+
+/* mliMaterials_equal */
+/* ------------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIMATERIALS_EQUAL_H_
+#define MLIMATERIALS_EQUAL_H_
+
+
+int mliMaterials_equal(
+        const struct mliMaterials *a,
+        const struct mliMaterials *b);
+int mliMaterials_surfaces_equal(
+        const struct mliMaterials *a,
+        const struct mliMaterials *b);
+int mliMaterials_media_equal(
+        const struct mliMaterials *a,
+        const struct mliMaterials *b);
+int mliMaterials_boundary_layers_equal(
+        const struct mliMaterials *a,
+        const struct mliMaterials *b);
+#endif
+
+/* mliPhotonInteraction */
+/* -------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIPHOTONINTERACTION_H_
+#define MLIPHOTONINTERACTION_H_
+
+
+#define MLI_VACUUM_SPPED_OF_LIGHT 299792458.0
+#define MLI_PHOTON_CREATION 101u
+#define MLI_PHOTON_ABSORBTION 102u
+#define MLI_PHOTON_ABSORBTION_MEDIUM 103u
+#define MLI_PHOTON_FRESNEL_REFLECTION 104u
+#define MLI_PHOTON_REFRACTION 105u
+#define MLI_PHOTON_SPECULAR_REFLECTION 106u
+#define MLI_PHOTON_DIFFUSE_REFLECTION 107u
+
+struct mliPhotonInteraction {
+        int32_t on_geometry_surface;
+        struct mliGeometryId geometry_id;
+
+        struct mliVec position;
+        struct mliVec position_local;
+        double distance_of_ray;
+
+        uint64_t medium_coming_from;
+        uint64_t medium_going_to;
+
+        int32_t from_outside_to_inside;
+        int32_t type;
+};
+
+int mli_time_of_flight(
+        const struct mliMaterials *materials,
+        const struct mliPhotonInteraction *phisec,
+        const double wavelength,
+        double *time_of_flight);
+int mli_photoninteraction_type_to_string(const int32_t type, char *s);
+#endif
+
+/* mliMaterials_serialize */
+/* ---------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIMATERIALS_SERIALIZE_H_
+#define MLIMATERIALS_SERIALIZE_H_
+
+
+int mliMaterials_fwrite(const struct mliMaterials *res, FILE *f);
+int mliMaterials_malloc_fread(struct mliMaterials *res, FILE *f);
+#endif
+
+/* mliMaterials_valid */
+/* ------------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIMATERIALS_VALID_H_
+#define MLIMATERIALS_VALID_H_
+
+
+int mliMaterials_valid(const struct mliMaterials *materials);
+int mliMaterials_valid_surfaces(const struct mliMaterials *materials);
+int mliMaterials_valid_media(const struct mliMaterials *materials);
+int mliMaterials_valid_boundary_layers(const struct mliMaterials *materials);
 #endif
 
 /* mliGeometry */
@@ -2857,78 +3082,18 @@ struct mliBoundaryLayer mliGeometry_object_surfaces(
 int mliGeometry_warn_objects(const struct mliGeometry *geometry);
 #endif
 
-/* mliGeometry_serialize */
-/* --------------------- */
+/* mliGeometry_valid */
+/* ----------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIGEOMETRY_SERIALIZE_H_
-#define MLIGEOMETRY_SERIALIZE_H_
+#ifndef MLIGEOMETRY_VALID_H_
+#define MLIGEOMETRY_VALID_H_
 
 
-int mliGeometry_fwrite(const struct mliGeometry *scenery, FILE *f);
-int mliGeometry_malloc_fread(struct mliGeometry *scenery, FILE *f);
-#endif
-
-/* mliUserScenery_json */
-/* ------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIUSERSCENERY_JSON_H_
-#define MLIUSERSCENERY_JSON_H_
-
-
-int mliSide_from_json(
-        struct mliSide *side,
-        const struct mliDynMap *surface_names,
-        const struct mliDynMap *medium_names,
-        const struct mliJson *json,
-        const uint64_t side_token);
-int mliBoundaryLayer_from_json(
-        struct mliBoundaryLayer *boundary_layer,
-        const struct mliDynMap *surface_names,
-        const struct mliDynMap *medium_names,
-        const struct mliJson *json,
-        const uint64_t token_surface);
-int mliMaterials_assign_boundary_layers_from_json(
-        struct mliMaterials *materials,
-        struct mliDynMap *boundary_layer_names,
-        const struct mliDynMap *surface_names,
-        const struct mliDynMap *medium_names,
-        const struct mliJson *json);
-
-#endif
-
-/* mliMaterials_serialize */
-/* ---------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIMATERIALS_SERIALIZE_H_
-#define MLIMATERIALS_SERIALIZE_H_
-
-
-int mliMaterials_fwrite(const struct mliMaterials *res, FILE *f);
-int mliMaterials_malloc_fread(struct mliMaterials *res, FILE *f);
-#endif
-
-/* mliDynMap_json */
-/* -------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNMAP_JSON_H_
-#define MLIDYNMAP_JSON_H_
-
-
-int mliDynMap_get_value_for_string_from_json(
-        const struct mliDynMap *map,
-        const struct mliJson *json,
-        const uint64_t token_name,
-        uint32_t *out_value);
-int mliDynMap_insert_key_from_json(
-        struct mliDynMap *map,
-        const struct mliJson *json,
-        const uint64_t token_name,
-        const uint64_t value);
-
+int mliGeometry_valid(const struct mliGeometry *geometry);
+int mliGeometry_valid_objects(const struct mliGeometry *geometry);
+int mliGeometry_valid_robjects_HomTras(const struct mliGeometry *geometry);
+int mliGeometry_valid_object_references(const struct mliGeometry *geometry);
 #endif
 
 /* mliTmpOcTree */
@@ -3034,167 +3199,82 @@ void mliTmpOcTree_print(const struct mliTmpOcTree *octree);
 
 #endif
 
-/* mliQuaternion_json */
-/* ------------------ */
+/* mliGeometry_equal */
+/* ----------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIQUATERNION_JSON_H_
-#define MLIQUATERNION_JSON_H_
+#ifndef MLIGEOMETRY_EQUAL_H_
+#define MLIGEOMETRY_EQUAL_H_
 
 
-int mliQuaternion_tait_bryan_from_json(
-        struct mliQuaternion *quat,
-        const struct mliJson *json,
-        const uint64_t token);
-int mliQuaternion_axis_angle_from_json(
-        struct mliQuaternion *quat,
-        const struct mliJson *json,
-        const uint64_t token);
-int mliQuaternion_quaternion_from_json(
-        struct mliQuaternion *quat,
-        const struct mliJson *json,
-        const uint64_t token);
-int mliQuaternion_from_json(
-        struct mliQuaternion *quat,
-        const struct mliJson *json,
-        const uint64_t token);
-
+int mliGeometry_equal(const struct mliGeometry *a, const struct mliGeometry *b);
+int mliGeometry_objects_equal(
+        const struct mliGeometry *a,
+        const struct mliGeometry *b);
+int mliGeometry_object_references_equal(
+        const struct mliGeometry *a,
+        const struct mliGeometry *b);
 #endif
 
-/* mliArchive */
-/* ---------- */
+/* mliDynPhotonInteraction */
+/* ----------------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef ARCHIVE_H_
-#define ARCHIVE_H_
+#ifndef MLIDYNPHOTONINTERACTION_H_
+#define MLIDYNPHOTONINTERACTION_H_
 
 
-MLIDYNARRAY_DEFINITON(mli, TextFiles, struct mliStr)
+MLIDYNARRAY_DEFINITON(mli, PhotonInteraction, struct mliPhotonInteraction)
 
-struct mliArchive {
-        struct mliDynTextFiles textfiles;
-        struct mliDynMap filenames;
+void mliDynPhotonInteraction_print(
+        const struct mliDynPhotonInteraction *history,
+        const struct mliGeometry *scenery);
+#endif
+
+/* mliGeometryToMaterialMap */
+/* ------------------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIGEOMETRYTOMATERIALMAP_H_
+#define MLIGEOMETRYTOMATERIALMAP_H_
+
+
+struct mliGeometryToMaterialMap {
+        uint32_t num_robjects;
+        uint32_t total_num_boundary_layers;
+        uint32_t *boundary_layers;
+        uint32_t *first_boundary_layer_in_robject;
 };
 
-struct mliArchive mliArchive_init(void);
+struct mliGeometryToMaterialMap mliGeometryToMaterialMap_init(void);
+int mliGeometryToMaterialMap_malloc(
+        struct mliGeometryToMaterialMap *map,
+        const uint32_t num_robjects,
+        const uint32_t total_num_boundary_layers);
+void mliGeometryToMaterialMap_free(struct mliGeometryToMaterialMap *map);
 
-void mliArchive_free(struct mliArchive *arc);
-int mliArchive_malloc(struct mliArchive *arc);
-int mliArchive_malloc_fread(struct mliArchive *arc, FILE *f);
-int mliArchive_malloc_from_path(struct mliArchive *arc, const char *path);
+uint32_t mliGeometryToMaterialMap_resolve_idx(
+        const struct mliGeometryToMaterialMap *map,
+        const uint32_t robject_idx,
+        const uint32_t material_idx);
 
-int mliArchive_push_back(
-        struct mliArchive *arc,
-        const struct mliStr *filename,
-        const struct mliStr *payload);
+uint32_t mliGeometryToMaterialMap_get(
+        const struct mliGeometryToMaterialMap *map,
+        const uint32_t robject_idx,
+        const uint32_t material_idx);
+void mliGeometryToMaterialMap_set(
+        const struct mliGeometryToMaterialMap *map,
+        const uint32_t robject_idx,
+        const uint32_t material_idx,
+        const uint32_t boundary_layer_idx);
 
-int mliArchive_has(const struct mliArchive *arc, const char *filename);
-int mliArchive_get(
-        const struct mliArchive *arc,
-        const char *filename,
-        struct mliStr **str);
-int mliArchive_get_malloc_json(
-        const struct mliArchive *arc,
-        const char *filename,
-        struct mliJson *json);
-uint64_t mliArchive_num(const struct mliArchive *arc);
-void mliArchive_info_fprint(FILE *f, const struct mliArchive *arc);
-void mliArchive_mask_filename_prefix_sufix(
-        const struct mliArchive *arc,
-        uint64_t *mask,
-        const char *prefix,
-        const char *suffix);
-uint64_t mliArchive_num_filename_prefix_sufix(
-        const struct mliArchive *arc,
-        const char *prefix,
-        const char *sufix);
+uint32_t mliGeometryToMaterialMap_num_boundary_layers_in_robject(
+        const struct mliGeometryToMaterialMap *map,
+        const uint32_t robject_idx);
 
-#endif
-
-/* mliColor_json */
-/* ------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLICOLOR_JSON_H_
-#define MLICOLOR_JSON_H_
-
-
-int mliColor_from_json_token(
-        struct mliColor *c,
-        const struct mliJson *json,
-        const uint64_t token);
-#endif
-
-/* mliDynPhoton */
-/* ------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNPHOTON_H_
-#define MLIDYNPHOTON_H_
-
-MLIDYNARRAY_DEFINITON(mli, Photon, struct mliPhoton)
-#endif
-
-/* mliPhotonInteraction */
-/* -------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIPHOTONINTERACTION_H_
-#define MLIPHOTONINTERACTION_H_
-
-
-#define MLI_VACUUM_SPPED_OF_LIGHT 299792458.0
-#define MLI_PHOTON_CREATION 101u
-#define MLI_PHOTON_ABSORBTION 102u
-#define MLI_PHOTON_ABSORBTION_MEDIUM 103u
-#define MLI_PHOTON_FRESNEL_REFLECTION 104u
-#define MLI_PHOTON_REFRACTION 105u
-#define MLI_PHOTON_SPECULAR_REFLECTION 106u
-#define MLI_PHOTON_DIFFUSE_REFLECTION 107u
-
-struct mliPhotonInteraction {
-        int32_t on_geometry_surface;
-        struct mliGeometryId geometry_id;
-
-        struct mliVec position;
-        struct mliVec position_local;
-        double distance_of_ray;
-
-        uint64_t medium_coming_from;
-        uint64_t medium_going_to;
-
-        int32_t from_outside_to_inside;
-        int32_t type;
-};
-
-int mli_time_of_flight(
-        const struct mliMaterials *materials,
-        const struct mliPhotonInteraction *phisec,
-        const double wavelength,
-        double *time_of_flight);
-int mli_photoninteraction_type_to_string(const int32_t type, char *s);
-#endif
-
-/* mli_photon_sources */
-/* ------------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_PHOTON_SOURCES_H_
-#define MLI_PHOTON_SOURCES_H_
-
-
-int mli_photon_source_point_like_opening_cone_towards_z(
-        struct mliDynPhoton *out_photons,
-        const double wavelength,
-        const double opening_angle,
-        const uint64_t num_photons,
-        struct mliPrng *prng);
-int mli_photon_source_parallel_towards_z_from_xy_disc(
-        struct mliDynPhoton *out_photons,
-        const double wavelength,
-        const double radius,
-        const uint64_t num_photons,
-        struct mliPrng *prng);
+void mliGeometryToMaterialMap_info_fprint(
+        FILE *f,
+        const struct mliGeometryToMaterialMap *map);
 #endif
 
 /* mliOcTree */
@@ -3299,112 +3379,6 @@ int mliOcTree_malloc_from_Geometry(
 
 #endif
 
-/* mliGeometryToMaterialMap */
-/* ------------------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIGEOMETRYTOMATERIALMAP_H_
-#define MLIGEOMETRYTOMATERIALMAP_H_
-
-
-struct mliGeometryToMaterialMap {
-        uint32_t num_robjects;
-        uint32_t total_num_boundary_layers;
-        uint32_t *boundary_layers;
-        uint32_t *first_boundary_layer_in_robject;
-};
-
-struct mliGeometryToMaterialMap mliGeometryToMaterialMap_init(void);
-int mliGeometryToMaterialMap_malloc(
-        struct mliGeometryToMaterialMap *map,
-        const uint32_t num_robjects,
-        const uint32_t total_num_boundary_layers);
-void mliGeometryToMaterialMap_free(struct mliGeometryToMaterialMap *map);
-
-uint32_t mliGeometryToMaterialMap_resolve_idx(
-        const struct mliGeometryToMaterialMap *map,
-        const uint32_t robject_idx,
-        const uint32_t material_idx);
-
-uint32_t mliGeometryToMaterialMap_get(
-        const struct mliGeometryToMaterialMap *map,
-        const uint32_t robject_idx,
-        const uint32_t material_idx);
-void mliGeometryToMaterialMap_set(
-        const struct mliGeometryToMaterialMap *map,
-        const uint32_t robject_idx,
-        const uint32_t material_idx,
-        const uint32_t boundary_layer_idx);
-
-uint32_t mliGeometryToMaterialMap_num_boundary_layers_in_robject(
-        const struct mliGeometryToMaterialMap *map,
-        const uint32_t robject_idx);
-
-void mliGeometryToMaterialMap_info_fprint(
-        FILE *f,
-        const struct mliGeometryToMaterialMap *map);
-#endif
-
-/* mliGeometry_equal */
-/* ----------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIGEOMETRY_EQUAL_H_
-#define MLIGEOMETRY_EQUAL_H_
-
-
-int mliGeometry_equal(const struct mliGeometry *a, const struct mliGeometry *b);
-int mliGeometry_objects_equal(
-        const struct mliGeometry *a,
-        const struct mliGeometry *b);
-int mliGeometry_object_references_equal(
-        const struct mliGeometry *a,
-        const struct mliGeometry *b);
-#endif
-
-/* mliGeometry_valid */
-/* ----------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIGEOMETRY_VALID_H_
-#define MLIGEOMETRY_VALID_H_
-
-
-int mliGeometry_valid(const struct mliGeometry *geometry);
-int mliGeometry_valid_objects(const struct mliGeometry *geometry);
-int mliGeometry_valid_robjects_HomTras(const struct mliGeometry *geometry);
-int mliGeometry_valid_object_references(const struct mliGeometry *geometry);
-#endif
-
-/* mliOcTree_valid */
-/* --------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIOCTREE_VALID_H_
-#define MLIOCTREE_VALID_H_
-
-
-int mliOcTree_valid(const struct mliOcTree *octree);
-int mliOcTree_valid_wrt_links(
-        const struct mliOcTree *octree,
-        const uint32_t num_links);
-#endif
-
-/* mliOcTree_serialize */
-/* ------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIOCTREE_SERIALIZE_H_
-#define MLIOCTREE_SERIALIZE_H_
-
-
-int mliOcTree_fwrite(const struct mliOcTree *octree, FILE *f);
-int mliOcTree_malloc_fread(struct mliOcTree *octree, FILE *f);
-
-int mliOcTree_write_to_path(const struct mliOcTree *octree, const char *path);
-int mliOcTree_malloc_from_path(struct mliOcTree *octree, const char *path);
-#endif
-
 /* mli_ray_octree_traversal */
 /* ------------------------ */
 
@@ -3450,46 +3424,58 @@ int mli_ray_octree_traversal_first_octree_node(
 
 #endif
 
-/* mliGeometryToMaterialMap_serialize */
-/* ---------------------------------- */
+/* mliGeometry_serialize */
+/* --------------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIGEOMETRYTOMATERIALMAP_SERIALIZE_H_
-#define MLIGEOMETRYTOMATERIALMAP_SERIALIZE_H_
+#ifndef MLIGEOMETRY_SERIALIZE_H_
+#define MLIGEOMETRY_SERIALIZE_H_
 
 
-int mliGeometryToMaterialMap_malloc_fread(
-        struct mliGeometryToMaterialMap *geomap,
-        FILE *f);
-int mliGeometryToMaterialMap_fwrite(
-        const struct mliGeometryToMaterialMap *geomap,
-        FILE *f);
+int mliGeometry_fwrite(const struct mliGeometry *scenery, FILE *f);
+int mliGeometry_malloc_fread(struct mliGeometry *scenery, FILE *f);
 #endif
 
-/* mliDynPhotonInteraction */
-/* ----------------------- */
+/* mliOcTree_serialize */
+/* ------------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNPHOTONINTERACTION_H_
-#define MLIDYNPHOTONINTERACTION_H_
+#ifndef MLIOCTREE_SERIALIZE_H_
+#define MLIOCTREE_SERIALIZE_H_
 
 
-MLIDYNARRAY_DEFINITON(mli, PhotonInteraction, struct mliPhotonInteraction)
+int mliOcTree_fwrite(const struct mliOcTree *octree, FILE *f);
+int mliOcTree_malloc_fread(struct mliOcTree *octree, FILE *f);
 
-void mliDynPhotonInteraction_print(
-        const struct mliDynPhotonInteraction *history,
-        const struct mliGeometry *scenery);
+int mliOcTree_write_to_path(const struct mliOcTree *octree, const char *path);
+int mliOcTree_malloc_from_path(struct mliOcTree *octree, const char *path);
 #endif
 
-/* mliOcTree_equal */
+/* mliGeometryToMaterialMap_equal */
+/* ------------------------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIGEOMETRYTOMATERIALMAP_EQUAL_H_
+#define MLIGEOMETRYTOMATERIALMAP_EQUAL_H_
+
+
+int mliGeometryToMaterialMap_equal(
+        const struct mliGeometryToMaterialMap *a,
+        const struct mliGeometryToMaterialMap *b);
+#endif
+
+/* mliOcTree_valid */
 /* --------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIOCTREE_EQUAL_H_
-#define MLIOCTREE_EQUAL_H_
+#ifndef MLIOCTREE_VALID_H_
+#define MLIOCTREE_VALID_H_
 
 
-int mliOcTree_equal(const struct mliOcTree *a, const struct mliOcTree *b);
+int mliOcTree_valid(const struct mliOcTree *octree);
+int mliOcTree_valid_wrt_links(
+        const struct mliOcTree *octree,
+        const uint32_t num_links);
 #endif
 
 /* mliGeometryToMaterialMap_valid */
@@ -3509,6 +3495,33 @@ int mliGeometryToMaterialMap_valid_wrt_Geometry(
 int mliGeometryToMaterialMap_valid_wrt_Materials(
         const struct mliGeometryToMaterialMap *geomap,
         const struct mliMaterials *materials);
+#endif
+
+/* mliOcTree_equal */
+/* --------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIOCTREE_EQUAL_H_
+#define MLIOCTREE_EQUAL_H_
+
+
+int mliOcTree_equal(const struct mliOcTree *a, const struct mliOcTree *b);
+#endif
+
+/* mliGeometryToMaterialMap_serialize */
+/* ---------------------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIGEOMETRYTOMATERIALMAP_SERIALIZE_H_
+#define MLIGEOMETRYTOMATERIALMAP_SERIALIZE_H_
+
+
+int mliGeometryToMaterialMap_malloc_fread(
+        struct mliGeometryToMaterialMap *geomap,
+        FILE *f);
+int mliGeometryToMaterialMap_fwrite(
+        const struct mliGeometryToMaterialMap *geomap,
+        FILE *f);
 #endif
 
 /* mliAccelerator */
@@ -3557,19 +3570,6 @@ struct mliAABB mliAccelerator_outermost_aabb(
 
 #endif
 
-/* mliAccelerator_equal */
-/* -------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIACCELERATOR_EQUAL_H_
-#define MLIACCELERATOR_EQUAL_H_
-
-
-int mliAccelerator_equal(
-        const struct mliAccelerator *a,
-        const struct mliAccelerator *b);
-#endif
-
 /* mliAccelerator_serialize */
 /* ------------------------ */
 
@@ -3580,19 +3580,6 @@ int mliAccelerator_equal(
 
 int mliAccelerator_malloc_fread(struct mliAccelerator *accel, FILE *f);
 int mliAccelerator_fwrite(const struct mliAccelerator *accel, FILE *f);
-#endif
-
-/* mliGeometryToMaterialMap_equal */
-/* ------------------------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIGEOMETRYTOMATERIALMAP_EQUAL_H_
-#define MLIGEOMETRYTOMATERIALMAP_EQUAL_H_
-
-
-int mliGeometryToMaterialMap_equal(
-        const struct mliGeometryToMaterialMap *a,
-        const struct mliGeometryToMaterialMap *b);
 #endif
 
 /* mliGeometryAndAccelerator */
@@ -3614,26 +3601,6 @@ struct mliGeometryAndAccelerator {
 
 #endif
 
-/* mliGeometry_AABB */
-/* ---------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIGEOMETRY_AABB_H_
-#define MLIGEOMETRY_AABB_H_
-
-
-int mliGeometry_robject_has_overlap_aabb_void(
-        const void *accgeo,
-        const uint32_t robject_idx,
-        const struct mliAABB aabb);
-
-int mliGeometry_robject_has_overlap_aabb(
-        const struct mliGeometryAndAccelerator *accgeo,
-        const uint32_t robject_idx,
-        const struct mliAABB aabb);
-
-#endif
-
 /* mliScenery */
 /* ---------- */
 
@@ -3652,6 +3619,17 @@ struct mliScenery {
 struct mliScenery mliScenery_init(void);
 void mliScenery_free(struct mliScenery *scenery);
 void mliScenery_info_fprint(FILE *f, const struct mliScenery *scenery);
+#endif
+
+/* mliScenery_equal */
+/* ---------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLISCENERY_EQUAL_H_
+#define MLISCENERY_EQUAL_H_
+
+
+int mliScenery_equal(const struct mliScenery *a, const struct mliScenery *b);
 #endif
 
 /* mliTracer */
@@ -3693,18 +3671,37 @@ double mli_trace_sun_visibility(
 
 #endif
 
-/* mliAccelerator_valid */
-/* -------------------- */
+/* mliScenery_minimal_object */
+/* ------------------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIACCELERATOR_VALID_H_
-#define MLIACCELERATOR_VALID_H_
+#ifndef MLISCENERY_MINIMAL_OBJECT_H_
+#define MLISCENERY_MINIMAL_OBJECT_H_
 
 
-int mliAccelerator_valid(const struct mliAccelerator *accel);
-int mliAccelerator_valid_wrt_Geometry(
-        const struct mliAccelerator *accel,
-        const struct mliGeometry *geometry);
+int mliScenery_malloc_minimal_from_wavefront(
+        struct mliScenery *scenery,
+        const char *path);
+#endif
+
+/* mliGeometry_AABB */
+/* ---------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIGEOMETRY_AABB_H_
+#define MLIGEOMETRY_AABB_H_
+
+
+int mliGeometry_robject_has_overlap_aabb_void(
+        const void *accgeo,
+        const uint32_t robject_idx,
+        const struct mliAABB aabb);
+
+int mliGeometry_robject_has_overlap_aabb(
+        const struct mliGeometryAndAccelerator *accgeo,
+        const uint32_t robject_idx,
+        const struct mliAABB aabb);
+
 #endif
 
 /* mliTracerConfig_json */
@@ -3721,60 +3718,115 @@ int mliTracerConfig_from_json_token(
         const uint64_t tkn);
 #endif
 
-/* mliScenery_serialize */
+/* mliPinHoleCamera */
+/* ---------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_PIN_HOLE_CAMERA_H_
+#define MLI_PIN_HOLE_CAMERA_H_
+
+
+struct mliPinHoleCamera {
+        struct mliVec optical_axis;
+        struct mliVec col_axis;
+        struct mliVec row_axis;
+        struct mliVec principal_point;
+        double distance_to_principal_point;
+        double row_over_column_pixel_ratio;
+};
+
+struct mliPinHoleCamera mliPinHoleCamera_init(
+        const double field_of_view,
+        const struct mliImage *image,
+        const double row_over_column_pixel_ratio);
+
+void mliPinHoleCamera_render_image(
+        struct mliPinHoleCamera camera,
+        const struct mliHomTraComp camera2root_comp,
+        const struct mliScenery *scenery,
+        struct mliImage *image,
+        const struct mliTracerConfig *tracer_config,
+        struct mliPrng *prng);
+
+void mliPinHoleCamera_render_image_with_view(
+        const struct mliView view,
+        const struct mliScenery *scenery,
+        struct mliImage *image,
+        const double row_over_column_pixel_ratio,
+        const struct mliTracerConfig *tracer_config,
+        struct mliPrng *prng);
+
+struct mliRay mliPinHoleCamera_ray_at_row_col(
+        const struct mliPinHoleCamera *camera,
+        const struct mliImage *image,
+        const uint32_t row,
+        const uint32_t col);
+
+#endif
+
+/* mliAccelerator_valid */
 /* -------------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLISCENERY_SERIALIZE_H_
-#define MLISCENERY_SERIALIZE_H_
+#ifndef MLIACCELERATOR_VALID_H_
+#define MLIACCELERATOR_VALID_H_
 
 
-int mliScenery_fwrite(const struct mliScenery *scenery, FILE *f);
-int mliScenery_malloc_fread(struct mliScenery *scenery, FILE *f);
-
-int mliScenery_malloc_from_path(struct mliScenery *scenery, const char *path);
-int mliScenery_write_to_path(
-        const struct mliScenery *scenery,
-        const char *path);
+int mliAccelerator_valid(const struct mliAccelerator *accel);
+int mliAccelerator_valid_wrt_Geometry(
+        const struct mliAccelerator *accel,
+        const struct mliGeometry *geometry);
 #endif
 
-/* mli_viewer_viewer */
-/* ----------------- */
+/* mli_ray_scenery_query */
+/* --------------------- */
 
-/* Copyright 2019 Sebastian Achim Mueller                                     */
-#ifndef MLI_VIEWER_VIEWER_H_
-#define MLI_VIEWER_VIEWER_H_
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_RAY_SCENERY_QUERY_H_
+#define MLI_RAY_SCENERY_QUERY_H_
 
 
-#define MLIVR_ESCAPE_KEY 27
-#define MLIVR_SPACE_KEY 32
-
-void mlivr_clear_screen(void);
-
-void mlivr_print_help(void);
-
-void mlivr_print_info_line(
-        const struct mliView view,
-        const struct mlivrCursor cursor,
-        const struct mliTracerConfig tracer_config);
-
-void mlivr_timestamp_now_19chars(char *buffer);
-
-int mlivr_export_image(
+int mli_query_intersection(
         const struct mliScenery *scenery,
-        const struct mlivrConfig config,
-        const struct mliView view,
-        struct mliPrng *prng,
-        const struct mliTracerConfig *tracer_config,
-        const double object_distance,
-        const char *path);
+        const struct mliRay ray_root,
+        struct mliIntersection *isec);
 
-int mlivr_run_interactive_viewer(
+int mli_query_intersection_with_surface_normal(
         const struct mliScenery *scenery,
-        const struct mlivrConfig config);
-int mlivr_run_interactive_viewer_try_non_canonical_stdin(
-        const struct mliScenery *scenery,
-        const struct mlivrConfig config);
+        const struct mliRay ray_root,
+        struct mliIntersectionSurfaceNormal *isecsrf);
+
+int mli_query_object_reference(
+        const struct mliObject *object,
+        const struct mliOcTree *object_octree,
+        const struct mliHomTraComp local2root_comp,
+        const struct mliRay ray_root,
+        struct mliIntersection *isec);
+
+struct mliQueryInnerWork {
+        struct mliIntersection *intersection;
+        const struct mliObject *object;
+        struct mliRay ray_object;
+        int has_intersection;
+};
+
+struct mliQueryOuterWork {
+        struct mliIntersection *intersection;
+        const struct mliGeometry *geometry;
+        const struct mliAccelerator *accelerator;
+        struct mliRay ray_root;
+};
+
+void mli_outer_scenery_traversal(
+        void *_outer,
+        const struct mliOcTree *scenery_octree,
+        const uint32_t scenery_octree_leaf_idx);
+
+void mli_inner_object_traversal(
+        void *_inner,
+        const struct mliOcTree *object_octree,
+        const uint32_t object_octree_leaf_idx);
+
 #endif
 
 /* mli_photon_propagation */
@@ -3848,112 +3900,34 @@ int mliScenery_malloc_from_Archive(
         const struct mliArchive *archive);
 #endif
 
-/* mliScenery_equal */
-/* ---------------- */
+/* mliScenery_serialize */
+/* -------------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLISCENERY_EQUAL_H_
-#define MLISCENERY_EQUAL_H_
+#ifndef MLISCENERY_SERIALIZE_H_
+#define MLISCENERY_SERIALIZE_H_
 
 
-int mliScenery_equal(const struct mliScenery *a, const struct mliScenery *b);
+int mliScenery_fwrite(const struct mliScenery *scenery, FILE *f);
+int mliScenery_malloc_fread(struct mliScenery *scenery, FILE *f);
+
+int mliScenery_malloc_from_path(struct mliScenery *scenery, const char *path);
+int mliScenery_write_to_path(
+        const struct mliScenery *scenery,
+        const char *path);
 #endif
 
-/* mliPinHoleCamera */
-/* ---------------- */
+/* mliAccelerator_equal */
+/* -------------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_PIN_HOLE_CAMERA_H_
-#define MLI_PIN_HOLE_CAMERA_H_
+#ifndef MLIACCELERATOR_EQUAL_H_
+#define MLIACCELERATOR_EQUAL_H_
 
 
-struct mliPinHoleCamera {
-        struct mliVec optical_axis;
-        struct mliVec col_axis;
-        struct mliVec row_axis;
-        struct mliVec principal_point;
-        double distance_to_principal_point;
-        double row_over_column_pixel_ratio;
-};
-
-struct mliPinHoleCamera mliPinHoleCamera_init(
-        const double field_of_view,
-        const struct mliImage *image,
-        const double row_over_column_pixel_ratio);
-
-void mliPinHoleCamera_render_image(
-        struct mliPinHoleCamera camera,
-        const struct mliHomTraComp camera2root_comp,
-        const struct mliScenery *scenery,
-        struct mliImage *image,
-        const struct mliTracerConfig *tracer_config,
-        struct mliPrng *prng);
-
-void mliPinHoleCamera_render_image_with_view(
-        const struct mliView view,
-        const struct mliScenery *scenery,
-        struct mliImage *image,
-        const double row_over_column_pixel_ratio,
-        const struct mliTracerConfig *tracer_config,
-        struct mliPrng *prng);
-
-struct mliRay mliPinHoleCamera_ray_at_row_col(
-        const struct mliPinHoleCamera *camera,
-        const struct mliImage *image,
-        const uint32_t row,
-        const uint32_t col);
-
-#endif
-
-/* mli_ray_scenery_query */
-/* --------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_RAY_SCENERY_QUERY_H_
-#define MLI_RAY_SCENERY_QUERY_H_
-
-
-int mli_query_intersection(
-        const struct mliScenery *scenery,
-        const struct mliRay ray_root,
-        struct mliIntersection *isec);
-
-int mli_query_intersection_with_surface_normal(
-        const struct mliScenery *scenery,
-        const struct mliRay ray_root,
-        struct mliIntersectionSurfaceNormal *isecsrf);
-
-int mli_query_object_reference(
-        const struct mliObject *object,
-        const struct mliOcTree *object_octree,
-        const struct mliHomTraComp local2root_comp,
-        const struct mliRay ray_root,
-        struct mliIntersection *isec);
-
-struct mliQueryInnerWork {
-        struct mliIntersection *intersection;
-        const struct mliObject *object;
-        struct mliRay ray_object;
-        int has_intersection;
-};
-
-struct mliQueryOuterWork {
-        struct mliIntersection *intersection;
-        const struct mliGeometry *geometry;
-        const struct mliAccelerator *accelerator;
-        struct mliRay ray_root;
-};
-
-void mli_outer_scenery_traversal(
-        void *_outer,
-        const struct mliOcTree *scenery_octree,
-        const uint32_t scenery_octree_leaf_idx);
-
-void mli_inner_object_traversal(
-        void *_inner,
-        const struct mliOcTree *object_octree,
-        const uint32_t object_octree_leaf_idx);
-
+int mliAccelerator_equal(
+        const struct mliAccelerator *a,
+        const struct mliAccelerator *b);
 #endif
 
 /* mliApertureCamera */
@@ -4124,17 +4098,54 @@ void mliApertureCamera_assign_pixel_colors_to_sum_and_exposure_image(
 
 #endif
 
-/* mliScenery_minimal_object */
-/* ------------------------- */
+/* mli_viewer_viewer */
+/* ----------------- */
+
+/* Copyright 2019 Sebastian Achim Mueller                                     */
+#ifndef MLI_VIEWER_VIEWER_H_
+#define MLI_VIEWER_VIEWER_H_
+
+
+#define MLIVR_ESCAPE_KEY 27
+#define MLIVR_SPACE_KEY 32
+
+void mlivr_clear_screen(void);
+
+void mlivr_print_help(void);
+
+void mlivr_print_info_line(
+        const struct mliView view,
+        const struct mlivrCursor cursor,
+        const struct mliTracerConfig tracer_config);
+
+void mlivr_timestamp_now_19chars(char *buffer);
+
+int mlivr_export_image(
+        const struct mliScenery *scenery,
+        const struct mlivrConfig config,
+        const struct mliView view,
+        struct mliPrng *prng,
+        const struct mliTracerConfig *tracer_config,
+        const double object_distance,
+        const char *path);
+
+int mlivr_run_interactive_viewer(
+        const struct mliScenery *scenery,
+        const struct mlivrConfig config);
+int mlivr_run_interactive_viewer_try_non_canonical_stdin(
+        const struct mliScenery *scenery,
+        const struct mlivrConfig config);
+#endif
+
+/* mliScenery_valid */
+/* ---------------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLISCENERY_MINIMAL_OBJECT_H_
-#define MLISCENERY_MINIMAL_OBJECT_H_
+#ifndef MLISCENERY_VALID_H_
+#define MLISCENERY_VALID_H_
 
 
-int mliScenery_malloc_minimal_from_wavefront(
-        struct mliScenery *scenery,
-        const char *path);
+int mliScenery_valid(const struct mliScenery *scenery);
 #endif
 
 /* mli_intersection_and_scenery */
@@ -4157,17 +4168,6 @@ struct mliSide mli_get_side_going_to(
 struct mliSide mli_get_side_coming_from(
         const struct mliScenery *scenery,
         const struct mliIntersectionSurfaceNormal *isec);
-#endif
-
-/* mliScenery_valid */
-/* ---------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLISCENERY_VALID_H_
-#define MLISCENERY_VALID_H_
-
-
-int mliScenery_valid(const struct mliScenery *scenery);
 #endif
 
 /* mliRenderConfig */

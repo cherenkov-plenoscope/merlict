@@ -1,5 +1,8 @@
 from .wrapper cimport *
-cimport numpy as np
+
+cimport numpy as cnumpy
+cnumpy.import_array()
+
 from libc cimport stdint
 
 import termios
@@ -171,17 +174,17 @@ cdef class Server:
         cdef stdint.uint64_t num_ray = rays.shape[0]
         isecs = _intersection.init(size=num_ray)
 
-        cdef np.ndarray[mliRay, mode="c"] crays = np.ascontiguousarray(
+        cdef cnumpy.ndarray[mliRay, mode="c"] crays = np.ascontiguousarray(
             rays
         )
 
-        cdef np.ndarray[
+        cdef cnumpy.ndarray[
             mliIntersection, mode="c"
         ] cisecs = np.ascontiguousarray(
             isecs
         )
 
-        cdef np.ndarray[
+        cdef cnumpy.ndarray[
             stdint.int64_t, mode="c"
         ] cis_valid_isecs = np.ascontiguousarray(
             np.zeros(rays.shape[0], dtype=np.int64)
@@ -207,17 +210,17 @@ cdef class Server:
         cdef stdint.uint64_t num_ray = rays.shape[0]
         isecs = _intersectionSurfaceNormal.init(size=num_ray)
 
-        cdef np.ndarray[mliRay, mode="c"] crays = np.ascontiguousarray(
+        cdef cnumpy.ndarray[mliRay, mode="c"] crays = np.ascontiguousarray(
             rays
         )
 
-        cdef np.ndarray[
+        cdef cnumpy.ndarray[
             mliIntersectionSurfaceNormal, mode="c"
         ] cisecs = np.ascontiguousarray(
             isecs
         )
 
-        cdef np.ndarray[
+        cdef cnumpy.ndarray[
             stdint.int64_t, mode="c"
         ] cis_valid_isecs = np.ascontiguousarray(
             np.zeros(rays.shape[0], dtype=np.int64)
