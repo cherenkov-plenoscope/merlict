@@ -22,25 +22,12 @@ extensions = [
         sources=[
             os.path.join("merlict", "c89", "wrapper.pyx"),
             os.path.join("merlict", "c89", "bridge.c"),
-            os.path.join("merlict", "c89", "merlict_c89", "src", "mli.c"),
-            os.path.join(
-                "merlict", "c89", "merlict_c89", "src", "mli_viewer.c"
-            ),
+            os.path.join("merlict", "c89", "chk_debug_mli_core_mli_viewer.c"),
         ],
         language="c",
         include_dirs=[numpy.get_include()],
     )
 ]
-
-
-def list_package_data_in_dir(package_data_dir, start):
-    paths = []
-    for path, directories, filenames in os.walk(package_data_dir):
-        for filename in filenames:
-            paths.append(os.path.join(path, filename))
-    paths = [os.path.relpath(path=path, start=start) for path in paths]
-    return paths
-
 
 setuptools.setup(
     name="merlict",
@@ -74,15 +61,11 @@ setuptools.setup(
         "merlict.c89": [
             os.path.join("*.pyx"),
             os.path.join("*.pxd"),
-            os.path.join("bridge.h"),
-            os.path.join("bridge.c"),
-        ]
-        + list_package_data_in_dir(
-            package_data_dir=os.path.join(
-                "merlict", "c89", "merlict_c89", "src"
-            ),
-            start=os.path.join("merlict", "c89"),
-        ),
+            "bridge.h",
+            "bridge.c",
+            "chk_dedug_mli_core_mli_viewer.h",
+            "chk_dedug_mli_core_mli_viewer.c",
+        ],
     },
     install_requires=[
         "json_numpy_sebastian-achim-mueller",

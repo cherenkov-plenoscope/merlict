@@ -1,8 +1,4 @@
-#include "merlict_c89/src/mliScenery.h"
-#include "merlict_c89/src/mliArchive.h"
-#include "merlict_c89/src/mliIntersection.h"
-#include "merlict_c89/src/mliIntersectionSurfaceNormal.h"
-
+#include "chk_debug_mli_core_mli_viewer.h"
 
 int mliArchive_push_back_cstr(
         struct mliArchive *arc,

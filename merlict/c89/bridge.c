@@ -1,7 +1,5 @@
 #include "bridge.h"
-#include "merlict_c89/src/chk_debug.h"
-#include "merlict_c89/src/mli_ray_scenery_query.h"
-
+#include "chk_debug_mli_core_mli_viewer.h"
 
 int mliArchive_push_back_cstr(
         struct mliArchive *arc,

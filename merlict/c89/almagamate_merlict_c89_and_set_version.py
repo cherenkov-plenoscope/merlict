@@ -16,7 +16,7 @@ subprocess.call(
         "python",
         os.path.join(".", "merlict_c89", "tools", "mli_almagamate.py"),
         ".",
-    ] + merlict_c89_libs
+    ] + [os.path.join(".", "merlict_c89", l) for l in merlict_c89_libs]
 )
 
 src_name = str.join("_", merlict_c89_libs)
@@ -26,9 +26,9 @@ src_c = src_name + ".c"
 # gather c89 merlict version
 # --------------------------
 MERLICT_C89_VERSION = {
-    "MAYOR": -1,
-    "MINOR": -1,
-    "PATCH": -1,
+    "MLI_VERSION_MAYOR": -1,
+    "MLI_VERSION_MINOR": -1,
+    "MLI_VERSION_PATCH": -1,
 }
 MERLICT_C89_VERSION_DIGIT_POS = len("#define MLI_VERSION_MAYOR ")
 
@@ -43,9 +43,9 @@ with open(src_h, "rt") as f:
                 )
 
 MERLICT_C89_VERSION_STR = "{:d}.{:d}.{:d}".format(
-    MERLICT_C89_VERSION["MAYOR"],
-    MERLICT_C89_VERSION["MINOR"],
-    MERLICT_C89_VERSION["PATCH"],
+    MERLICT_C89_VERSION["MLI_VERSION_MAYOR"],
+    MERLICT_C89_VERSION["MLI_VERSION_MINOR"],
+    MERLICT_C89_VERSION["MLI_VERSION_PATCH"],
 )
 
 # combine versions
