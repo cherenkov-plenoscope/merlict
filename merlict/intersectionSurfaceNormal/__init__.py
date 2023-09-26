@@ -18,7 +18,7 @@ def dtype():
         ("surface_normal_local.y", np.float64),
         ("surface_normal_local.z", np.float64),
         ("distance_of_ray", np.float64),
-        ("from_outside_to_inside", np.int32),
+        ("from_outside_to_inside", np.int64),
     ]
 
 

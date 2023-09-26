@@ -35,7 +35,7 @@ cdef extern from "merlict_c89/src/mliIntersectionSurfaceNormal.h":
         mliVec position_local
         mliVec surface_normal_local
         double distance_of_ray
-        int from_outside_to_inside
+        stdint.int64_t from_outside_to_inside
 
 
 cdef extern from "merlict_c89/src/mliPhoton.h":
