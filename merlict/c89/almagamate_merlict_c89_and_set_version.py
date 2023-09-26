@@ -1,13 +1,27 @@
 """
-Set and create the version
+Almagamate the merlict_c89 sources and set the version
+This is only ever executed once by the developers.
 """
 import os
+import subprocess
 
 # merlict python package's version
 # --------------------------------
 MERLICT_PYTHON_VERSION_STR = "0.0.8"
 
-c89_src_dir = os.path.join(".", "c89", "merlict_c89", "src")
+merlict_c89_libs = ["chk_debug", "mli_core", "mli_viewer"]
+
+subprocess.call(
+    [
+        "python",
+        os.path.join(".", "merlict_c89", "tools", "mli_almagamate.py"),
+        ".",
+    ] + merlict_c89_libs
+)
+
+src_name = str.join("_", merlict_c89_libs)
+src_h = src_name + ".h"
+src_c = src_name + ".c"
 
 # gather c89 merlict version
 # --------------------------
@@ -18,7 +32,7 @@ MERLICT_C89_VERSION = {
 }
 MERLICT_C89_VERSION_DIGIT_POS = len("#define MLI_VERSION_MAYOR ")
 
-with open(os.path.join(c89_src_dir, "mli_version.h"), "rt") as f:
+with open(src_h, "rt") as f:
     txt = f.read()
     keys = list(MERLICT_C89_VERSION.keys())
     for line in str.splitlines(txt):
@@ -43,7 +57,7 @@ VERSION_STR = "{:s}.{:s}".format(
 
 # export version
 # --------------
-with open(os.path.join(os.path.join("version.py")), "wt") as f:
+with open(os.path.join(os.path.join("..", "version.py")), "wt") as f:
     f.write("# I was written by: ")
     f.write("merlict/version/set_and_make_version_script.py\n")
     f.write('__version__ = "' + VERSION_STR + '"')
