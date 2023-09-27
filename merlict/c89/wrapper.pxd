@@ -1,7 +1,7 @@
 from libc cimport stdint
 
 
-cdef extern from "chk_debug_mli_core_mli_viewer.h":
+cdef extern from "merlict_c89.h":
     cdef struct mliVec:
         double x
         double y
