@@ -1595,6 +1595,9 @@ void mliImage_set(
         const uint32_t col,
         const uint32_t row,
         const struct mliColor color);
+void mliImage_set_all_pixel(
+        const struct mliImage *img,
+        const struct mliColor color);
 void mliPixels_set_all_from_image(
         struct mliPixels *pixels,
         const struct mliImage *image);
@@ -2078,6 +2081,60 @@ int mliRay_has_overlap_aabb(
         const struct mliRay ray,
         const struct mliAABB aabb,
         double *ray_parameter);
+#endif
+
+/* mliTracer */
+/* --------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLITRACER_H_
+#define MLITRACER_H_
+
+
+struct mliScenery;
+struct mliPrng;
+
+struct mliTracerConfig {
+        uint64_t num_trails_global_light_source;
+
+        int have_atmosphere;
+        struct mliAtmosphere atmosphere;
+
+        struct mliColor background_color;
+};
+
+struct mliTracerConfig mliTracerConfig_init(void);
+
+struct mliColor mli_trace(
+        const struct mliScenery *scenery,
+        const struct mliRay ray,
+        const struct mliTracerConfig *config,
+        struct mliPrng *prng);
+
+struct mliColor mli_trace_with_atmosphere(
+        const struct mliScenery *scenery,
+        const struct mliRay ray,
+        const struct mliTracerConfig *config,
+        struct mliPrng *prng);
+
+struct mliColor mli_trace_without_atmosphere(
+        const struct mliScenery *scenery,
+        const struct mliRay ray,
+        const struct mliTracerConfig *config,
+        struct mliPrng *prng);
+
+double mli_trace_sun_obstruction(
+        const struct mliScenery *scenery,
+        const struct mliVec position,
+        const struct mliTracerConfig *config,
+        struct mliPrng *prng);
+
+double mli_trace_sun_visibility(
+        const struct mliScenery *scenery,
+        const struct mliVec position,
+        const struct mliTracerConfig *config,
+        struct mliPrng *prng);
+
 #endif
 
 /* mliTriangle_AABB */
@@ -2598,6 +2655,52 @@ struct mliPhoton {
 
 #endif
 
+/* mliPinHoleCamera */
+/* ---------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_PIN_HOLE_CAMERA_H_
+#define MLI_PIN_HOLE_CAMERA_H_
+
+
+struct mliPinHoleCamera {
+        struct mliVec optical_axis;
+        struct mliVec col_axis;
+        struct mliVec row_axis;
+        struct mliVec principal_point;
+        double distance_to_principal_point;
+        double row_over_column_pixel_ratio;
+};
+
+struct mliPinHoleCamera mliPinHoleCamera_init(
+        const double field_of_view,
+        const struct mliImage *image,
+        const double row_over_column_pixel_ratio);
+
+void mliPinHoleCamera_render_image(
+        struct mliPinHoleCamera camera,
+        const struct mliHomTraComp camera2root_comp,
+        const struct mliScenery *scenery,
+        struct mliImage *image,
+        const struct mliTracerConfig *tracer_config,
+        struct mliPrng *prng);
+
+void mliPinHoleCamera_render_image_with_view(
+        const struct mliView view,
+        const struct mliScenery *scenery,
+        struct mliImage *image,
+        const double row_over_column_pixel_ratio,
+        const struct mliTracerConfig *tracer_config,
+        struct mliPrng *prng);
+
+struct mliRay mliPinHoleCamera_ray_at_row_col(
+        const struct mliPinHoleCamera *camera,
+        const struct mliImage *image,
+        const uint32_t row,
+        const uint32_t col);
+
+#endif
+
 /* mliQuaternion_json */
 /* ------------------ */
 
@@ -2693,6 +2796,20 @@ int mli_material_type_from_json_token(
         uint32_t *material);
 #endif
 
+/* mliTracerConfig_json */
+/* -------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLITRACERCONFIG_JSON_H_
+#define MLITRACERCONFIG_JSON_H_
+
+
+int mliTracerConfig_from_json_token(
+        struct mliTracerConfig *tc,
+        const struct mliJson *json,
+        const uint64_t tkn);
+#endif
+
 /* mliUserScenery_json */
 /* ------------------- */
 
@@ -2780,6 +2897,174 @@ double mli_random_normal_Irwin_Hall_approximation(
 double mli_random_expovariate(struct mliPrng *prng, const double rate);
 double mli_random_uniform(struct mliPrng *prng);
 struct mliVec mli_random_position_inside_unit_sphere(struct mliPrng *prng);
+#endif
+
+/* mliApertureCamera */
+/* ----------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIAPTCAM_H_
+#define MLIAPTCAM_H_
+
+
+/*
+principal-rays of the thin-lens
+===============================
+                                        | z
+                                        |
+        (A)                           --+-- object-distance
+          \                             |
+         | \\                           |
+            \\                          |
+         |   \\                         |
+              \ \                       |
+         |     \ \                      |
+                \ \                     |
+         |       \  \                   |
+                 \   \                  |
+         |        \   \                 |
+                   \    \               |
+         |          \    \              |
+                     \    \             |
+         |            \     \           |
+                       \     \          |
+         |             \      \         |
+                        \       \       |
+         |               \       \      |
+                          \       \     |
+         |                 \        \   |
+                            \        \  |
+         |                   \        \ |
+                             \         \|
+         |                    \       --+--  focal-length
+                               \        |\
+         |                      \       | \
+                                 \      |  \
+         |                        \     |   \
+                                  \     |     \
+         |                         \    |      \
+                                    \   |       \
+         |                           \  |         \
+                                      \ |          \
+         |                             \|           \      aperture-plane
+   -|----O------------------------------O------------O----------------------|-
+          \                             |\                                  |
+             \                          | \          |                aperture-
+                \                       |  \                           radius
+                   \                    |   \        |
+                      \                 |    \
+                         \              |     \      |
+                            \           |     \
+                               \        |      \     |
+                                  \     |       \
+                                     \  |        \   |
+                        focal-length  --+--       \
+                                        | \       \  |
+                                        |    \     \
+                                        |       \   \|
+    image-sensor-plane                  |          \\
+                ------------------------+-----------(P)----------  x/y
+                                        |\_ image-sensor-distance
+                                        |
+
+1)      Find point P on image-sensor-plane for (row, column).
+        With P.z = -image-sensor-distance.
+        Add random-scatter in pixel-bin.
+
+2)      Find point A on the object-plane.
+        With A.z = +object-distance
+
+3)      Draw random point W on aperture-plane within aperture-radius.
+
+4)      Trace ray(P - W) and assign to pixel (row, column).
+
+*/
+
+struct mliVec mliApertureCamera_pixel_center_on_image_sensor_plane(
+        const double image_sensor_width_x,
+        const double image_sensor_width_y,
+        const double image_sensor_distance,
+        const uint64_t num_pixel_x,
+        const uint64_t num_pixel_y,
+        const uint64_t pixel_x,
+        const uint64_t pixel_y);
+
+struct mliVec mliApertureCamera_pixel_support_on_image_sensor_plane(
+        const double image_sensor_width_x,
+        const double image_sensor_width_y,
+        const double image_sensor_distance,
+        const uint64_t num_pixel_x,
+        const uint64_t num_pixel_y,
+        const uint64_t pixel_x,
+        const uint64_t pixel_y,
+        struct mliPrng *prng);
+
+struct mliVec mliApertureCamera_get_object_point(
+        const double focal_length,
+        const struct mliVec pixel_support);
+
+double mli_thin_lens_get_object_given_focal_and_image(
+        const double focal_length,
+        const double image_distance);
+
+double mli_thin_lens_get_image_given_focal_and_object(
+        const double focal_length,
+        const double object_distance);
+
+double mliApertureCamera_focal_length_given_field_of_view_and_sensor_width(
+        const double field_of_view,
+        const double image_sensor_width);
+
+struct mliVec mliApertureCamera_ray_support_on_aperture(
+        const double aperture_radius,
+        struct mliPrng *prng);
+
+struct mliRay mliApertureCamera_get_ray_for_pixel(
+        const double focal_length,
+        const double aperture_radius,
+        const double image_sensor_distance,
+        const double image_sensor_width_x,
+        const double image_sensor_width_y,
+        const uint64_t num_pixel_x,
+        const uint64_t num_pixel_y,
+        const uint64_t pixel_x,
+        const uint64_t pixel_y,
+        struct mliPrng *prng);
+
+struct mliApertureCamera {
+        double focal_length;
+        double aperture_radius;
+        double image_sensor_distance;
+        double image_sensor_width_x;
+        double image_sensor_width_y;
+};
+
+struct mliApertureCamera mliApertureCamera_init(void);
+
+int mliApertureCamera_render_image(
+        const struct mliApertureCamera camera,
+        const struct mliHomTraComp camera2root_comp,
+        const struct mliScenery *scenery,
+        struct mliImage *image,
+        const struct mliTracerConfig *tracer_config,
+        struct mliPrng *prng);
+
+void mliApertureCamera_aquire_pixels(
+        const struct mliApertureCamera camera,
+        const struct mliImage *image,
+        const struct mliHomTraComp camera2root_comp,
+        const struct mliScenery *scenery,
+        const struct mliPixels *pixels_to_do,
+        struct mliImage *colors,
+        const struct mliTracerConfig *tracer_config,
+        struct mliPrng *prng);
+
+void mliApertureCamera_assign_pixel_colors_to_sum_and_exposure_image(
+        const struct mliPixels *pixels,
+        const struct mliImage *colors,
+        struct mliImage *sum_image,
+        struct mliImage *exposure_image);
+
 #endif
 
 /* mliDynPhoton */
@@ -2999,6 +3284,32 @@ int mli_time_of_flight(
         const double wavelength,
         double *time_of_flight);
 int mli_photoninteraction_type_to_string(const int32_t type, char *s);
+#endif
+
+/* mliRenderConfig */
+/* --------------- */
+
+/* Copyright 2018-2021 Sebastian Achim Mueller */
+#ifndef MLIRENDERCONFIG_H_
+#define MLIRENDERCONFIG_H_
+
+
+struct mliRenderConfig {
+        struct mliApertureCamera camera;
+        struct mliHomTraComp camera_to_root;
+        struct mliTracerConfig tracer;
+        uint64_t num_pixel_x;
+        uint64_t num_pixel_y;
+        uint64_t random_seed;
+};
+
+struct mliRenderConfig mliRenderConfig_init(void);
+
+int mliRenderConfig_from_json_token(
+        struct mliRenderConfig *cc,
+        const struct mliJson *json,
+        const uint64_t token);
+
 #endif
 
 /* mli_lambertian_cosine_law */
@@ -3737,59 +4048,6 @@ int mliScenery_malloc_from_Archive(
 int mliScenery_valid(const struct mliScenery *scenery);
 #endif
 
-/* mliTracer */
-/* --------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLITRACER_H_
-#define MLITRACER_H_
-
-
-struct mliTracerConfig {
-        uint64_t num_trails_global_light_source;
-
-        int have_atmosphere;
-        struct mliAtmosphere atmosphere;
-
-        struct mliColor background_color;
-};
-
-struct mliTracerConfig mliTracerConfig_init(void);
-
-struct mliColor mli_trace(
-        const struct mliScenery *scenery,
-        const struct mliRay ray,
-        const struct mliTracerConfig *config,
-        struct mliPrng *prng);
-
-double mli_trace_sun_obstruction(
-        const struct mliScenery *scenery,
-        const struct mliVec position,
-        const struct mliTracerConfig *config,
-        struct mliPrng *prng);
-
-double mli_trace_sun_visibility(
-        const struct mliScenery *scenery,
-        const struct mliVec position,
-        const struct mliTracerConfig *config,
-        struct mliPrng *prng);
-
-#endif
-
-/* mliTracerConfig_json */
-/* -------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLITRACERCONFIG_JSON_H_
-#define MLITRACERCONFIG_JSON_H_
-
-
-int mliTracerConfig_from_json_token(
-        struct mliTracerConfig *tc,
-        const struct mliJson *json,
-        const uint64_t tkn);
-#endif
-
 /* mli_intersection_and_scenery */
 /* ---------------------------- */
 
@@ -3954,245 +4212,5 @@ int mlivr_run_interactive_viewer(
 int mlivr_run_interactive_viewer_try_non_canonical_stdin(
         const struct mliScenery *scenery,
         const struct mlivrConfig config);
-#endif
-
-/* mliApertureCamera */
-/* ----------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIAPTCAM_H_
-#define MLIAPTCAM_H_
-
-
-/*
-principal-rays of the thin-lens
-===============================
-                                        | z
-                                        |
-        (A)                           --+-- object-distance
-          \                             |
-         | \\                           |
-            \\                          |
-         |   \\                         |
-              \ \                       |
-         |     \ \                      |
-                \ \                     |
-         |       \  \                   |
-                 \   \                  |
-         |        \   \                 |
-                   \    \               |
-         |          \    \              |
-                     \    \             |
-         |            \     \           |
-                       \     \          |
-         |             \      \         |
-                        \       \       |
-         |               \       \      |
-                          \       \     |
-         |                 \        \   |
-                            \        \  |
-         |                   \        \ |
-                             \         \|
-         |                    \       --+--  focal-length
-                               \        |\
-         |                      \       | \
-                                 \      |  \
-         |                        \     |   \
-                                  \     |     \
-         |                         \    |      \
-                                    \   |       \
-         |                           \  |         \
-                                      \ |          \
-         |                             \|           \      aperture-plane
-   -|----O------------------------------O------------O----------------------|-
-          \                             |\                                  |
-             \                          | \          |                aperture-
-                \                       |  \                           radius
-                   \                    |   \        |
-                      \                 |    \
-                         \              |     \      |
-                            \           |     \
-                               \        |      \     |
-                                  \     |       \
-                                     \  |        \   |
-                        focal-length  --+--       \
-                                        | \       \  |
-                                        |    \     \
-                                        |       \   \|
-    image-sensor-plane                  |          \\
-                ------------------------+-----------(P)----------  x/y
-                                        |\_ image-sensor-distance
-                                        |
-
-1)      Find point P on image-sensor-plane for (row, column).
-        With P.z = -image-sensor-distance.
-        Add random-scatter in pixel-bin.
-
-2)      Find point A on the object-plane.
-        With A.z = +object-distance
-
-3)      Draw random point W on aperture-plane within aperture-radius.
-
-4)      Trace ray(P - W) and assign to pixel (row, column).
-
-*/
-
-struct mliVec mliApertureCamera_pixel_center_on_image_sensor_plane(
-        const double image_sensor_width_x,
-        const double image_sensor_width_y,
-        const double image_sensor_distance,
-        const uint64_t num_pixel_x,
-        const uint64_t num_pixel_y,
-        const uint64_t pixel_x,
-        const uint64_t pixel_y);
-
-struct mliVec mliApertureCamera_pixel_support_on_image_sensor_plane(
-        const double image_sensor_width_x,
-        const double image_sensor_width_y,
-        const double image_sensor_distance,
-        const uint64_t num_pixel_x,
-        const uint64_t num_pixel_y,
-        const uint64_t pixel_x,
-        const uint64_t pixel_y,
-        struct mliPrng *prng);
-
-struct mliVec mliApertureCamera_get_object_point(
-        const double focal_length,
-        const struct mliVec pixel_support);
-
-double mli_thin_lens_get_object_given_focal_and_image(
-        const double focal_length,
-        const double image_distance);
-
-double mli_thin_lens_get_image_given_focal_and_object(
-        const double focal_length,
-        const double object_distance);
-
-double mliApertureCamera_focal_length_given_field_of_view_and_sensor_width(
-        const double field_of_view,
-        const double image_sensor_width);
-
-struct mliVec mliApertureCamera_ray_support_on_aperture(
-        const double aperture_radius,
-        struct mliPrng *prng);
-
-struct mliRay mliApertureCamera_get_ray_for_pixel(
-        const double focal_length,
-        const double aperture_radius,
-        const double image_sensor_distance,
-        const double image_sensor_width_x,
-        const double image_sensor_width_y,
-        const uint64_t num_pixel_x,
-        const uint64_t num_pixel_y,
-        const uint64_t pixel_x,
-        const uint64_t pixel_y,
-        struct mliPrng *prng);
-
-struct mliApertureCamera {
-        double focal_length;
-        double aperture_radius;
-        double image_sensor_distance;
-        double image_sensor_width_x;
-        double image_sensor_width_y;
-};
-
-struct mliApertureCamera mliApertureCamera_init(void);
-
-int mliApertureCamera_render_image(
-        const struct mliApertureCamera camera,
-        const struct mliHomTraComp camera2root_comp,
-        const struct mliScenery *scenery,
-        struct mliImage *image,
-        const struct mliTracerConfig *tracer_config,
-        struct mliPrng *prng);
-
-void mliApertureCamera_aquire_pixels(
-        const struct mliApertureCamera camera,
-        const struct mliImage *image,
-        const struct mliHomTraComp camera2root_comp,
-        const struct mliScenery *scenery,
-        const struct mliPixels *pixels_to_do,
-        struct mliImage *colors,
-        const struct mliTracerConfig *tracer_config,
-        struct mliPrng *prng);
-
-void mliApertureCamera_assign_pixel_colors_to_sum_and_exposure_image(
-        const struct mliPixels *pixels,
-        const struct mliImage *colors,
-        struct mliImage *sum_image,
-        struct mliImage *exposure_image);
-
-#endif
-
-/* mliPinHoleCamera */
-/* ---------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_PIN_HOLE_CAMERA_H_
-#define MLI_PIN_HOLE_CAMERA_H_
-
-
-struct mliPinHoleCamera {
-        struct mliVec optical_axis;
-        struct mliVec col_axis;
-        struct mliVec row_axis;
-        struct mliVec principal_point;
-        double distance_to_principal_point;
-        double row_over_column_pixel_ratio;
-};
-
-struct mliPinHoleCamera mliPinHoleCamera_init(
-        const double field_of_view,
-        const struct mliImage *image,
-        const double row_over_column_pixel_ratio);
-
-void mliPinHoleCamera_render_image(
-        struct mliPinHoleCamera camera,
-        const struct mliHomTraComp camera2root_comp,
-        const struct mliScenery *scenery,
-        struct mliImage *image,
-        const struct mliTracerConfig *tracer_config,
-        struct mliPrng *prng);
-
-void mliPinHoleCamera_render_image_with_view(
-        const struct mliView view,
-        const struct mliScenery *scenery,
-        struct mliImage *image,
-        const double row_over_column_pixel_ratio,
-        const struct mliTracerConfig *tracer_config,
-        struct mliPrng *prng);
-
-struct mliRay mliPinHoleCamera_ray_at_row_col(
-        const struct mliPinHoleCamera *camera,
-        const struct mliImage *image,
-        const uint32_t row,
-        const uint32_t col);
-
-#endif
-
-/* mliRenderConfig */
-/* --------------- */
-
-/* Copyright 2018-2021 Sebastian Achim Mueller */
-#ifndef MLIRENDERCONFIG_H_
-#define MLIRENDERCONFIG_H_
-
-
-struct mliRenderConfig {
-        struct mliApertureCamera camera;
-        struct mliHomTraComp camera_to_root;
-        struct mliTracerConfig tracer;
-        uint64_t num_pixel_x;
-        uint64_t num_pixel_y;
-        uint64_t random_seed;
-};
-
-struct mliRenderConfig mliRenderConfig_init(void);
-
-int mliRenderConfig_from_json_token(
-        struct mliRenderConfig *cc,
-        const struct mliJson *json,
-        const uint64_t token);
-
 #endif
 
