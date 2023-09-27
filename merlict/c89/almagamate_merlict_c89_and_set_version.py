@@ -16,7 +16,8 @@ subprocess.call(
         "python",
         os.path.join(".", "merlict_c89", "tools", "mli_almagamate.py"),
         ".",
-    ] + [os.path.join(".", "merlict_c89", l) for l in merlict_c89_libs]
+    ]
+    + [os.path.join(".", "merlict_c89", l) for l in merlict_c89_libs]
 )
 
 src_name = str.join("_", merlict_c89_libs)
