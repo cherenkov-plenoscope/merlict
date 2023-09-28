@@ -41,6 +41,8 @@ setuptools.setup(
     packages=[
         "merlict",
         "merlict.materials",
+        "merlict.materials.surfaces",
+        "merlict.materials.media",
         "merlict.photon",
         "merlict.c89",
         "merlict.viewer",
@@ -54,9 +56,11 @@ setuptools.setup(
         "merlict": [
             os.path.join("tests", "resources", "*"),
         ],
-        "merlict.materials": [
-            os.path.join("media", "*"),
-            os.path.join("surfaces", "*"),
+        "merlict.materials.media": [
+            os.path.join("resources", "*"),
+        ],
+        "merlict.materials.surfaces": [
+            os.path.join("resources", "*"),
         ],
         "merlict.c89": [
             os.path.join("*.pyx"),
