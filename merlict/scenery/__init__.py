@@ -7,14 +7,13 @@ from .. import materials
 
 def init(default_medium="vacuum"):
     """
-    Returns a Scenery.
-    A scenery is a tree of references to primitives.
-    A reference is a translation and rotation to describe the object's
-    relations w.r.t. each other.
+    Returns a minimal sceneryPy without any objects in it.
 
-    Further, the Scenery contains the materials.
-
-    A scenery can be exported to the merlict_c89 ray-tracer.
+    Parameters
+    ----------
+    default_medium : str
+        The key of a medium in merlict's own library of media to be used for
+        the default medium in between surfaces.
     """
     scenery = {
         "materials": {
@@ -28,56 +27,91 @@ def init(default_medium="vacuum"):
             "relations": {"children": []},
         },
     }
-    scenery["materials"]["media"][default_medium] = materials.medium(
+    scenery["materials"]["media"][default_medium] = materials.media.init(
         key=default_medium
     )
     return scenery
 
 
-def sceneryDs_from_scenery(scenery, indent=4, relations_indent=0, readme=None):
+def convert_sceneryPy_to_sceneryDs(
+    sceneryPy, indent=4, relations_indent=0, readme=None
+):
+    """
+    Returns a sceneryDs.
+
+    The `DS` is a dict() with all its values being of type str().
+    Materials will be dumped into json-strings.
+    Objects will be dumped into obj-strings.
+    The key of the default_medium will be dumped into a plain string.
+    These value-strings correspond to the payloads found in sceneryTar.
+
+    Parameters
+    ----------
+    sceneryPy : dict
+        The scenery set up by the user using dicts, lists, numpy.arrays and so
+        on.
+    indent : int
+        Number of chars to indent in json-files. Default is 4.
+    relations_indent : int
+        Number of chars to indent in geometry/relations.json.
+        This file can be pretty large, so the default is 0 to save space.
+        One can also set `None` what avoids all linebreaks but makes reading
+        the file almost impossible for humans.
+    readme : str
+        An optional text for the README.md
+    """
     sceneryDs = {}
 
-    default_readme = "Scenery\n"
-    default_readme += "=======\n"
-    sceneryDs["README.md"] = readme if readme else default_readme
+    sceneryDs["README.md"] = readme if readme else _default_readme()
 
     sceneryDs["geometry"] = {}
-
     sceneryDs["geometry"]["objects"] = {}
-    for okey in uScenery["geometry"]["objects"]:
+    for okey in sceneryPy["geometry"]["objects"]:
+        raise NotImplementedError(
+            "On my list. For this we need to break up my python-package "
+            "optics_obect_wavefronts."
+        )
         okey_filename = "{:s}.obj".format(okey)
-        wfr = obj.init_from_mesh(mesh=scenery["geometry"]["objects"][okey])
+        wfr = obj.init_from_mesh(mesh=sceneryPy["geometry"]["objects"][okey])
         sceneryDs["geometry"]["objects"][okey_filename] = obj.dumps(obj=wfr)
 
     sceneryDs["geometry"]["relations.json"] = json_numpy.dumps(
-        scenery["geometry"]["relations"], indent=relations_indent
+        sceneryPy["geometry"]["relations"], indent=relations_indent
     )
 
     sceneryDs["materials"] = {}
-
     sceneryDs["materials"]["media"] = {}
-    for mkey in scenery["materials"]["media"]:
+    for mkey in sceneryPy["materials"]["media"]:
         mkey_filename = "{:s}.json".format(mkey)
         mjsn = json_numpy.dumps(
-            scenery["materials"]["media"][mkey], indent=indent
+            sceneryPy["materials"]["media"][mkey], indent=indent
         )
         sceneryDs["materials"]["media"][mkey_filename] = mjsn
 
     sceneryDs["materials"]["surfaces"] = {}
-    for skey in scenery["materials"]["surfaces"]:
+    for skey in sceneryPy["materials"]["surfaces"]:
         skey_filename = "{:s}.json".format(skey)
         sjsn = json_numpy.dumps(
-            scenery["materials"]["surfaces"][skey], indent=indent
+            sceneryPy["materials"]["surfaces"][skey], indent=indent
         )
         sceneryDs["materials"]["media"][mkey_filename] = sjsn
 
     sceneryDs["materials"]["boundary_layers.json"] = json_numpy.dumps(
-        scenery["materials"]["boundary_layers"],
+        sceneryPy["materials"]["boundary_layers"],
         indent=indent,
     )
 
     sceneryDs["materials"]["default_medium.txt"] = str(
-        scenery["materials"]["default_medium"]
+        sceneryPy["materials"]["default_medium"]
     )
 
     return sceneryDs
+
+
+def _default_readme():
+    rm = "Scenery\n"
+    rm += "=======\n"
+    rm += "I was written by merlict but nobody botherd to provide a README\n"
+    rm += "so this is the default :sad:. Anyhow, I am a scenery of objects.\n"
+    rm += "Merlict can read me and perform ray tracing on me.\n"
+    return rm

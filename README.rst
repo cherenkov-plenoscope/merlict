@@ -39,7 +39,7 @@ Load an existing scenery
     import pkg_resources
     import os
 
-    scenery = merlict.c89.wrapper.Server(
+    scenery = merlict.open(
         path=pkg_resources.resource_filename(
             "merlict",
             os.path.join("tests", "resources", "segmented_reflector.tar"),

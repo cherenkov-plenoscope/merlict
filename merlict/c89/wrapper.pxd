@@ -7,22 +7,18 @@ cdef extern from "merlict_c89.h":
         double y
         double z
 
-
     cdef struct mliRay:
         mliVec support
         mliVec direction
-
 
     cdef struct mliGeometryId:
         stdint.uint32_t robj
         stdint.uint32_t face
 
-
     cdef struct mliIntersection:
         mliGeometryId geometry_id
         mliVec position_local
         double distance_of_ray
-
 
     cdef struct mliIntersectionSurfaceNormal:
         mliGeometryId geometry_id
@@ -33,12 +29,10 @@ cdef extern from "merlict_c89.h":
         double distance_of_ray
         stdint.int64_t from_outside_to_inside
 
-
     cdef struct mliPhoton:
         mliRay ray
         double wavelength
         stdint.int64_t id
-
 
     cdef struct mliArchive:
         pass
@@ -48,18 +42,15 @@ cdef extern from "merlict_c89.h":
     cdef int mliArchive_malloc(mliArchive *arc)
     cdef int mliArchive_malloc_from_path(mliArchive *arc, const char *path)
 
-
     cdef struct mliScenery:
         pass
 
     cdef mliScenery mliScenery_init()
     cdef void mliScenery_free(mliScenery *scn)
 
-
     cdef int mliScenery_malloc_from_Archive(
         mliScenery *scn,
         const mliArchive *arc)
-
 
     cdef int mliScenery_malloc_from_path(
         mliScenery *scenery,
@@ -68,12 +59,10 @@ cdef extern from "merlict_c89.h":
         const mliScenery *scenery,
         const char *path)
 
-
     cdef struct mliColor:
         float r
         float g
         float b
-
 
     cdef struct mliImage:
         stdint.uint32_t num_cols
@@ -91,7 +80,6 @@ cdef extern from "merlict_c89.h":
         const stdint.uint32_t row,
         const mliColor color)
 
-
     cdef struct mliPrng:
         pass
 
@@ -99,7 +87,6 @@ cdef extern from "merlict_c89.h":
     cdef mliPrng mliPrng_init_PCG32(const stdint.uint32_t seed)
     cdef stdint.uint32_t mliPrng_generate_uint32(mliPrng *prng)
     cdef double mli_random_uniform(mliPrng *prng)
-
 
     cdef struct mliPhotonInteraction:
         int on_geometry_surface
@@ -112,12 +99,10 @@ cdef extern from "merlict_c89.h":
         int from_outside_to_inside
         int type
 
-
     cdef struct mliView:
         mliVec position
         mliVec rotation
         double field_of_view
-
 
     cdef struct mlivrConfig:
         stdint.uint32_t random_seed
@@ -132,11 +117,9 @@ cdef extern from "merlict_c89.h":
 
     cdef mlivrConfig mlivrConfig_default()
 
-
     cdef int mlivr_run_interactive_viewer(
         const mliScenery *scn,
         const mlivrConfig cfg)
-
 
     cdef struct mliAtmosphere:
         double sunLatitude
@@ -155,13 +138,11 @@ cdef extern from "merlict_c89.h":
         double power
         double altitude
 
-
     cdef struct mliTracerConfig:
         stdint.uint64_t num_trails_global_light_source
         int have_atmosphere
         mliAtmosphere atmosphere
         mliColor background_color
-
 
     cdef int mliArchive_push_back_cstr(
         mliArchive *arc,

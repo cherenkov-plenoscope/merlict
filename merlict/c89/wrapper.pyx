@@ -68,6 +68,36 @@ cdef _mlivrConfig_from_dict(config):
     return _c
 
 
+cdef _mliArchive_push_back_path_and_payload(
+    mliArchive *archive,
+    path,
+    payload,
+):
+    cdef int rc
+
+    _path = str(path)
+    _payload = str(payload)
+
+    cdef bytes _py_path = _path.encode()
+    cdef bytes _py_payload = _payload.encode()
+
+    cdef stdint.uint64_t path_length = np.uint64(len(_py_path))
+    cdef stdint.uint64_t payload_length = len(_py_payload)
+
+    cdef char* _cpath = _py_path
+    cdef char* _cpayload = _py_payload
+
+    rc = mliArchive_push_back_cstr(
+        archive,
+        _cpath,
+        path_length,
+        _cpayload,
+        payload_length
+    )
+    assert rc != 0
+    return
+
+
 cdef class Prng:
     cdef mliPrng prng
 
@@ -94,13 +124,22 @@ cdef class Server:
     def __dealloc__(self):
         mliScenery_free(&self.scenery)
 
-    def __init__(self, path=None, sceneryPy=None):
-        if path and not sceneryPy:
-            self.init_from_path(path)
-        elif sceneryPy and not path:
-            self.init_from_sceneryPy(sceneryPy)
+    def __init__(self, path=None, sceneryDs=None):
+        if path and not sceneryDs:
+            try:
+                self.init_from_tar(path)
+            except AssertionError:
+                try:
+                    self.init_from_dump(path)
+                except AssertionError:
+                    raise AssertionError(
+                        "Can not read scenery from path {:s}".format(path)
+                    )
+
+        elif sceneryDs and not path:
+            self.init_from_sceneryDs(sceneryDs)
         else:
-            raise ValueError("Either 'path' or 'sceneryPy', but not both.")
+            raise ValueError("Either 'path' or 'sceneryDs', but not both.")
 
     def view(self, config=None):
         """
@@ -127,7 +166,7 @@ cdef class Server:
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_attr)
 
-    def init_from_path(self, path):
+    def init_from_tar(self, path):
         cdef int rc
         _path = str(path)
         cdef bytes _py_path = _path.encode()
@@ -142,7 +181,21 @@ cdef class Server:
         finally:
             mliArchive_free(&archive)
 
-    def init_from_dump_in_path(self, path):
+    def init_from_dump(self, path):
+        """
+        Inits the server from a previous dump.
+
+        Warning
+        -------
+        A dump is not meant to exchange sceneries with others!
+        Only read dumps written on the same platform and by the same version
+        of merlict. See also dump().
+
+        Parameters
+        ----------
+        path : str
+            Path to read the dump from.
+        """
         cdef int rc
         _path = str(path)
         cdef bytes _py_path = _path.encode()
@@ -150,7 +203,25 @@ cdef class Server:
         rc = mliScenery_malloc_from_path(&self.scenery, _cpath)
         assert rc != 0
 
-    def dump_to_path(self, path):
+    def dump(self, path):
+        """
+        Dumps the compiled scenery to path.
+
+        Warning
+        -------
+        A dump is not meant to exchange sceneries with others!
+        A dump is specific to your platform's architecture and version of
+        merlict and will probably crash on other machines.
+        Think of it as a `pickle` thingy.
+        The dump is meant to export and import a compiled scenery so that
+        merlict does not need to compile the user's scenery again.
+        So the objective of the dump is for local caching only!
+
+        Parameters
+        ----------
+        path : str
+            Path to write the dump to.
+        """
         cdef int rc
         _path = str(path)
         cdef bytes _py_path = _path.encode()
@@ -158,15 +229,52 @@ cdef class Server:
         rc = mliScenery_write_to_path(&self.scenery, _cpath)
         assert rc != 0
 
-    def init_from_sceneryPy(self, sceneryPy):
+    def init_from_sceneryDs(self, sceneryDs):
         cdef int rc
-        cdef mliArchive archive = mliArchive_init()
+        cdef mliArchive tmp_archive = mliArchive_init()
         try:
-            rc = mliArchive_malloc(&archive)
+            rc = mliArchive_malloc(&tmp_archive)
             assert rc != 0
 
+            _mliArchive_push_back_path_and_payload(
+                &tmp_archive,
+                "README.md",
+                sceneryDs["README.md"])
+
+            for ofname in sceneryDs["geometry"]["objects"]:
+                _mliArchive_push_back_path_and_payload(
+                    &tmp_archive,
+                    "geometry/objects/{:s}".format(ofname),
+                    sceneryDs["geometry"]["objects"][ofname])
+
+            _mliArchive_push_back_path_and_payload(
+                &tmp_archive, "geometry/relations.json",
+                sceneryDs["geometry"]["relations.json"])
+
+            for mfname in sceneryDs["materials"]["media"]:
+                _mliArchive_push_back_path_and_payload(
+                    &tmp_archive,
+                    "materials/media/{:s}".format(mfname),
+                    sceneryDs["materials"]["media"][mfname])
+
+            for sfname in sceneryDs["materials"]["surfaces"]:
+                _mliArchive_push_back_path_and_payload(
+                    &tmp_archive,
+                    "materials/surfaces/{:s}".format(sfname),
+                    sceneryDs["materials"]["surfaces"][sfname])
+
+            _mliArchive_push_back_path_and_payload(
+                &tmp_archive, "materials/boundary_layers.json",
+                sceneryDs["materials"]["boundary_layers.json"])
+
+            _mliArchive_push_back_path_and_payload(
+                &tmp_archive, "materials/default_medium.txt",
+                sceneryDs["materials"]["default_medium.txt"])
+
+            rc = mliScenery_malloc_from_Archive(&self.scenery, &tmp_archive)
+            assert rc != 0
         finally:
-            mliArchive_free(&archive)
+            mliArchive_free(&tmp_archive)
 
     def query_intersection(self, rays):
         cdef int rc
