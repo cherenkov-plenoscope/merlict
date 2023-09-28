@@ -4,6 +4,16 @@
 
 
 More light than you can handle! Also: This is in beta state. Don't judge me!
+Merlict would not exist without the author's past and present affiliations:
+
+- Max-Planck-Institute for Nuclear Physics,
+  Saupfercheckweg 1, 69117 Heidelberg, Germany
+
+- Institute for Particle Physics and Astrophysics,
+  ETH-Zurich, Otto-Stern-Weg 5, 8093 Zurich, Switzerland
+
+- Experimental Physics Vb, Astroparticle Physics,
+  TU-Dortmund, Otto-Hahn-Str. 4a, 44227 Dortmund, Germany
 
 
 *******
