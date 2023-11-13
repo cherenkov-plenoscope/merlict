@@ -1,8 +1,6 @@
-import numpy as np
-import tarfile
-import io
 import json_numpy
 from .. import materials
+import triangle_mesh_io
 
 
 def init(default_medium="vacuum"):
@@ -67,13 +65,10 @@ def convert_sceneryPy_to_sceneryDs(
     sceneryDs["geometry"] = {}
     sceneryDs["geometry"]["objects"] = {}
     for okey in sceneryPy["geometry"]["objects"]:
-        raise NotImplementedError(
-            "On my list. For this we need to break up my python-package "
-            "optics_obect_wavefronts."
-        )
         okey_filename = "{:s}.obj".format(okey)
-        wfr = obj.init_from_mesh(mesh=sceneryPy["geometry"]["objects"][okey])
-        sceneryDs["geometry"]["objects"][okey_filename] = obj.dumps(obj=wfr)
+        sceneryDs["geometry"]["objects"][
+            okey_filename
+        ] = triangle_mesh_io.obj.dumps(sceneryPy["geometry"]["objects"][okey])
 
     sceneryDs["geometry"]["relations.json"] = json_numpy.dumps(
         sceneryPy["geometry"]["relations"], indent=relations_indent

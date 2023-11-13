@@ -73,6 +73,7 @@ setuptools.setup(
     },
     install_requires=[
         "json_numpy_sebastian-achim-mueller",
+        "triangle_mesh_io>=0.0.2",
     ],
     ext_modules=Cython.Build.cythonize(extensions, language_level=3),
     classifiers=[
