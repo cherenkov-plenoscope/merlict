@@ -89,7 +89,7 @@ def convert_sceneryPy_to_sceneryDs(
         sjsn = json_numpy.dumps(
             sceneryPy["materials"]["surfaces"][skey], indent=indent
         )
-        sceneryDs["materials"]["media"][mkey_filename] = sjsn
+        sceneryDs["materials"]["surfaces"][skey_filename] = sjsn
 
     sceneryDs["materials"]["boundary_layers.json"] = json_numpy.dumps(
         sceneryPy["materials"]["boundary_layers"],
