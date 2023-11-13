@@ -102,6 +102,6 @@ VERSION_STR = "{:s}.{:s}".format(
 # -------------
 with open(os.path.join(os.path.join("..", "version.py")), "wt") as f:
     f.write("# I was written by: ")
-    f.write("merlict/version/set_and_make_version_script.py\n")
+    f.write("merlict/c89/almagamate_merlict_c89_and_set_version.py\n")
     f.write('__version__ = "' + VERSION_STR + '"')
     f.write("\n")
