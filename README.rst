@@ -1,6 +1,6 @@
 |ImgMerlictPythonLogo|
 
-|TestStatus| |PyPiStatus| |BlackStyle| |PackStyleBlack| |GPLv3Logo|
+|TestStatus| |PyPiStatus| |BlackStyle| |BlackPackStyle| |GPLv3LicenseBadge|
 
 
 More light than you can handle! Also: This is in beta state. Don't judge me!
@@ -130,10 +130,10 @@ will yield
 .. |PyPiStatus| image:: https://img.shields.io/pypi/v/merlict
     :target: https://pypi.org/project/merlict
 
-.. |PackStyleBlack| image:: https://img.shields.io/badge/pack%20style-black-000000.svg
+.. |BlackPackStyle| image:: https://img.shields.io/badge/pack%20style-black-000000.svg
     :target: https://github.com/cherenkov-plenoscope/black_pack
 
-.. |GPLv3Logo| image:: https://img.shields.io/badge/License-GPL%20v3-blue.svg
+.. |GPLv3LicenseBadge| image:: https://img.shields.io/badge/License-GPL%20v3-blue.svg
     :target: https://www.gnu.org/licenses/gpl-3.0
 
 .. |ImgMerlictPythonLogo| image:: https://github.com/cherenkov-plenoscope/merlict/blob/main/readme/merlict-python-logo-inkscape.png?raw=True
