@@ -98,24 +98,7 @@ cdef _mliArchive_push_back_path_and_payload(
     return
 
 
-cdef class Prng:
-    cdef mliPrng prng
-
-    def __init__(self, seed, engine="PCG32"):
-        cdef unsigned int cseed = np.uint32(seed)
-        if engine == "PCG32":
-            self.prng = mliPrng_init_PCG32(cseed)
-        elif engine == "MT19937":
-            self.prng = mliPrng_init_MT19937(cseed)
-        else:
-            raise KeyError("No such engine.")
-
-    def uint32(self):
-        cdef unsigned int c = mliPrng_generate_uint32(&self.prng)
-        return int(c)
-
-
-cdef class Server:
+cdef class Merlict:
     cdef mliScenery scenery
 
     def __cinit__(self):

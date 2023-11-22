@@ -51,6 +51,7 @@ setuptools.setup(
         "merlict.intersection",
         "merlict.ray",
         "merlict.scenery",
+        "merlict.scenery.string_format",
     ],
     package_data={
         "merlict": [

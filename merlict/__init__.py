@@ -18,7 +18,7 @@ def open(path):
         `.tar` containing a scenery, or it can be the path to merlict's
         binary memory-dump of a scenery.
     """
-    return c89.wrapper.Server(path=path)
+    return c89.wrapper.Merlict(path=path)
 
 
 def compile(sceneryPy):
@@ -33,4 +33,4 @@ def compile(sceneryPy):
         sceneryPy=sceneryPy, indent=4, relations_indent=0
     )
 
-    return c89.wrapper.Server(sceneryStr=sceneryStr)
+    return c89.wrapper.Merlict(sceneryStr=sceneryStr)

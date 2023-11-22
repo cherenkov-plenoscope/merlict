@@ -83,11 +83,6 @@ cdef extern from "merlict_c89.h":
     cdef struct mliPrng:
         pass
 
-    cdef mliPrng mliPrng_init_MT19937(const stdint.uint32_t seed)
-    cdef mliPrng mliPrng_init_PCG32(const stdint.uint32_t seed)
-    cdef stdint.uint32_t mliPrng_generate_uint32(mliPrng *prng)
-    cdef double mli_random_uniform(mliPrng *prng)
-
     cdef struct mliPhotonInteraction:
         int on_geometry_surface
         mliGeometryId geometry_id
