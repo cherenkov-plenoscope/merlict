@@ -236,40 +236,12 @@ cdef class Server:
             rc = mliArchive_malloc(&tmp_archive)
             assert rc != 0
 
-            _mliArchive_push_back_path_and_payload(
-                &tmp_archive,
-                "README.md",
-                sceneryDs["README.md"])
-
-            for ofname in sceneryDs["geometry"]["objects"]:
+            for item in sceneryDs:
+                filename, payload = item
                 _mliArchive_push_back_path_and_payload(
                     &tmp_archive,
-                    "geometry/objects/{:s}".format(ofname),
-                    sceneryDs["geometry"]["objects"][ofname])
-
-            _mliArchive_push_back_path_and_payload(
-                &tmp_archive, "geometry/relations.json",
-                sceneryDs["geometry"]["relations.json"])
-
-            for mfname in sceneryDs["materials"]["media"]:
-                _mliArchive_push_back_path_and_payload(
-                    &tmp_archive,
-                    "materials/media/{:s}".format(mfname),
-                    sceneryDs["materials"]["media"][mfname])
-
-            for sfname in sceneryDs["materials"]["surfaces"]:
-                _mliArchive_push_back_path_and_payload(
-                    &tmp_archive,
-                    "materials/surfaces/{:s}".format(sfname),
-                    sceneryDs["materials"]["surfaces"][sfname])
-
-            _mliArchive_push_back_path_and_payload(
-                &tmp_archive, "materials/boundary_layers.json",
-                sceneryDs["materials"]["boundary_layers.json"])
-
-            _mliArchive_push_back_path_and_payload(
-                &tmp_archive, "materials/default_medium.txt",
-                sceneryDs["materials"]["default_medium.txt"])
+                    filename,
+                    payload)
 
             rc = mliScenery_malloc_from_Archive(&self.scenery, &tmp_archive)
             assert rc != 0
