@@ -1,5 +1,5 @@
 from .. import materials
-from . import representationDs
+from . import string_format
 import os
 import numpy as np
 
@@ -70,23 +70,23 @@ def init_from_object(obj, default_medium="vacuum", random_seed=1):
 
 
 def write_dir(sceneryPy, path):
-    sceneryStr = representationDs.convert.sceneryPy_to_sceneryStr(sceneryPy)
-    representationDs.directory.write(sceneryStr=sceneryStr, path=path)
+    sceneryStr = string_format.convert.sceneryPy_to_sceneryStr(sceneryPy)
+    string_format.directory.write(sceneryStr=sceneryStr, path=path)
 
 
 def write_tar(sceneryPy, path):
-    sceneryStr = representationDs.convert.sceneryPy_to_sceneryStr(sceneryPy)
-    representationDs.tapearchive.write(sceneryStr=sceneryStr, path=path)
+    sceneryStr = string_format.convert.sceneryPy_to_sceneryStr(sceneryPy)
+    string_format.tapearchive.write(sceneryStr=sceneryStr, path=path)
 
 
 def read_dir(path):
-    sceneryStr = representationDs.directory.read(path=path)
-    return representationDs.convert.sceneryStr_to_sceneryPy(sceneryStr)
+    sceneryStr = string_format.directory.read(path=path)
+    return string_format.convert.sceneryStr_to_sceneryPy(sceneryStr)
 
 
 def read_tar(path):
-    sceneryStr = representationDs.tapearchive.read(path=path)
-    return representationDs.convert.sceneryStr_to_sceneryPy(sceneryStr)
+    sceneryStr = string_format.tapearchive.read(path=path)
+    return string_format.convert.sceneryStr_to_sceneryPy(sceneryStr)
 
 
 def _default_readme():

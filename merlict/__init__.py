@@ -29,7 +29,7 @@ def compile(sceneryPy):
         The scenery represented only with python builtin dicts, lists and
         optional numpy.arrays.
     """
-    sceneryStr = scenery.representationDs.convert.sceneryPy_to_sceneryStr(
+    sceneryStr = scenery.string_format.convert.sceneryPy_to_sceneryStr(
         sceneryPy=sceneryPy, indent=4, relations_indent=0
     )
 
