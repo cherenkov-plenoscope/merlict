@@ -4,9 +4,9 @@ import posixpath
 from . import fileorder
 
 
-def write(sceneryDs, path):
+def write(sceneryStr, path):
     os.makedirs(path, exist_ok=True)
-    for item in sceneryDs:
+    for item in sceneryStr:
         relfilepath_posix, payload = item
         relfilepath = _posix2os(relfilepath_posix)
         relfiledirname = posixpath.dirname(relfilepath)

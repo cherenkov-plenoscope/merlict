@@ -124,8 +124,8 @@ cdef class Server:
     def __dealloc__(self):
         mliScenery_free(&self.scenery)
 
-    def __init__(self, path=None, sceneryDs=None):
-        if path and not sceneryDs:
+    def __init__(self, path=None, sceneryStr=None):
+        if path and not sceneryStr:
             try:
                 self.init_from_tar(path)
             except AssertionError:
@@ -136,10 +136,10 @@ cdef class Server:
                         "Can not read scenery from path {:s}".format(path)
                     )
 
-        elif sceneryDs and not path:
-            self.init_from_sceneryDs(sceneryDs)
+        elif sceneryStr and not path:
+            self.init_from_sceneryStr(sceneryStr)
         else:
-            raise ValueError("Either 'path' or 'sceneryDs', but not both.")
+            raise ValueError("Either 'path' or 'sceneryStr', but not both.")
 
     def view(self, config=None):
         """
@@ -229,14 +229,14 @@ cdef class Server:
         rc = mliScenery_write_to_path(&self.scenery, _cpath)
         assert rc != 0
 
-    def init_from_sceneryDs(self, sceneryDs):
+    def init_from_sceneryStr(self, sceneryStr):
         cdef int rc
         cdef mliArchive tmp_archive = mliArchive_init()
         try:
             rc = mliArchive_malloc(&tmp_archive)
             assert rc != 0
 
-            for item in sceneryDs:
+            for item in sceneryStr:
                 filename, payload = item
                 _mliArchive_push_back_path_and_payload(
                     &tmp_archive,

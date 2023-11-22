@@ -70,23 +70,23 @@ def init_from_object(obj, default_medium="vacuum", random_seed=1):
 
 
 def write_dir(sceneryPy, path):
-    sceneryDs = representationDs.convert.sceneryPy_to_sceneryDs(sceneryPy)
-    representationDs.directory.write(sceneryDs=sceneryDs, path=path)
+    sceneryStr = representationDs.convert.sceneryPy_to_sceneryStr(sceneryPy)
+    representationDs.directory.write(sceneryStr=sceneryStr, path=path)
 
 
 def write_tar(sceneryPy, path):
-    sceneryDs = representationDs.convert.sceneryPy_to_sceneryDs(sceneryPy)
-    representationDs.tapearchive.write(sceneryDs=sceneryDs, path=path)
+    sceneryStr = representationDs.convert.sceneryPy_to_sceneryStr(sceneryPy)
+    representationDs.tapearchive.write(sceneryStr=sceneryStr, path=path)
 
 
 def read_dir(path):
-    sceneryDs = representationDs.directory.read(path=path)
-    return representationDs.convert.sceneryDs_to_sceneryPy(sceneryDs)
+    sceneryStr = representationDs.directory.read(path=path)
+    return representationDs.convert.sceneryStr_to_sceneryPy(sceneryStr)
 
 
 def read_tar(path):
-    sceneryDs = representationDs.tapearchive.read(path=path)
-    return representationDs.convert.sceneryDs_to_sceneryPy(sceneryDs)
+    sceneryStr = representationDs.tapearchive.read(path=path)
+    return representationDs.convert.sceneryStr_to_sceneryPy(sceneryStr)
 
 
 def _default_readme():

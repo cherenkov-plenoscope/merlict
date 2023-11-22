@@ -3,9 +3,9 @@ import triangle_mesh_io as tmi
 import posixpath
 
 
-def sceneryPy_to_sceneryDs(sceneryPy, indent=4, relations_indent=0):
+def sceneryPy_to_sceneryStr(sceneryPy, indent=4, relations_indent=0):
     """
-    Returns a sceneryDs.
+    Returns a sceneryStr.
 
     The `Ds` is a dict() with all its values being of type str().
     Materials will be dumped into json-strings.
@@ -27,48 +27,48 @@ def sceneryPy_to_sceneryDs(sceneryPy, indent=4, relations_indent=0):
         the file almost impossible for humans.
     """
     join = posixpath.join
-    sceneryDs = []
-    sceneryDs.append(("README.md", sceneryPy["readme"]))
+    sceneryStr = []
+    sceneryStr.append(("README.md", sceneryPy["readme"]))
 
     for okey in sceneryPy["geometry"]["objects"]:
         filepath = join("geometry", "objects", "{:s}.obj".format(okey))
         payload = tmi.obj.dumps(sceneryPy["geometry"]["objects"][okey])
-        sceneryDs.append((filepath, payload))
+        sceneryStr.append((filepath, payload))
 
     filepath = join("geometry", "relations.json")
     payload = jsonp.dumps(
         sceneryPy["geometry"]["relations"], indent=relations_indent
     )
-    sceneryDs.append((filepath, payload))
+    sceneryStr.append((filepath, payload))
 
     for mkey in sceneryPy["materials"]["media"]:
         filepath = join("materials", "media", "{:s}.json".format(mkey))
         payload = jsonp.dumps(
             sceneryPy["materials"]["media"][mkey], indent=indent
         )
-        sceneryDs.append((filepath, payload))
+        sceneryStr.append((filepath, payload))
 
     for skey in sceneryPy["materials"]["surfaces"]:
         filepath = join("materials", "surfaces", "{:s}.json".format(skey))
         payload = jsonp.dumps(
             sceneryPy["materials"]["surfaces"][skey], indent=indent
         )
-        sceneryDs.append((filepath, payload))
+        sceneryStr.append((filepath, payload))
 
     filepath = join("materials", "boundary_layers.json")
     payload = jsonp.dumps(
         sceneryPy["materials"]["boundary_layers"], indent=relations_indent
     )
-    sceneryDs.append((filepath, payload))
+    sceneryStr.append((filepath, payload))
 
     filepath = join("materials", "default_medium.txt")
     payload = str(sceneryPy["materials"]["default_medium"])
-    sceneryDs.append((filepath, payload))
+    sceneryStr.append((filepath, payload))
 
-    return sceneryDs
+    return sceneryStr
 
 
-def sceneryPs_to_sceneryDy(sceneryDs):
+def sceneryStr_to_sceneryPy(sceneryStr):
     sceneryPy = {}
     sceneryPy["geometry"] = {}
     sceneryPy["geometry"]["objects"] = {}
@@ -77,7 +77,7 @@ def sceneryPs_to_sceneryDy(sceneryDs):
     sceneryPy["materials"]["surfaces"] = {}
     join = posixpath.join
 
-    for item in sceneryDs:
+    for item in sceneryStr:
         filepath, payload = item
         if "README" in filepath:
             sceneryPy["readme"] = payload

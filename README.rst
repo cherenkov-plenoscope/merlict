@@ -39,13 +39,15 @@ Load an existing scenery
     import pkg_resources
     import os
 
-    scenery = merlict.open(
+    sceneryPy = merlict.scenery.read_tar(
         path=pkg_resources.resource_filename(
             "merlict",
             os.path.join("tests", "resources", "segmented_reflector.tar"),
         ),
     )
-    scenery.view()
+
+    mli = merlict.compile(sceneryPy)
+    mli.view()
 
 
 Query the intersection of rays with the scenery
@@ -63,7 +65,7 @@ Query the intersection of rays with the scenery
     rays["direction.y"] = 0
     rays["direction.z"] = -1
 
-    hits, intersections = scenery.query_intersectionSurfaceNormal(rays)
+    hits, intersections = mli.query_intersectionSurfaceNormal(rays)
 
     if hits[0]:
         print("The ray intersects with the surface")

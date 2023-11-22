@@ -4,9 +4,9 @@ import io
 import fnmatch
 
 
-def write(sceneryDs, path):
+def write(sceneryStr, path):
     with tarfile.open(name=path, mode="w|") as tar:
-        for item in sceneryDs:
+        for item in sceneryStr:
             filepath, payload = item
             _tar_append_str(tar=tar, filepath=filepath, payload=payload)
 
