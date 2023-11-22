@@ -13,12 +13,12 @@ SCENERY_PATH = pkg_resources.resource_filename(
 
 
 def test_intersection_size_zero():
-    scenery = merlict.c89.wrapper.Server(path=SCENERY_PATH)
+    mli = merlict.c89.wrapper.Merlict(path=SCENERY_PATH)
     rays = merlict.ray.zeros(size=0)
 
     assert rays.shape[0] == 0
 
-    isecs_valid, isecs = scenery.query_intersection(rays)
+    isecs_valid, isecs = mli.query_intersection(rays)
 
     assert isecs_valid.shape[0] == 0
     assert isecs_valid.dtype == np.bool_
@@ -27,7 +27,7 @@ def test_intersection_size_zero():
 
 def test_intersection_simple():
     prng = np.random.Generator(np.random.PCG64(13))
-    scenery = merlict.c89.wrapper.Server(path=SCENERY_PATH)
+    mli = merlict.c89.wrapper.Merlict(path=SCENERY_PATH)
     N = 10 * 1000
     rays = merlict.ray.zeros(size=N)
 
@@ -41,7 +41,7 @@ def test_intersection_simple():
 
     assert rays.shape[0] == N
 
-    mask, isecs = scenery.query_intersection(rays)
+    mask, isecs = mli.query_intersection(rays)
 
     assert mask.shape[0] == N
     assert isecs.shape[0] == N

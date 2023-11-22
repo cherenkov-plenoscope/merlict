@@ -16,7 +16,7 @@ def test_dump_and_open_dump_again():
     with tempfile.TemporaryDirectory(prefix="merlict_") as tmpdir:
         DUMP_PATH = os.path.join(tmpdir, "dump.bin")
 
-        scn = merlict.open(SCENERY_PATH)
-        scn.dump(DUMP_PATH)
+        mli = merlict.open(SCENERY_PATH)
+        mli.dump(DUMP_PATH)
 
-        scn2 = merlict.open(DUMP_PATH)
+        mli2 = merlict.open(DUMP_PATH)
