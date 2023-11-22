@@ -6,7 +6,6 @@ from . import ray
 from . import photon
 from . import intersection
 from . import intersectionSurfaceNormal
-from . import viewer
 
 
 def open(path):

@@ -45,7 +45,6 @@ setuptools.setup(
         "merlict.materials.media",
         "merlict.photon",
         "merlict.c89",
-        "merlict.viewer",
         "merlict.utils",
         "merlict.intersectionSurfaceNormal",
         "merlict.intersection",
