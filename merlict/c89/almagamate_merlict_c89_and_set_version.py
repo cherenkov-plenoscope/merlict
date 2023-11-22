@@ -1,6 +1,10 @@
 """
 Almagamate the merlict_c89 sources and set the version
 This is only ever executed once by the developers.
+
+```bash
+you@com: merlict/merlict/c89$ python almagamate_merlict_c89_and_set_version.py
+```
 """
 import os
 import shutil
@@ -100,7 +104,7 @@ VERSION_STR = "{:s}.{:s}".format(
 
 # write version
 # -------------
-with open(os.path.join(os.path.join("..", "version.py")), "wt") as f:
+with open(os.path.join("..", "version.py"), "wt") as f:
     f.write("# I was written by: ")
     f.write("merlict/c89/almagamate_merlict_c89_and_set_version.py\n")
     f.write('__version__ = "' + VERSION_STR + '"')

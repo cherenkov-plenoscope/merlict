@@ -1,2 +1,2 @@
-# I was written by: merlict/version/set_and_make_version_script.py
-__version__ = "0.1.3.1.8.1"
+# I was written by: merlict/c89/almagamate_merlict_c89_and_set_version.py
+__version__ = "0.1.5.1.8.1"
