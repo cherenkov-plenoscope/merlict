@@ -29,8 +29,8 @@ def compile(sceneryPy):
         The scenery represented only with python builtin dicts, lists and
         optional numpy.arrays.
     """
-    sceneryDs = scenery.convert_sceneryPy_to_sceneryDs(
-        sceneryPy=sceneryPy, indent=4, relations_indent=0, readme=None
+    sceneryDs = scenery.representationDs.convert.sceneryPy_to_sceneryDs(
+        sceneryPy=sceneryPy, indent=4, relations_indent=0
     )
 
     return c89.wrapper.Server(sceneryDs=sceneryDs)
