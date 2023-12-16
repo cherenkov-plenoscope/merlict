@@ -1240,7 +1240,7 @@ uint32_t pcg_setseq_64_xsh_rr_32_random_r(struct pcg_state_setseq_64 *rng);
 
 #define MLI_VERSION_MAYOR 1
 #define MLI_VERSION_MINOR 8
-#define MLI_VERSION_PATCH 1
+#define MLI_VERSION_PATCH 2
 
 void mli_logo_fprint(FILE *f);
 void mli_authors_and_affiliations_fprint(FILE *f);
