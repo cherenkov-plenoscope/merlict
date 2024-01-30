@@ -1,14 +1,15 @@
 import merlict
 import numpy as np
-import pkg_resources
 import os
+import importlib
+from importlib import resources
 
 
-SCENERY_PATH = pkg_resources.resource_filename(
-    package_or_requirement="merlict",
-    resource_name=os.path.join(
-        "tests", "resources", "segmented_reflector.tar"
-    ),
+SCENERY_PATH = os.path.join(
+    str(importlib.resources.files("merlict")),
+    "tests",
+    "resources",
+    "segmented_reflector.tar",
 )
 
 

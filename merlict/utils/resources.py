@@ -1,10 +1,12 @@
-import pkg_resources
+import importlib
+from importlib import resources
 import os
 import glob
 
 
 def path(*args):
-    return pkg_resources.resource_filename("merlict", os.path.join(*args))
+    pkg_path = str(importlib.resources.files("merlict"))
+    return os.path.join(pkg_path, os.path.join(*args))
 
 
 def list(path, glob_filename_pattern, only_basename=True, splitext=True):
