@@ -20,7 +20,7 @@ int mliArchive_push_back_cstr(
         mliStr_free(&str_filename);
         mliStr_free(&str_payload);
         return 1;
-error:
+chk_error:
         mliStr_free(&str_filename);
         mliStr_free(&str_payload);
         return 0;

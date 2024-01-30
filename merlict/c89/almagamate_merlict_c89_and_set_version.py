@@ -26,7 +26,7 @@ def rm(path):
 
 
 # list the libs from within merlict_c89 which will be almagamated.
-merlict_c89_libs = ["chk_debug", "mli_core", "mli_viewer"]
+merlict_c89_libs = ["mli", "mli_viewer"]
 merlict_c89_header_path = "merlict_c89.h"
 merlict_c89_source_path = "merlict_c89.c"
 
@@ -62,13 +62,16 @@ subprocess.call(
     [
         "python",
         os.path.join(".", "merlict_c89", "tools", "almagamate.py"),
-        "--header",
-        "./merlict_c89.h",
-        "--source",
-        "./merlict_c89.c",
+        ".",
+        "--header_path",
+        merlict_c89_header_path,
+        "--source_path",
+        merlict_c89_source_path,
     ]
-    + [os.path.join(".", "merlict_c89", l) for l in merlict_c89_libs]
+    + [os.path.join(".", "merlict_c89", "libs", l) for l in merlict_c89_libs]
 )
+
+
 
 # automatically gather merlict_c89 version
 # ----------------------------------------

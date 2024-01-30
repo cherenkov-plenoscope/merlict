@@ -8,8 +8,8 @@
 #include <time.h>
 #include <unistd.h>
 
-/* chk_debug */
-/* --------- */
+/* chk */
+/* --- */
 
 /* Copyright 2018-2021 Sebastian Achim Mueller */
 
@@ -68,7 +68,7 @@ int mliAABB_valid(const struct mliAABB a)
         chk_msg(a.lower.y <= a.upper.y, "Expected lower.y <= upper.y");
         chk_msg(a.lower.z <= a.upper.z, "Expected lower.z <= upper.z");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -79,7 +79,7 @@ int mliAABB_equal(const struct mliAABB a, const struct mliAABB b)
         chk_msg(mliVec_equal(a.upper, b.upper),
                 "Expected 'upper'-corner to be equal.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -148,7 +148,7 @@ int mliAccelerator_malloc(
         }
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -167,7 +167,7 @@ int mliAccelerator_set_robject_aabbs(
                         mliHomTra_from_compact(geometry->robject2root[rob]));
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -187,7 +187,7 @@ int mliAccelerator_set_object_octrees(
         }
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -218,7 +218,7 @@ int mliAccelerator_malloc_from_Geometry(
                 "Failed to set up octree across all robjects in geometry.");
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -308,7 +308,7 @@ int mliAccelerator_equal(
                 "Expected scenery_octree to be equal.");
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -341,7 +341,7 @@ int mliAccelerator_fwrite(const struct mliAccelerator *accel, FILE *f)
         mliOcTree_fwrite(&accel->scenery_octree, f);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -378,7 +378,7 @@ int mliAccelerator_malloc_fread(struct mliAccelerator *accel, FILE *f)
         chk_mem(mliOcTree_malloc_fread(&accel->scenery_octree, f));
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -401,7 +401,7 @@ int mliAccelerator_valid(const struct mliAccelerator *accel)
         chk_msg(mliOcTree_valid(&accel->scenery_octree),
                 "Expected scenery_octree to be valid.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -427,7 +427,7 @@ int mliAccelerator_valid_wrt_Geometry(
                 "Expected scenery_octree to be valid w.r.t. to "
                 "geometry's num_robjects.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -790,7 +790,7 @@ int mliApertureCamera_render_image(
         mliImage_free(&colors);
         mliPixels_free(&pixels_to_do);
         return 1;
-error:
+chk_error:
         mliImage_free(&sum_image);
         mliImage_free(&exposure_image);
         mliImage_free(&to_do_image);
@@ -834,7 +834,7 @@ int mliArchive_malloc(struct mliArchive *arc)
         chk(mliDynTextFiles_malloc(&arc->textfiles, 0u));
         chk(mliDynMap_malloc(&arc->filenames, 0u));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -860,7 +860,7 @@ int mliArchive_push_back(
         chk_msg(mliStr_malloc_copy(&arc->textfiles.array[next], payload),
                 "Can not copy payload.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -900,7 +900,7 @@ int mliArchive_malloc_fread(struct mliArchive *arc, FILE *f)
         mliStr_free(&payload);
         mliStr_free(&filename);
         return 1;
-error:
+chk_error:
         fprintf(stderr, "tar->filename: '%s'.\n", tarh_name);
         mliStr_free(&payload);
         mliStr_free(&filename);
@@ -916,7 +916,7 @@ int mliArchive_malloc_from_path(struct mliArchive *arc, const char *path)
                         "Can't fread Archive from file.");
         fclose(f);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -934,7 +934,7 @@ int mliArchive_get(
         chk(mliDynMap_find(&arc->filenames, filename, &idx));
         (*str) = &arc->textfiles.array[idx];
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -952,7 +952,7 @@ int mliArchive_get_malloc_json(
                 "Can not parse requested json.");
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -1389,7 +1389,7 @@ int mliAtmosphere_from_json_token(
         chk_msg(atm->altitude > 0, "Expected atmosphere->altitude > 0.");
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -1551,7 +1551,7 @@ int mliColor_from_json_token(
         c->g = v.y;
         c->b = v.z;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -1661,6 +1661,11 @@ int mliCube_equal(const struct mliCube a, const struct mliCube b)
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
+/* mliDynArray_color_testing */
+/* ------------------------- */
+
+MLIDYNARRAY_TEST_IMPLEMENTATION(mli, Color, struct mliColor)
+
 /* mliDynColor */
 /* ----------- */
 
@@ -1725,7 +1730,7 @@ int mliDynMap_insert(struct mliDynMap *map, const char *key, uint64_t value)
         item.value = value;
         chk_msg(mliDynMap_push_back(map, item), "Failed to mmaloc item.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -1735,7 +1740,7 @@ int mliDynMap_get(const struct mliDynMap *map, const char *key, uint64_t *value)
         chk_msg(mliDynMap_find(map, key, &idx), "Key does not exist.");
         (*value) = map->array[idx].value;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -1761,7 +1766,7 @@ int mliDynMap_insert_key_from_json(
         chk_msg(mliDynMap_insert(map, buff, value),
                 "Failed to insert name and value into map.");
         return 1;
-error:
+chk_error:
         mliJson_debug_token_fprint(stderr, json, token);
         return 0;
 }
@@ -1786,7 +1791,7 @@ int mliDynMap_get_value_for_string_from_json(
         (*out_value) = (uint32_t)value;
 
         return 1;
-error:
+chk_error:
         mliJson_debug_token_fprint(stderr, json, token);
         return 0;
 }
@@ -1824,7 +1829,7 @@ int mliDynPhotonInteraction_time_of_flight(
                 (*total_time_of_flight) += time_of_flight;
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -1989,7 +1994,7 @@ int mliFrame_malloc(struct mliFrame *f, const uint64_t type)
                         "Failed to malloc frame's boundary_layers.");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -2004,7 +2009,7 @@ int mliFrame_set_mother_and_child(
 
         child->mother = (struct mliFrame *)mother;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -2016,7 +2021,7 @@ struct mliFrame *mliFrame_add(struct mliFrame *mother, const uint64_t type)
         chk_msg(mliFrame_set_mother_and_child(mother, child),
                 "Can not allocate child-pointer.");
         return child;
-error:
+chk_error:
         return NULL;
 }
 
@@ -2034,7 +2039,7 @@ int mli_type_to_string(const uint64_t type, char *s)
                 break;
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -2048,7 +2053,7 @@ int mli_string_to_type(const char *s, uint64_t *type)
                 chk_bad("Type is unknown.");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -2142,7 +2147,7 @@ int mliFrame_type_from_json_token(
         }
 
         return 1;
-error:
+chk_error:
         mliJson_debug_token_fprint(stderr, json, token);
         return 0;
 }
@@ -2162,7 +2167,7 @@ int mliFrame_id_from_json_token(
         (*id) = _id;
 
         return 1;
-error:
+chk_error:
         mliJson_debug_token_fprint(stderr, json, token);
         return 0;
 }
@@ -2187,7 +2192,7 @@ int mliFrame_pos_rot_from_json_token(
                         &frame2mother->rotation, json, token_rot + 1),
                 "Failed to parse Frame's 'rot' from json.");
         return 1;
-error:
+chk_error:
         mliJson_debug_token_fprint(stderr, json, token);
         return 0;
 }
@@ -2238,7 +2243,7 @@ int mliFrame_boundary_layers_form_json_token(
         }
 
         return 1;
-error:
+chk_error:
         mliJson_debug_token_fprint(stderr, json, token);
         return 0;
 }
@@ -2259,7 +2264,7 @@ int mliFrame_object_reference_form_json_token(
                         object_reference),
                 "Failed to get object-reference 'obj' from map");
         return 1;
-error:
+chk_error:
         mliJson_debug_token_fprint(stderr, json, token);
         return 0;
 }
@@ -2341,7 +2346,7 @@ int mliFrame_from_json(
                 }
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -2435,7 +2440,7 @@ int mliFunc_malloc(struct mliFunc *f, const uint32_t num_points)
         chk_malloc(f->x, double, f->num_points);
         chk_malloc(f->y, double, f->num_points);
         return 1;
-error:
+chk_error:
         mliFunc_free(f);
         return 0;
 }
@@ -2467,7 +2472,7 @@ int mliFunc_evaluate(const struct mliFunc *f, const double xarg, double *out)
                 (*out) = mli_linear_interpolate_2d(xarg, x0, y0, x1, y1);
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -2496,7 +2501,7 @@ int mliFunc_fold_numeric(
                 (*fold) += (ra * rb) * step_size;
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -2536,7 +2541,7 @@ int mliFunc_is_valid(const struct mliFunc *func)
                 "but they do not.");
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -2572,7 +2577,7 @@ int mliFunc_malloc_from_json_token(
                 point_token += 3;
         }
         return 1;
-error:
+chk_error:
         mliFunc_free(f);
         return 0;
 }
@@ -2592,7 +2597,7 @@ int mliFunc_fwrite(const struct mliFunc *func, FILE *f)
         chk_fwrite(func->x, sizeof(double), func->num_points, f);
         chk_fwrite(func->y, sizeof(double), func->num_points, f);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -2610,7 +2615,7 @@ int mliFunc_malloc_fread(struct mliFunc *func, FILE *f)
         chk_fread(func->y, sizeof(double), func->num_points, f);
         chk_msg(mliFunc_is_valid(func), "Expected function to be valid.");
         return 1;
-error:
+chk_error:
         mliFunc_free(func);
         return 0;
 }
@@ -2683,7 +2688,7 @@ int mliGeometry_malloc_objects(
                 geometry->object_names[i] = mliName_init();
         }
         return 1;
-error:
+chk_error:
         mliGeometry_free_objects(geometry);
         return 0;
 }
@@ -2700,7 +2705,7 @@ int mliGeometry_malloc_references(
                 struct mliHomTraComp,
                 geometry->num_robjects);
         return 1;
-error:
+chk_error:
         mliGeometry_free_references(geometry);
         return 0;
 }
@@ -2714,7 +2719,7 @@ int mliGeometry_malloc(
         chk(mliGeometry_malloc_objects(geometry, num_objects));
         chk(mliGeometry_malloc_references(geometry, num_robjects));
         return 1;
-error:
+chk_error:
         mliGeometry_free(geometry);
         return 0;
 }
@@ -2830,7 +2835,7 @@ int mliGeometry_warn_objects(const struct mliGeometry *geometry)
         }
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -2893,7 +2898,7 @@ int mliGeometryToMaterialMap_malloc(
                 map->first_boundary_layer_in_robject, 0, map->num_robjects);
         MLI_ARRAY_SET(map->boundary_layers, 0, map->total_num_boundary_layers);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -3005,7 +3010,7 @@ int mliGeometryToMaterialMap_equal(
                         "to be equal.");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -3044,7 +3049,7 @@ int mliGeometryToMaterialMap_malloc_fread(
                 geomap->num_robjects,
                 f);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -3072,7 +3077,7 @@ int mliGeometryToMaterialMap_fwrite(
                 geomap->num_robjects,
                 f);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -3095,7 +3100,7 @@ int mliGeometryToMaterialMap_valid(
                         "total_num_boundary_layers");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -3121,7 +3126,7 @@ int mliGeometryToMaterialMap_valid_wrt_Geometry(
                 "Expected total_num_boundary_layers to match the Geometry.");
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -3137,7 +3142,7 @@ int mliGeometryToMaterialMap_valid_wrt_Materials(
                         "a valid boundary_layer in Materials.");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -3200,7 +3205,7 @@ int mliGeometry_objects_equal(
                         "Expected object_name to be equal.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In geometry.object[%u]\n", i);
         return 0;
 }
@@ -3228,7 +3233,7 @@ int mliGeometry_object_references_equal(
                         "object-references to be equal");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In geometry.object_reference[%lu]\n", rob);
         return 0;
 }
@@ -3240,7 +3245,7 @@ int mliGeometry_equal(const struct mliGeometry *a, const struct mliGeometry *b)
         chk_msg(mliGeometry_object_references_equal(a, b),
                 "Expected object-references to be equal.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -3295,7 +3300,7 @@ int mliGeometry_malloc_fread(struct mliGeometry *geometry, FILE *f)
                 f);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -3339,7 +3344,7 @@ int mliGeometry_fwrite(const struct mliGeometry *geometry, FILE *f)
                 f);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -3358,7 +3363,7 @@ int mliGeometry_valid_objects(const struct mliGeometry *geometry)
                         "Expected object_name to be valid.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In geometry.objects[%u]\n", i);
         return 0;
 }
@@ -3380,7 +3385,7 @@ int mliGeometry_valid_robjects_HomTras(const struct mliGeometry *geometry)
                 chk_msg(!MLI_IS_NAN(q.z), "quaternion.z is 'nan'.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In geometry.robject2root[%u]\n", i);
         return 0;
 }
@@ -3398,7 +3403,7 @@ int mliGeometry_valid_object_references(const struct mliGeometry *geometry)
         }
         return 1;
         fprintf(stderr, "In geometry.robject[%u]\n", i);
-error:
+chk_error:
         return 0;
 }
 
@@ -3411,7 +3416,7 @@ int mliGeometry_valid(const struct mliGeometry *geometry)
         chk_msg(mliGeometry_valid_object_references(geometry),
                 "Expected object-references to be valid.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -3624,7 +3629,7 @@ int mliImage_malloc(
         img->num_rows = num_rows;
         chk_malloc(img->raw, struct mliColor, img->num_cols * img->num_rows);
         return 1;
-error:
+chk_error:
         mliImage_free(img);
         return 0;
 }
@@ -3691,7 +3696,7 @@ int mliImage_scale_down_twice(
                 }
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -4038,7 +4043,7 @@ int mliImage_malloc_fread(struct mliImage *img, FILE *f)
                 }
         }
         return 1;
-error:
+chk_error:
         mliImage_free(img);
         return 0;
 }
@@ -4053,7 +4058,7 @@ int mliImage_malloc_from_path(struct mliImage *img, const char *path)
         chk_msg(!ferror(f), "File error.");
         fclose(f);
         return 1;
-error:
+chk_error:
         mliImage_free(img);
         fclose(f);
         return 0;
@@ -4088,7 +4093,7 @@ int mliImage_fwrite(const struct mliImage *img, FILE *f)
                 }
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -4102,7 +4107,7 @@ int mliImage_write_to_path(const struct mliImage *img, const char *path)
         chk_msg(!ferror(f), "File error.");
         fclose(f);
         return 1;
-error:
+chk_error:
         fclose(f);
         return 0;
 }
@@ -4180,22 +4185,23 @@ void mliImage_print_ascii_chars(
 {
         uint32_t col, row, sym;
         char symbol;
-        char chars_with_ascending_fill[16] = {' ',
-                                              '.',
-                                              ',',
-                                              '-',
-                                              '~',
-                                              '^',
-                                              '+',
-                                              '=',
-                                              'i',
-                                              'j',
-                                              '$',
-                                              'l',
-                                              'L',
-                                              'Y',
-                                              '8',
-                                              '#'};
+        char chars_with_ascending_fill[16] = {
+                ' ',
+                '.',
+                ',',
+                '-',
+                '~',
+                '^',
+                '+',
+                '=',
+                'i',
+                'j',
+                '$',
+                'l',
+                'L',
+                'Y',
+                '8',
+                '#'};
         for (row = 0; row < img->num_rows; row++) {
                 for (col = 0; col < img->num_cols; col++) {
                         struct mliColor color = mliImage_at(img, col, row);
@@ -4283,7 +4289,7 @@ int mliIo_malloc_capacity(struct mliIo *byt, const uint64_t capacity)
         chk_malloc(byt->cstr, unsigned char, byt->capacity);
         memset(byt->cstr, '\0', byt->capacity);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -4291,7 +4297,7 @@ int mliIo_malloc(struct mliIo *byt)
 {
         chk(mliIo_malloc_capacity(byt, 0u));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -4319,7 +4325,7 @@ int mliIo_putc(struct mliIo *byt, const unsigned char c)
         byt->pos += 1;
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -4353,7 +4359,7 @@ int64_t mliIo_write(
                 chk_msg(mliIo_putc(byt, block[i]), "Failed to put byte");
         }
         return (i + 1u) / size;
-error:
+chk_error:
         return -1;
 }
 
@@ -4405,7 +4411,7 @@ int64_t mliIo_printf(struct mliIo *byt, const char *format, ...)
         }
         va_end(args);
         return (int64_t)i;
-error:
+chk_error:
         va_end(args);
         return -1;
 }
@@ -4436,7 +4442,7 @@ int mliStr_convert_line_break_CRLF_CR_to_LF(
 
         mliIo_free(&sdst);
         return 1;
-error:
+chk_error:
         mliIo_free(&sdst);
         mliStr_free(dst);
         return 0;
@@ -4455,7 +4461,7 @@ int mliIo_malloc_from_path(struct mliIo *byt, const char *path)
         }
         fclose(f);
         return 1;
-error:
+chk_error:
         if (f != NULL)
                 fclose(f);
         mliIo_free(byt);
@@ -4473,7 +4479,7 @@ int mliIo_read_to_path(struct mliIo *byt, const char *path)
         }
         fclose(f);
         return 1;
-error:
+chk_error:
         fclose(f);
         return 0;
 }
@@ -4486,7 +4492,7 @@ int64_t mliIo_malloc_cstr(struct mliIo *byt, const char *s)
                 chk_msg(mliIo_putchar(byt, s[i]), "Failed to push back char");
         }
         return i;
-error:
+chk_error:
         return 0;
 }
 
@@ -4515,7 +4521,7 @@ int mli_readline(
 
         mliIo_free(&buf);
         return 1;
-error:
+chk_error:
         mliIo_free(&buf);
         return 0;
 }
@@ -4543,7 +4549,7 @@ int mli_path_strip_this_dir(const struct mliStr *src, struct mliStr *dst)
         strcpy(dst->cstr, &cpysrc.cstr[i]);
         mliStr_free(&cpysrc);
         return 1;
-error:
+chk_error:
         mliStr_free(&cpysrc);
         mliStr_free(dst);
         return 0;
@@ -4563,7 +4569,7 @@ int mli_path_basename(const struct mliStr *src, struct mliStr *dst)
                 chk(mliStr_mallocf(dst, &src->cstr[pos_last_del + 1]));
         }
         return 1;
-error:
+chk_error:
         mliStr_free(dst);
         return 0;
 }
@@ -4598,7 +4604,7 @@ int mli_path_splitext(
 
         mliStr_free(&tmp);
         return 1;
-error:
+chk_error:
         mliStr_free(&tmp);
         mliStr_free(dst);
         mliStr_free(ext);
@@ -4617,7 +4623,7 @@ int mli_line_viewer_write_line_match(
                 chk(mliIo_printf(f, "  |  "));
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -4661,7 +4667,7 @@ int mli_line_viewer_write(
         chk(mliIo_putchar(f, '\n'));
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -4697,7 +4703,7 @@ int mliMagicId_set(struct mliMagicId *magic, const char *word)
                 i += 1;
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -4721,7 +4727,7 @@ int mliMagicId_has_word(const struct mliMagicId *magic, const char *word)
                 i += 1;
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -5235,7 +5241,7 @@ int mliMat_find_eigenvector_for_eigenvalue(
         (*eigen_vector) = mliVec_normalized(*eigen_vector);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -5468,7 +5474,7 @@ int mliMaterials_malloc(
         }
 
         return 1;
-error:
+chk_error:
         mliMaterials_free(res);
         return 0;
 }
@@ -5618,7 +5624,7 @@ int mliMaterials_media_equal(
                         "Different medium-name.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In materials.media[%u].\n", i);
         return 0;
 }
@@ -5638,7 +5644,7 @@ int mliMaterials_surfaces_equal(
                         "Different surface-name.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In materials.surfaces[%u].\n", i);
         return 0;
 }
@@ -5660,7 +5666,7 @@ int mliMaterials_boundary_layers_equal(
                         "Different boundary_layer-name.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In materials.boundary_layers[%u].\n", i);
         return 0;
 }
@@ -5676,7 +5682,7 @@ int mliMaterials_equal(
         chk_msg(mliMaterials_boundary_layers_equal(a, b),
                 "Different boundary_layers.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -5729,7 +5735,7 @@ int mliMaterials_fwrite(const struct mliMaterials *res, FILE *f)
         chk_fwrite(&res->default_medium, sizeof(uint64_t), 1, f);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -5784,7 +5790,7 @@ int mliMaterials_malloc_fread(struct mliMaterials *res, FILE *f)
         chk_fread(&res->default_medium, sizeof(uint64_t), 1, f);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -5803,7 +5809,7 @@ int mliMaterials_valid_media(const struct mliMaterials *materials)
                         "Expected refraction of medium to be valid.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In materials.media[%u]\n", i);
         return 0;
 }
@@ -5828,7 +5834,7 @@ int mliMaterials_valid_surfaces(const struct mliMaterials *materials)
                         "Expected 0.0 <= color < 256.0.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In materials.surface[%u]\n", i);
         return 0;
 }
@@ -5854,7 +5860,7 @@ int mliMaterials_valid_boundary_layers(const struct mliMaterials *materials)
                         "Name is invalid.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In materials.boundary_layers[%u]\n", i);
         return 0;
 }
@@ -5870,7 +5876,7 @@ int mliMaterials_valid(const struct mliMaterials *materials)
         chk_msg(mliMaterials_valid_boundary_layers(materials),
                 "Expected boundary_layers to be valid.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -5917,7 +5923,7 @@ int mliMedium_malloc_from_json_str(struct mliMedium *med, const char *json_str)
                 "Failed to malloc medium from json.");
         mliJson_free(&json);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -5941,7 +5947,7 @@ int mliMedium_malloc_from_json_token(
                         &med->absorbtion, json, absorbtion_token + 1),
                 "Failed to read medium's absorbtion from json.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -5961,7 +5967,7 @@ int mliMedium_fwrite(const struct mliMedium *med, FILE *f)
         chk(mliFunc_fwrite(&med->absorbtion, f));
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -5977,7 +5983,7 @@ int mliMedium_malloc_fread(struct mliMedium *med, FILE *f)
         chk(mliFunc_malloc_fread(&med->absorbtion, f));
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -6097,7 +6103,7 @@ int mliObject_malloc(
                 obj->material_names[i] = mliName_init();
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -6127,7 +6133,7 @@ int mliObject_equal(const struct mliObject *a, const struct mliObject *b)
                         &a->material_names[i], &b->material_names[i]));
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -6309,7 +6315,7 @@ int mliObject_fwrite(const struct mliObject *obj, FILE *f)
                 f);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -6360,7 +6366,7 @@ int mliObject_malloc_fread(struct mliObject *obj, FILE *f)
         chk_msg(mliObject_has_valid_faces(obj),
                 "A face refers to a not existing vertex/vertex_normal.");
         return 1;
-error:
+chk_error:
         mliObject_free(obj);
         return 0;
 }
@@ -6378,7 +6384,7 @@ int mliObject_is_valid(const struct mliObject *obj)
                 "Bad vertex-normal.");
         chk_msg(mliObject_has_valid_materials(obj), "Bad material.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -6410,7 +6416,7 @@ int mliObject_has_valid_faces(const struct mliObject *obj)
                         "num_materials");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In obj.faces[%u]\n", i);
         return 0;
 }
@@ -6424,7 +6430,7 @@ int mliObject_has_valid_vertices(const struct mliObject *obj)
                 chk_msg(!MLI_IS_NAN(obj->vertices[i].z), "Z is 'nan'.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In obj.vertices[%u]\n", i);
         return 0;
 }
@@ -6445,7 +6451,7 @@ int mliObject_has_valid_normals(
                         "Expected vertex_normals to be normalized.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In obj.vertex_normals[%u]\n", i);
         return 0;
 }
@@ -6460,7 +6466,7 @@ int mliObject_has_valid_materials(const struct mliObject *obj)
                         "Expected strlen(material_name) > 0.");
         }
         return 1;
-error:
+chk_error:
         fprintf(stderr, "In obj.materials[%u]\n", i);
         return 0;
 }
@@ -6523,7 +6529,7 @@ int mliObject_num_unused(
         free(vn);
         free(mtl);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -6571,7 +6577,7 @@ int mliStr_to_uint32(uint32_t *out, const struct mliStr *str)
         chk(mliStr_to_uint64(&u, str, 10));
         (*out) = (uint32_t)u;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -6848,7 +6854,7 @@ int mliObject_parse_face_line(
         }
         mliStr_free(&wuff);
         return 1;
-error:
+chk_error:
         mliStr_free(&wuff);
         return 0;
 }
@@ -6978,7 +6984,7 @@ int mliObject_parse_three_float_line(const char *line, struct mliVec *v)
                 i++;
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7011,7 +7017,7 @@ int mliObject_parse_face_vertices_and_normals(
         fvn->b -= 1;
         fvn->c -= 1;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7135,7 +7141,7 @@ int mliObject_malloc_from_wavefront(struct mliObject *obj, const char *str)
         mliDynMap_free(&material_names);
 
         return 1;
-error:
+chk_error:
         mliObject_free(obj);
 
         /* free dyn */
@@ -7198,7 +7204,7 @@ int mliObject_fprint_to_wavefront(struct mliIo *f, const struct mliObject *obj)
         }
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7316,7 +7322,7 @@ int mliLeafArray_malloc(
                 leafs->object_links[i] = 0u;
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7364,7 +7370,7 @@ int mliOcTree_malloc(
                 tree->nodes[i] = mliNode_init();
         chk(mliLeafArray_malloc(&tree->leafs, num_leafs, num_object_links));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7550,7 +7556,7 @@ int mliOcTree_equal_payload_walk(
         }
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7566,7 +7572,7 @@ int mliOcTree_equal_payload(
                         tree, root_node_idx, root_node_type, &tmp_octree->root),
                 "Tree is not equal");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7666,7 +7672,7 @@ int mliOcTree_malloc_from_object_wavefront(
         mliTmpOcTree_free(&tmp_octree);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7698,7 +7704,7 @@ int mliOcTree_malloc_from_Geometry(
         mliTmpOcTree_free(&tmp_octree);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7748,7 +7754,7 @@ int mliOcTree_equal(const struct mliOcTree *a, const struct mliOcTree *b)
         }
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7797,7 +7803,7 @@ int mliOcTree_fwrite(const struct mliOcTree *octree, FILE *f)
         chk_fwrite(&octree->root_type, sizeof(uint8_t), 1u, f);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7844,7 +7850,7 @@ int mliOcTree_malloc_fread(struct mliOcTree *octree, FILE *f)
         chk_fread(&octree->root_type, sizeof(uint8_t), 1u, f);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7858,7 +7864,7 @@ int mliOcTree_write_to_path(const struct mliOcTree *octree, const char *path)
 
         fclose(f);
         return 1;
-error:
+chk_error:
         if (f != NULL) {
                 fclose(f);
         }
@@ -7876,7 +7882,7 @@ int mliOcTree_malloc_from_path(struct mliOcTree *octree, const char *path)
 
         fclose(f);
         return 1;
-error:
+chk_error:
         if (f != NULL) {
                 fclose(f);
         }
@@ -7926,7 +7932,7 @@ int mliOcTree_valid(const struct mliOcTree *octree)
                 }
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7940,7 +7946,7 @@ int mliOcTree_valid_wrt_links(
                         "Expected object_links[n] <  num_links.");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -7988,7 +7994,7 @@ int mli_photoninteraction_type_to_string(const int32_t type, char *s)
                 break;
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8009,7 +8015,7 @@ int mli_time_of_flight(
         (*time_of_flight) = (refractive_index * phisec->distance_of_ray) /
                             MLI_VACUUM_SPPED_OF_LIGHT;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8205,7 +8211,7 @@ int mliPixels_malloc(struct mliPixels *pix, const uint32_t num_pixels)
         pix->num_pixels = num_pixels;
         chk_malloc(pix->pixels, struct mliPixel, pix->num_pixels);
         return 1;
-error:
+chk_error:
         mliPixels_free(pix);
         return 0;
 }
@@ -8396,7 +8402,7 @@ int mliQuaternion_tait_bryan_from_json(
                 mli_deg2rad(xyz_deg.y),
                 mli_deg2rad(xyz_deg.z));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8419,7 +8425,7 @@ int mliQuaternion_axis_angle_from_json(
         *quat = mliQuaternion_set_rotaxis_and_angle(
                 axis, mli_deg2rad(angle_deg));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8438,7 +8444,7 @@ int mliQuaternion_quaternion_from_json(
         chk_msg(fabs(mliQuaternion_norm(*quat) - 1.) < 1e-6,
                 "Expected norm(quaternion) < 1e-6. Expected unit-quaternion.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8466,7 +8472,7 @@ int mliQuaternion_from_json(
                 chk_bad("Unknown representation 'repr' in rotation.");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8610,7 +8616,7 @@ int mliRenderConfig_camera_from_json(
                 "Expected "
                 "camera.image_sensor_distance >= camera.focal_length.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8624,7 +8630,7 @@ int mliRenderConfig_image_from_json(
         chk_msg(cc->num_pixel_x > 0, "Expected image.num_pixel_x > 0.");
         chk_msg(cc->num_pixel_y > 0, "Expected image.num_pixel_y > 0.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8646,7 +8652,7 @@ int mliRenderConfig_from_json(
         chk(mliTracerConfig_from_json_token(&cc->tracer, json, tratkn + 1));
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8701,7 +8707,7 @@ int mliScenery_equal(const struct mliScenery *a, const struct mliScenery *b)
         chk_msg(mliGeometryToMaterialMap_equal(&a->geomap, &b->geomap),
                 "Expected geomap to be valid.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8829,7 +8835,7 @@ int mliScenery_malloc_minimal_from_wavefront(
 
         chk_msg(mliScenery_valid(scenery), "Expected scenery to be valid.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8849,7 +8855,7 @@ int mliScenery_fwrite(const struct mliScenery *scenery, FILE *f)
         chk(mliMaterials_fwrite(&scenery->materials, f));
         chk(mliGeometryToMaterialMap_fwrite(&scenery->geomap, f));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8868,7 +8874,7 @@ int mliScenery_malloc_fread(struct mliScenery *scenery, FILE *f)
         chk(mliMaterials_malloc_fread(&scenery->materials, f));
         chk(mliGeometryToMaterialMap_malloc_fread(&scenery->geomap, f));
         return 1;
-error:
+chk_error:
         mliScenery_free(scenery);
         return 0;
 }
@@ -8881,7 +8887,7 @@ int mliScenery_malloc_from_path(struct mliScenery *scenery, const char *path)
         chk_msg(mliScenery_malloc_fread(scenery, f), "Can not read file.");
         fclose(f);
         return 1;
-error:
+chk_error:
         if (f != NULL) {
                 fclose(f);
         }
@@ -8897,7 +8903,7 @@ int mliScenery_write_to_path(const struct mliScenery *scenery, const char *path)
         chk_msg(mliScenery_fwrite(scenery, f), "Failed to write to file.");
         fclose(f);
         return 1;
-error:
+chk_error:
         if (f != NULL) {
                 fclose(f);
         }
@@ -8918,7 +8924,7 @@ int mliScenery_malloc_fread_tar(struct mliScenery *scenery, FILE *f)
                 "Can't malloc Scenery from Archive.");
         mliArchive_free(&archive);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -8932,7 +8938,7 @@ int mliScenery_malloc_from_path_tar(
                         "Can't fread Scenery from file.");
         fclose(f);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9002,7 +9008,7 @@ int mliScenery_malloc_from_Archive(
                 "Failed to warn about objects.");
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9034,7 +9040,7 @@ int mliScenery_valid(const struct mliScenery *scenery)
                         &scenery->geomap, &scenery->materials),
                 "Expected geomap to be valid w.r.t. materials.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9064,7 +9070,7 @@ int mliStr_malloc(struct mliStr *str, const uint64_t length)
         chk_malloc(str->cstr, char, str->length + 1);
         memset(str->cstr, '\0', str->length + 1);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9085,7 +9091,7 @@ int mliStr_malloc_copyn(
                 mliStr_malloc(str, length);
         strncpy(str->cstr, &src->cstr[start], length);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9102,7 +9108,7 @@ int mliStr_mallocf(struct mliStr *str, const char *format, ...)
         va_end(args);
         mliStr_free(&tmp);
         return 1;
-error:
+chk_error:
         va_end(args);
         mliStr_free(&tmp);
         return 0;
@@ -9113,7 +9119,7 @@ int mliStr_malloc_cstr(struct mliStr *str, const char *s)
         chk(mliStr_malloc(str, strlen(s)));
         strncpy(str->cstr, s, str->length);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9242,7 +9248,7 @@ int mliStr_strip(const struct mliStr *src, struct mliStr *dst)
         }
         mliStr_free(&cpysrc);
         return 1;
-error:
+chk_error:
         mliStr_free(&cpysrc);
         mliStr_free(dst);
         return 0;
@@ -9291,7 +9297,7 @@ int mliStr_nto_double(
                 "double has not the expected number of chars.");
         *out = l;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9300,7 +9306,7 @@ int mliStr_to_double(double *out, const struct mliStr *str)
         chk_msg(mliStr_nto_double(out, str, str->length),
                 "Can not convert mliStr to double.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9326,7 +9332,7 @@ int mliStr_nto_int64(
                 "Integer has not the expected number of chars.");
         *out = l;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9335,7 +9341,7 @@ int mliStr_to_int64(int64_t *out, const struct mliStr *str, const uint64_t base)
         chk_msg(mliStr_nto_int64(out, str, base, str->length),
                 "Can not convert string to int64.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9350,7 +9356,7 @@ int mliStr_nto_uint64(
         chk_msg(tmp >= 0, "Expected a positive integer.");
         (*out) = tmp;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9364,7 +9370,7 @@ int mliStr_to_uint64(
         chk_msg(tmp >= 0, "Expected a positive integer.");
         (*out) = tmp;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9373,22 +9379,23 @@ int mliStr_reverse_print_uint64(
         struct mliStr *str,
         const uint64_t base)
 {
-        char literals[] = {'0',
-                           '1',
-                           '2',
-                           '3',
-                           '4',
-                           '5',
-                           '6',
-                           '7',
-                           '8',
-                           '9',
-                           'A',
-                           'B',
-                           'C',
-                           'D',
-                           'E',
-                           'F'};
+        char literals[] = {
+                '0',
+                '1',
+                '2',
+                '3',
+                '4',
+                '5',
+                '6',
+                '7',
+                '8',
+                '9',
+                'A',
+                'B',
+                'C',
+                'D',
+                'E',
+                'F'};
         char tmp[128] = {'\0'};
         uint64_t remainder = 0u;
         uint32_t remainder32 = 0u;
@@ -9411,7 +9418,7 @@ int mliStr_reverse_print_uint64(
         chk(mliStr_malloc(str, digs));
         strncpy(str->cstr, tmp, digs);
         return 1;
-error:
+chk_error:
         mliStr_free(str);
         return 0;
 }
@@ -9456,7 +9463,7 @@ int mliStr_print_uint64(
 
         mliStr_free(&tmp);
         return 1;
-error:
+chk_error:
         mliStr_free(&tmp);
         return 0;
 }
@@ -9494,7 +9501,7 @@ int mliSurface_malloc(
         chk(mliFunc_malloc(
                 &surface->diffuse_reflection, num_points_diffuse_reflection));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9524,7 +9531,7 @@ int mli_material_type_to_string(const uint32_t type, char *s)
                 chk_bad("material-type-id is unknown.");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9540,7 +9547,7 @@ int mli_material_type_from_string(const char *s, uint32_t *id)
                 chk_bad("material-type-string is unknown.");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9557,7 +9564,7 @@ int mliSurface_fwrite(const struct mliSurface *srf, FILE *f)
         chk_fwrite(&srf->color, sizeof(struct mliColor), 1u, f);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9576,7 +9583,7 @@ int mliSurface_malloc_fread(struct mliSurface *srf, FILE *f)
         chk_fread(&srf->color, sizeof(struct mliColor), 1u, f);
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9596,7 +9603,7 @@ int mliSurface_malloc_from_json_str(
                 "Failed to malloc surface from json.");
         mliJson_free(&json);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9616,7 +9623,7 @@ int mli_material_type_from_json_token(
         chk_msg(mli_material_type_from_string(buff, material),
                 "Failed to parse material type from json-string.");
         return 1;
-error:
+chk_error:
         mliJson_debug_token_fprint(stderr, json, token + 1);
         return 0;
 }
@@ -9668,7 +9675,7 @@ int mliSurface_malloc_from_json_token(
                 "Failed to read surface's color from json.");
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9711,7 +9718,7 @@ int mliTar_field_to_uint(
 
         chk(mli_cstr_to_uint64(out, buff, MLI_TAR_OCTAL));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9723,7 +9730,7 @@ int mliTar_uint_to_field(
         chk(mli_cstr_print_uint64(
                 val, field, fieldsize, MLI_TAR_OCTAL, fieldsize - 1));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9742,7 +9749,7 @@ int mliTar_uint64_to_field12_2001star_base256(uint64_t val, char *field)
 
         memcpy(field, tmp, 12);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9776,7 +9783,7 @@ int mliTar_field12_to_uint64_2001star_base256(const char *field, uint64_t *val)
                 (*val) = (*val) + powers[i - 4] * (uint64_t)tmp[i];
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9854,7 +9861,7 @@ int mliTarRawHeader_from_header(
                 "Last char in checksum must be ' ', i.e. 32(decimal).");
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9882,7 +9889,7 @@ int mliTarHeader_set_directory(struct mliTarHeader *h, const char *name)
         h->type = MLI_TAR_DIRECTORY;
         h->mode = 0775;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9898,7 +9905,7 @@ int mliTarHeader_set_normal_file(
         h->type = MLI_TAR_NORMAL_FILE;
         h->mode = 0664;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9936,7 +9943,7 @@ int mliTarHeader_from_raw(
         memcpy(h->linkname, rh->linkname, sizeof(h->linkname));
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9964,7 +9971,7 @@ int mliTar_read_begin(struct mliTar *tar, FILE *stream)
         tar->stream = stream;
         chk_msg(tar->stream, "Can't begin reading tar. Tar->stream is NULL.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9975,7 +9982,7 @@ int mliTar_tread(struct mliTar *tar, void *data, const uint64_t size)
         chk_msg((uint64_t)res == size, "Failed reading from tar.");
         tar->pos += size;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -9994,7 +10001,7 @@ int mliTar_read_header(struct mliTar *tar, struct mliTarHeader *h)
         chk_msg(mliTarHeader_from_raw(h, &rh), "Failed to parse raw header.");
         tar->remaining_data = h->size;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10019,7 +10026,7 @@ int mliTar_read_data(struct mliTar *tar, void *ptr, uint64_t size)
         }
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10036,7 +10043,7 @@ int mliTar_read_finalize(struct mliTar *tar)
         chk(h.name[0] == '\0');
         chk(h.linkname[0] == '\0');
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10052,7 +10059,7 @@ int mliTar_write_begin(struct mliTar *tar, FILE *stream)
         tar->stream = stream;
         chk_msg(tar->stream, "Can't begin writing tar. Tar->stream is NULL.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10063,7 +10070,7 @@ int mliTar_twrite(struct mliTar *tar, const void *data, const uint64_t size)
         chk_msg((uint64_t)res == size, "Failed writing to tar.");
         tar->pos += size;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10075,7 +10082,7 @@ int mliTar_write_header(struct mliTar *tar, const struct mliTarHeader *h)
         tar->remaining_data = h->size;
         chk_msg(mliTar_twrite(tar, &rh, sizeof(rh)), "Failed to write header.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10087,7 +10094,7 @@ int mliTar_write_null_bytes(struct mliTar *tar, uint64_t n)
                 chk_msg(mliTar_twrite(tar, &nul, 1), "Failed to write nulls");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10106,7 +10113,7 @@ int mliTar_write_data(struct mliTar *tar, const void *data, uint64_t size)
                         "Failed to write padding zeros.");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10116,7 +10123,7 @@ int mliTar_write_finalize(struct mliTar *tar)
                         tar, sizeof(struct mliTarRawHeader) * 2),
                 "Failed to write two final null records.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10165,7 +10172,7 @@ int mliTmpNode_malloc(struct mliTmpNode *n, const uint32_t num_objects)
         n->num_objects = num_objects;
         chk_malloc(n->objects, uint32_t, n->num_objects);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10257,7 +10264,7 @@ int mliTmpNode_add_children(
         }
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10290,7 +10297,7 @@ int mliTmpNode_malloc_tree_from_bundle(
                 start_depth,
                 max_depth);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10494,7 +10501,7 @@ int mliTmpOcTree_malloc_from_bundle(
                         octree->cube),
                 "Failed to allocate dynamic octree from bundle.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -10653,7 +10660,7 @@ int mliTracerConfig_from_json_token(
         chk(mliAtmosphere_from_json_token(&tc->atmosphere, json, atmtkn + 1));
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -11233,7 +11240,7 @@ int mliNameMap_malloc(struct mliNameMap *namemap)
         chk_mem(mliDynMap_malloc(&namemap->surfaces, 0u));
         chk_mem(mliDynMap_malloc(&namemap->boundary_layers, 0u));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -11284,7 +11291,7 @@ int mli_set_geometry_objects_and_names_from_archive(
         }
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -11429,7 +11436,7 @@ int mliMaterials_malloc_form_archive(
                 "Failed to assign the 'default_medium'.");
 
         return 1;
-error:
+chk_error:
         mliJson_free(&boundary_layers_json);
         mliMaterials_free(materials);
         mliNameMap_free(names);
@@ -11465,7 +11472,7 @@ int mli_check_malloc_root_frame_from_Archive(
         mliFrame_set_frame2root(root);
 
         return 1;
-error:
+chk_error:
         mliJson_free(&tree_json);
         return 0;
 }
@@ -11517,7 +11524,7 @@ int mliMaterials_assign_boundary_layers_from_json(
         }
 
         return 1;
-error:
+chk_error:
         mliJson_debug_token_fprint(stderr, json, token);
         return 0;
 }
@@ -11546,7 +11553,7 @@ int mliSide_from_json(
                 "Failed to get surface-idx from map");
 
         return 1;
-error:
+chk_error:
         mliJson_debug_token_fprint(stderr, json, side_token + 1);
         return 0;
 }
@@ -11581,7 +11588,7 @@ int mliBoundaryLayer_from_json(
                         token_outer_side),
                 "Failed to parse outer side.");
         return 1;
-error:
+chk_error:
         mliJson_debug_token_fprint(stderr, json, token_surface);
         return 0;
 }
@@ -11854,7 +11861,7 @@ int mliVec_from_json_token(
         chk_msg(mliJson_double_by_token(json, token + 3, &v->z),
                 "Can not parse mliVec z-value.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12217,7 +12224,7 @@ int mli_fprint_line_match(
                 chk(fprintf(f, "  |  "));
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12259,7 +12266,7 @@ int mli_cstr_lines_fprint(
         chk(putc('\n', f));
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12370,7 +12377,7 @@ int mli_cstr_nto_int64(
                 "Integer has not the expected number of chars.");
         *out = l;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12379,7 +12386,7 @@ int mli_cstr_to_int64(int64_t *out, const char *s, const uint64_t base)
         chk_msg(mli_cstr_nto_int64(out, s, base, strlen(s)),
                 "Can not convert string to int64.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12394,7 +12401,7 @@ int mli_cstr_nto_uint64(
         chk_msg(tmp >= 0, "Expected a positive integer.");
         (*out) = tmp;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12405,7 +12412,7 @@ int mli_cstr_to_uint64(uint64_t *out, const char *s, const uint64_t base)
         chk_msg(tmp >= 0, "Expected a positive integer.");
         (*out) = tmp;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12430,7 +12437,7 @@ int mli_cstr_nto_double(
                 "float64 has not the expected number of chars.");
         *out = l;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12439,7 +12446,7 @@ int mli_cstr_to_double(double *out, const char *s)
         chk_msg(mli_cstr_nto_double(out, s, strlen(s)),
                 "Can not convert string to float64.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12450,22 +12457,23 @@ int mli_cstr_print_uint64(
         const uint64_t base,
         const uint64_t min_num_digits)
 {
-        char literals[] = {'0',
-                           '1',
-                           '2',
-                           '3',
-                           '4',
-                           '5',
-                           '6',
-                           '7',
-                           '8',
-                           '9',
-                           'A',
-                           'B',
-                           'C',
-                           'D',
-                           'E',
-                           'F'};
+        char literals[] = {
+                '0',
+                '1',
+                '2',
+                '3',
+                '4',
+                '5',
+                '6',
+                '7',
+                '8',
+                '9',
+                'A',
+                'B',
+                'C',
+                'D',
+                'E',
+                'F'};
         char tmp[128] = {'\0'};
         uint64_t remainder = 0u;
         uint32_t remainder32 = 0u;
@@ -12513,7 +12521,7 @@ int mli_cstr_print_uint64(
         s[pos] = '\0';
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12546,7 +12554,7 @@ int mliFrame_estimate_num_robjects_and_total_num_boundary_layers_walk(
                 break;
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12562,7 +12570,7 @@ int mliFrame_estimate_num_robjects_and_total_num_boundary_layers(
                 "Failed to walk tree of frames to estimate "
                 "num_robjects and total_num_boundary_layers.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12623,7 +12631,7 @@ int mliFrame_set_robjects_and_material_map_walk(
                 break;
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12643,7 +12651,7 @@ int mliFrame_set_robjects_and_material_map(
                 "Failed to walk tree of frames to set "
                 "robjects and material map.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12757,7 +12765,7 @@ int mliJson_malloc_tokens__(struct mliJson *json)
         chk_malloc(json->tokens, struct jsmntok_t, json->num_tokens);
         MLI_ARRAY_SET(json->tokens, default_token, json->num_tokens);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12785,7 +12793,7 @@ int mliJson_parse_tokens__(struct mliJson *json)
         chk_msg(num_tokens_parsed >= 0, "Can't parse Json-string");
         json->num_tokens = num_tokens_parsed;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12796,7 +12804,7 @@ int mliJson_malloc_from_cstr(struct mliJson *json, const char *cstr)
         chk_msg(mliJson_malloc_tokens__(json), "Can't malloc Json's tokens.");
         chk_msg(mliJson_parse_tokens__(json), "Can't parse Json into tokens.");
         return 1;
-error:
+chk_error:
         mliJson_free(json);
         return 0;
 }
@@ -12813,7 +12821,7 @@ int mliJson_malloc_from_path(struct mliJson *json, const char *path)
         chk_msg(mliJson_malloc_tokens__(json), "Can't malloc Json's tokens.");
         chk_msg(mliJson_parse_tokens__(json), "Can't parse Json into tokens.");
         return 1;
-error:
+chk_error:
         mliIo_free(&ff);
         mliJson_free(json);
         return 0;
@@ -12833,7 +12841,7 @@ int mliJson_cstr_by_token(
         memcpy(return_string, json->raw.cstr + t.start, actual_length);
         return_string[actual_length] = '\0';
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12853,7 +12861,7 @@ int mliJson_int64_by_token(
                         token_length),
                 "Can't parse int64.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12867,7 +12875,7 @@ int mliJson_uint64_by_token(
         chk_msg(tmp >= 0, "Expected value to be unsigned.");
         (*val) = (uint64_t)tmp;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12883,7 +12891,7 @@ int mliJson_int64_by_key(
                 mliJson_int64_by_token(json, token_n + 1, val),
                 ("Can't parse value of '%s' into int64.", key));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12898,7 +12906,7 @@ int mliJson_uint64_by_key(
         chk_msg(tmp >= 0, "Expected value to be unsigned.");
         (*val) = (uint64_t)tmp;
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12915,7 +12923,7 @@ int mliJson_double_by_token(
                         val, (char *)&json->raw.cstr[t.start], token_length),
                 "Can't parse double.");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12932,7 +12940,7 @@ int mliJson_double_by_key(
                 ("Can't parse value of '%s' into double.", key));
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -12997,7 +13005,7 @@ int mliJson_token_by_key_eprint(
                 mliJson_token_by_key(json, token, key, key_token),
                 ("Expected key '%s' in json.", key));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -13042,7 +13050,7 @@ int mliJson_debug_token_fprint(
         }
         chk(fprintf(f, "\n"));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -13054,7 +13062,7 @@ int mliJson_debug_fprint(FILE *f, const struct mliJson *json)
                         "Failed to write json-token debug-info to file.");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -13066,7 +13074,7 @@ int mliJson_debug_to_path(const struct mliJson *json, const char *path)
         chk_msg(mliJson_debug_fprint(f, json), "Failed to fprint debug.");
         fclose(f);
         return 1;
-error:
+chk_error:
         fclose(f);
         return 0;
 }
@@ -13732,7 +13740,7 @@ int mli_propagate_photon_phong(
                                 MLI_PHOTON_ABSORBTION, env->scenery, isec)));
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -13750,7 +13758,7 @@ int mli_propagate_photon_pass_boundary_layer(
         chk_msg(mli_propagate_photon_env(env),
                 "Failed to continue after passing boundary layer");
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -13772,7 +13780,7 @@ int mli_propagate_photon_probability_passing_medium_coming_from(
                 "evaluate absorbtion in medium coming from");
         (*probability_passing) = exp(-isec->distance_of_ray / one_over_e_way);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -13824,7 +13832,7 @@ int mli_propagate_photon_fresnel_refraction_and_reflection(
                         "Failed to pass boundary");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -13852,7 +13860,7 @@ int mli_propagate_photon_interact_with_object(
                 break;
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -13871,7 +13879,7 @@ int mli_propagate_photon_distance_until_absorbtion(
         (*distance_until_absorbtion) =
                 mli_random_expovariate(prng, 1. / one_over_e_way);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -13992,7 +14000,7 @@ int mli_propagate_photon_work_on_causal_intersection(struct mliEnv *env)
         }
 
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -14003,7 +14011,7 @@ int mli_propagate_photon_env(struct mliEnv *env)
                         "Failed to work on intersection.");
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -14022,7 +14030,7 @@ int mli_propagate_photon(
         env.max_interactions = max_interactions;
         chk(mli_propagate_photon_env(&env));
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -14049,7 +14057,7 @@ int mli_photon_source_parallel_towards_z_from_xy_disc(
                 chk(mliDynPhoton_push_back(out_photons, ph));
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -14077,7 +14085,7 @@ int mli_photon_source_point_like_opening_cone_towards_z(
                 chk(mliDynPhoton_push_back(out_photons, ph));
         }
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -15396,7 +15404,7 @@ int mlivr_export_image(
         chk_msg(mliImage_write_to_path(&full, path), "Failed to write ppm.");
         mliImage_free(&full);
         return 1;
-error:
+chk_error:
         return 0;
 }
 
@@ -15734,7 +15742,7 @@ int mlivr_run_interactive_viewer(
         mliImage_free(&img);
         mliImage_free(&img2);
         return 1;
-error:
+chk_error:
         mliImage_free(&img);
         mliImage_free(&img2);
         return 0;

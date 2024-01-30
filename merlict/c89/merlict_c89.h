@@ -8,8 +8,8 @@
 #include <string.h>
 #include <termios.h>
 
-/* chk_debug */
-/* --------- */
+/* chk */
+/* --- */
 
 /* Copyright 2018-2021 Sebastian Achim Mueller */
 #ifndef CHK_DEBUG_H_
@@ -43,7 +43,7 @@ int chk_eprintf(const char *format, ...);
         if (!(C)) {                                                            \
                 chk_eprint_line(MSG);                                          \
                 errno = 0;                                                     \
-                goto error;                                                    \
+                goto chk_error;                                                \
         }
 
 #define chk_msgf(C, MSGFMT)                                                    \
@@ -52,14 +52,14 @@ int chk_eprintf(const char *format, ...);
                 chk_eprintf MSGFMT;                                            \
                 chk_eprintf("\n");                                             \
                 errno = 0;                                                     \
-                goto error;                                                    \
+                goto chk_error;                                                \
         }
 
 #define chk_bad(MSG)                                                           \
         {                                                                      \
                 chk_eprint_line(MSG);                                          \
                 errno = 0;                                                     \
-                goto error;                                                    \
+                goto chk_error;                                                \
         }
 
 #define chk(C) chk_msg(C, "Not expected.")
@@ -199,7 +199,7 @@ struct mliColor mliColor_multiply_elementwise(
                 dh->size = 0;                                                  \
                 chk_malloc(dh->array, PAYLOAD_TYPE, dh->capacity);             \
                 return 1;                                                      \
-        error:                                                                 \
+        chk_error:                                                             \
                 return 0;                                                      \
         }                                                                      \
                                                                                \
@@ -209,7 +209,7 @@ struct mliColor mliColor_multiply_elementwise(
                 chk(LIB##Dyn##NAME##_malloc(dh, size));                        \
                 dh->size = size;                                               \
                 return 1;                                                      \
-        error:                                                                 \
+        chk_error:                                                             \
                 return 0;                                                      \
         }                                                                      \
                                                                                \
@@ -228,8 +228,59 @@ struct mliColor mliColor_multiply_elementwise(
                 dh->size += 1;                                                 \
                                                                                \
                 return 1;                                                      \
-        error:                                                                 \
+        chk_error:                                                             \
                 return 0;                                                      \
+        }
+
+#endif
+
+/* mliDynArray_testing */
+/* ------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNARRAY_TESTING_H_
+#define MLIDYNARRAY_TESTING_H_
+
+
+#define MLIDYNARRAY_TEST_DEFINITON(LIB, NAME, PAYLOAD_TYPE)                    \
+                                                                               \
+        int LIB##Dyn##NAME##_test_init(struct LIB##Dyn##NAME *dh);             \
+                                                                               \
+        int LIB##Dyn##NAME##_test_malloc(                                      \
+                struct LIB##Dyn##NAME *dh, const uint64_t capacity);           \
+                                                                               \
+        int LIB##Dyn##NAME##_test_free(struct LIB##Dyn##NAME *dh);
+
+#define MLIDYNARRAY_TEST_IMPLEMENTATION(LIB, NAME, PAYLOAD_TYPE)               \
+                                                                               \
+        int LIB##Dyn##NAME##_test_init(struct LIB##Dyn##NAME *dh)              \
+        {                                                                      \
+                chk(dh->capacity == 0u);                                       \
+                chk(dh->size == 0u);                                           \
+                chk(dh->array == NULL);                                        \
+                return 1;                                                      \
+        chk_error:                                                             \
+                return 0;                                                      \
+        }                                                                      \
+                                                                               \
+        int LIB##Dyn##NAME##_test_malloc(                                      \
+                struct LIB##Dyn##NAME *dh, const uint64_t capacity)            \
+        {                                                                      \
+                chk(dh->capacity >= dh->size);                                 \
+                if (capacity < 2) {                                            \
+                        chk(dh->capacity == 2);                                \
+                } else {                                                       \
+                        chk(dh->capacity == capacity);                         \
+                }                                                              \
+                chk(dh->array != NULL);                                        \
+                return 1;                                                      \
+        chk_error:                                                             \
+                return 0;                                                      \
+        }                                                                      \
+                                                                               \
+        int LIB##Dyn##NAME##_test_free(struct LIB##Dyn##NAME *dh)              \
+        {                                                                      \
+                return LIB##Dyn##NAME##_test_init(dh);                         \
         }
 
 #endif
@@ -1239,8 +1290,8 @@ uint32_t pcg_setseq_64_xsh_rr_32_random_r(struct pcg_state_setseq_64 *rng);
 
 
 #define MLI_VERSION_MAYOR 1
-#define MLI_VERSION_MINOR 8
-#define MLI_VERSION_PATCH 2
+#define MLI_VERSION_MINOR 9
+#define MLI_VERSION_PATCH 0
 
 void mli_logo_fprint(FILE *f);
 void mli_authors_and_affiliations_fprint(FILE *f);
@@ -1472,6 +1523,16 @@ struct mliCube mliCube_outermost_cube(const struct mliAABB a);
 struct mliVec mliCube_center(const struct mliCube a);
 struct mliAABB mliCube_to_aabb(const struct mliCube a);
 struct mliVec mliCube_upper(const struct mliCube a);
+#endif
+
+/* mliDynArray_color_testing */
+/* ------------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNARRAY_COLOR_TESTING_H_
+#define MLIDYNARRAY_COLOR_TESTING_H_
+
+MLIDYNARRAY_TEST_DEFINITON(mli, Color, struct mliColor)
 #endif
 
 /* mliDynFace */
@@ -4046,6 +4107,38 @@ int mliScenery_malloc_from_Archive(
 
 
 int mliScenery_valid(const struct mliScenery *scenery);
+#endif
+
+/* mliTracer_atmosphere */
+/* -------------------- */
+
+/* Copyright 2018-2023 Sebastian Achim Mueller */
+#ifndef MLITRACER_ATMOSPHERE_H_
+#define MLITRACER_ATMOSPHERE_H_
+
+
+struct mliVec mli_random_direction_in_hemisphere(
+        struct mliPrng *prng,
+        struct mliVec normal);
+struct mliColor mli_trace_color_tone_of_sun(
+        const struct mliTracerConfig *config,
+        const struct mliVec support);
+struct mliColor mli_trace_color_tone_of_diffuse_sky(
+        const struct mliTracerConfig *config,
+        const struct mliIntersectionSurfaceNormal *intersection,
+        const struct mliScenery *scenery,
+        struct mliPrng *prng);
+struct mliColor mli_trace_to_intersection_atmosphere(
+        const struct mliTracerConfig *config,
+        const struct mliIntersectionSurfaceNormal *intersection,
+        const struct mliScenery *scenery,
+        struct mliPrng *prng);
+struct mliColor mli_trace_with_atmosphere(
+        const struct mliScenery *scenery,
+        const struct mliRay ray,
+        const struct mliTracerConfig *config,
+        struct mliPrng *prng);
+
 #endif
 
 /* mli_intersection_and_scenery */
