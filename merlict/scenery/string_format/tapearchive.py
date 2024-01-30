@@ -17,7 +17,7 @@ def read(path):
         filepaths = [member.name for member in tar.getmembers()]
         for filepath in fileorder.list():
             if "*" in filepath:
-                for ifilepath in fnmatch.filter(filepath):
+                for ifilepath in fnmatch.filter(names=filepaths, pat=filepath):
                     payload = _tar_read_str(tar=tar, filepath=ifilepath)
                     item = (ifilepath, payload)
                     sceneryDS.append(item)

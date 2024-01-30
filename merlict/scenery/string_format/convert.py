@@ -94,6 +94,8 @@ def sceneryStr_to_sceneryPy(sceneryStr):
             sceneryPy["materials"]["surfaces"][mkey] = jsonp.loads(payload)
         elif join("materials", "default_medium.txt") == filepath:
             sceneryPy["materials"]["default_medium"] = str(payload)
+        elif join("materials", "boundary_layers.json") == filepath:
+            sceneryPy["materials"]["boundary_layers"] = jsonp.loads(payload)
     return sceneryPy
 
 

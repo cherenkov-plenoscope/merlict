@@ -36,15 +36,18 @@ Load an existing scenery
 .. code-block:: python
 
     import merlict
-    import pkg_resources
+    import importlib
+    from importlib import resources
     import os
 
-    sceneryPy = merlict.scenery.read_tar(
-        path=pkg_resources.resource_filename(
-            "merlict",
-            os.path.join("tests", "resources", "segmented_reflector.tar"),
-        ),
+    path = os.path.join(
+        str(importlib.resources.files("merlict")),
+        "tests",
+        "resources",
+        "segmented_reflector.tar"
     )
+
+    sceneryPy = merlict.scenery.read_tar(path)
 
     mli = merlict.compile(sceneryPy)
     mli.view()
