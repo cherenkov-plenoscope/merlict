@@ -54,7 +54,7 @@ rm(os.path.join(merlict_dir, "merlict", "c89", "wrapper.c"))
 
 # Set merlict python package's version
 # ------------------------------------
-MERLICT_PYTHON_VERSION_STR = "0.1.6"  # <- set version here.
+MERLICT_PYTHON_VERSION_STR = "0.1.7"  # <- set version here.
 
 # Almagamate the sources from merlict
 # -----------------------------------
