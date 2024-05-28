@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <math.h>
@@ -5,8 +6,10 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <termios.h>
+#include <time.h>
 
 /* chk */
 /* --- */
@@ -87,6 +90,44 @@ int chk_eprintf(const char *format, ...);
 
 #endif
 
+/* mliAvlTree */
+/* ---------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIAVLTREE_H_
+#define MLIAVLTREE_H_
+
+
+struct mliAvl {
+        struct mliAvl *left;
+        struct mliAvl *right;
+        int64_t balance;
+};
+
+struct mliAvlTree {
+        struct mliAvl *root;
+        int64_t (*compare)(const void *a, const void *b);
+};
+
+int mliAvlTree_insert(struct mliAvlTree *t, struct mliAvl *a);
+int mliAvlTree_remove(struct mliAvlTree *t, struct mliAvl *a);
+int mliAvlTree_removeroot(struct mliAvlTree *t);
+struct mliAvl *mliAvlTree_find(
+        struct mliAvlTree *t,
+        const struct mliAvl *probe);
+
+struct mliAvlNode {
+        struct mliAvl avl;
+        int64_t key;
+        int64_t value;
+};
+
+struct mliAvlNode mliAvlNode_init(void);
+int64_t mliAvlNode_compare(const void *a, const void *b);
+void mliAvlNode_print(struct mliAvl *a, int m);
+
+#endif
+
 /* mliBoundaryLayer */
 /* ---------------- */
 
@@ -145,95 +186,6 @@ struct mliColor mliColor_multiply_elementwise(
         const struct mliColor b);
 #endif
 
-/* mliDynArray */
-/* ----------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNARRAY_H_
-#define MLIDYNARRAY_H_
-
-
-#define MLIDYNARRAY_DEFINITON(LIB, NAME, PAYLOAD_TYPE)                         \
-                                                                               \
-        struct LIB##Dyn##NAME {                                                \
-                uint64_t capacity;                                             \
-                uint64_t size;                                                 \
-                PAYLOAD_TYPE *array;                                           \
-        };                                                                     \
-                                                                               \
-        struct LIB##Dyn##NAME LIB##Dyn##NAME##_init(void);                     \
-                                                                               \
-        void LIB##Dyn##NAME##_free(struct LIB##Dyn##NAME *dh);                 \
-                                                                               \
-        int LIB##Dyn##NAME##_malloc(                                           \
-                struct LIB##Dyn##NAME *dh, const uint64_t size);               \
-                                                                               \
-        int LIB##Dyn##NAME##_malloc_set_size(                                  \
-                struct LIB##Dyn##NAME *dh, const uint64_t size);               \
-                                                                               \
-        int LIB##Dyn##NAME##_push_back(                                        \
-                struct LIB##Dyn##NAME *dh, PAYLOAD_TYPE item);
-
-#define MLIDYNARRAY_IMPLEMENTATION(LIB, NAME, PAYLOAD_TYPE)                    \
-                                                                               \
-        struct LIB##Dyn##NAME LIB##Dyn##NAME##_init(void)                      \
-        {                                                                      \
-                struct LIB##Dyn##NAME dh;                                      \
-                dh.capacity = 0u;                                              \
-                dh.size = 0u;                                                  \
-                dh.array = NULL;                                               \
-                return dh;                                                     \
-        }                                                                      \
-                                                                               \
-        void LIB##Dyn##NAME##_free(struct LIB##Dyn##NAME *dh)                  \
-        {                                                                      \
-                free(dh->array);                                               \
-                (*dh) = LIB##Dyn##NAME##_init();                               \
-        }                                                                      \
-                                                                               \
-        int LIB##Dyn##NAME##_malloc(                                           \
-                struct LIB##Dyn##NAME *dh, const uint64_t size)                \
-        {                                                                      \
-                LIB##Dyn##NAME##_free(dh);                                     \
-                dh->capacity = MLI_MAX2(2, size);                              \
-                dh->size = 0;                                                  \
-                chk_malloc(dh->array, PAYLOAD_TYPE, dh->capacity);             \
-                return 1;                                                      \
-        chk_error:                                                             \
-                return 0;                                                      \
-        }                                                                      \
-                                                                               \
-        int LIB##Dyn##NAME##_malloc_set_size(                                  \
-                struct LIB##Dyn##NAME *dh, const uint64_t size)                \
-        {                                                                      \
-                chk(LIB##Dyn##NAME##_malloc(dh, size));                        \
-                dh->size = size;                                               \
-                return 1;                                                      \
-        chk_error:                                                             \
-                return 0;                                                      \
-        }                                                                      \
-                                                                               \
-        int LIB##Dyn##NAME##_push_back(                                        \
-                struct LIB##Dyn##NAME *dh, PAYLOAD_TYPE item)                  \
-        {                                                                      \
-                if (dh->size == dh->capacity) {                                \
-                        dh->capacity = dh->capacity * 2;                       \
-                        dh->array = (PAYLOAD_TYPE *)realloc(                   \
-                                (void *)dh->array,                             \
-                                dh->capacity * sizeof(PAYLOAD_TYPE));          \
-                        chk_mem(dh->array);                                    \
-                }                                                              \
-                                                                               \
-                dh->array[dh->size] = item;                                    \
-                dh->size += 1;                                                 \
-                                                                               \
-                return 1;                                                      \
-        chk_error:                                                             \
-                return 0;                                                      \
-        }
-
-#endif
-
 /* mliDynArray_testing */
 /* ------------------- */
 
@@ -283,47 +235,6 @@ struct mliColor mliColor_multiply_elementwise(
                 return LIB##Dyn##NAME##_test_init(dh);                         \
         }
 
-#endif
-
-/* mliDynColor */
-/* ----------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNARRAY_COLOR_H_
-#define MLIDYNARRAY_COLOR_H_
-
-MLIDYNARRAY_DEFINITON(mli, Color, struct mliColor)
-MLIDYNARRAY_DEFINITON(mli, ColorPtr, struct mliColor *)
-#endif
-
-/* mliDynDouble */
-/* ------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNARRAY_DOUBLE_H_
-#define MLIDYNARRAY_DOUBLE_H_
-
-MLIDYNARRAY_DEFINITON(mli, Double, double)
-#endif
-
-/* mliDynFloat */
-/* ----------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNARRAY_FLOAT_H_
-#define MLIDYNARRAY_FLOAT_H_
-
-MLIDYNARRAY_DEFINITON(mli, Float, float)
-#endif
-
-/* mliDynUint32 */
-/* ------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNARRAY_UINT32_H_
-#define MLIDYNARRAY_UINT32_H_
-
-MLIDYNARRAY_DEFINITON(mli, Uint32, uint32_t)
 #endif
 
 /* mliFace */
@@ -479,22 +390,6 @@ int mliName_find_idx(
         const uint64_t num_names,
         const char *key,
         uint64_t *idx);
-#endif
-
-/* mliOctOverlaps */
-/* -------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIOCTOVERLAPS_H_
-#define MLIOCTOVERLAPS_H_
-
-
-#define mliOctOverlap mliDynUint32
-#define mliOctOverlap_init mliDynUint32_init
-#define mliOctOverlap_malloc mliDynUint32_malloc
-#define mliOctOverlap_free mliDynUint32_free
-#define mliOctOverlap_push_back mliDynUint32_push_back
-
 #endif
 
 /* mliPixels */
@@ -844,6 +739,18 @@ struct mliBarycentrigWeights mli_barycentric_weights(
         const struct mliVec t);
 #endif
 
+/* mli_benchmark */
+/* ------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_BENCHMARK_H_
+#define MLI_BENCHMARK_H_
+
+
+double mli_clock2second(const clock_t t);
+
+#endif
+
 /* mli_cstr */
 /* -------- */
 
@@ -1086,6 +993,7 @@ void jsmn_init(struct jsmn_parser *parser);
 #define MLI_MAX2(a, b) (((a) > (b)) ? (a) : (b))
 #define MLI_ROUND(num) (num - floor(num) > 0.5) ? ceil(num) : floor(num)
 #define MLI_NEAR_INT(x) ((x) > 0 ? (int64_t)((x) + 0.5) : (int64_t)((x)-0.5))
+#define MLI_SIGN(x) ((x) == 0 ? 0 : ((x) > 0 ? 1 : -1))
 
 #define MLI_MIN3(a, b, c)                                                      \
         ((((a) < (b)) && ((a) < (c))) ? (a) : (((b) < (c)) ? (b) : (c)))
@@ -1291,7 +1199,7 @@ uint32_t pcg_setseq_64_xsh_rr_32_random_r(struct pcg_state_setseq_64 *rng);
 
 #define MLI_VERSION_MAYOR 1
 #define MLI_VERSION_MINOR 9
-#define MLI_VERSION_PATCH 0
+#define MLI_VERSION_PATCH 5
 
 void mli_logo_fprint(FILE *f);
 void mli_authors_and_affiliations_fprint(FILE *f);
@@ -1407,6 +1315,8 @@ struct mliAABB mliAABB_outermost(
 int mliAABB_valid(const struct mliAABB a);
 int mliAABB_equal(const struct mliAABB a, const struct mliAABB b);
 int mliAABB_overlapp_aabb(const struct mliAABB a, const struct mliAABB b);
+int mliAABB_is_overlapping(const struct mliAABB a, const struct mliAABB b);
+int mliAABB_is_point_inside(const struct mliAABB a, const struct mliVec point);
 #endif
 
 /* mliAtmosphere */
@@ -1491,6 +1401,37 @@ struct mliColor mliAtmosphere_compute_depth(
 
 #endif
 
+/* mliAvlDict */
+/* ---------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIAVLDICT_H_
+#define MLIAVLDICT_H_
+
+
+struct mliAvlDict {
+        struct mliAvlTree tree;
+        struct mliAvlNode *nodes;
+        uint64_t capacity;
+        uint64_t back;
+        uint64_t len;
+};
+
+struct mliAvlDict mliAvlDict_init(void);
+void mliAvlDict_free(struct mliAvlDict *dict);
+int mliAvlDict_malloc(struct mliAvlDict *dict, const uint64_t capacity);
+
+int mliAvlDict_set(
+        struct mliAvlDict *dict,
+        const int64_t key,
+        const int64_t value);
+int mliAvlDict_pop(struct mliAvlDict *dict, const int64_t key);
+int mliAvlDict_has(struct mliAvlDict *dict, const int64_t key);
+int mliAvlDict_get(struct mliAvlDict *dict, const int64_t key, int64_t *value);
+void mliAvlDict_reset(struct mliAvlDict *dict);
+
+#endif
+
 /* mliCube */
 /* ------- */
 
@@ -1525,14 +1466,114 @@ struct mliAABB mliCube_to_aabb(const struct mliCube a);
 struct mliVec mliCube_upper(const struct mliCube a);
 #endif
 
-/* mliDynArray_color_testing */
-/* ------------------------- */
+/* mliDynArray */
+/* ----------- */
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNARRAY_COLOR_TESTING_H_
-#define MLIDYNARRAY_COLOR_TESTING_H_
+#ifndef MLIDYNARRAY_H_
+#define MLIDYNARRAY_H_
 
-MLIDYNARRAY_TEST_DEFINITON(mli, Color, struct mliColor)
+
+#define MLIDYNARRAY_DEFINITON(LIB, NAME, PAYLOAD_TYPE)                         \
+                                                                               \
+        struct LIB##Dyn##NAME {                                                \
+                uint64_t capacity;                                             \
+                uint64_t size;                                                 \
+                PAYLOAD_TYPE *array;                                           \
+        };                                                                     \
+                                                                               \
+        struct LIB##Dyn##NAME LIB##Dyn##NAME##_init(void);                     \
+                                                                               \
+        void LIB##Dyn##NAME##_free(struct LIB##Dyn##NAME *dh);                 \
+                                                                               \
+        int LIB##Dyn##NAME##_malloc(                                           \
+                struct LIB##Dyn##NAME *dh, const uint64_t size);               \
+                                                                               \
+        int LIB##Dyn##NAME##_malloc_set_size(                                  \
+                struct LIB##Dyn##NAME *dh, const uint64_t size);               \
+                                                                               \
+        int LIB##Dyn##NAME##_push_back(                                        \
+                struct LIB##Dyn##NAME *dh, PAYLOAD_TYPE item);
+
+#define MLIDYNARRAY_IMPLEMENTATION(LIB, NAME, PAYLOAD_TYPE)                    \
+                                                                               \
+        struct LIB##Dyn##NAME LIB##Dyn##NAME##_init(void)                      \
+        {                                                                      \
+                struct LIB##Dyn##NAME dh;                                      \
+                dh.capacity = 0u;                                              \
+                dh.size = 0u;                                                  \
+                dh.array = NULL;                                               \
+                return dh;                                                     \
+        }                                                                      \
+                                                                               \
+        void LIB##Dyn##NAME##_free(struct LIB##Dyn##NAME *dh)                  \
+        {                                                                      \
+                free(dh->array);                                               \
+                (*dh) = LIB##Dyn##NAME##_init();                               \
+        }                                                                      \
+                                                                               \
+        int LIB##Dyn##NAME##_malloc(                                           \
+                struct LIB##Dyn##NAME *dh, const uint64_t size)                \
+        {                                                                      \
+                LIB##Dyn##NAME##_free(dh);                                     \
+                dh->capacity = MLI_MAX2(2, size);                              \
+                dh->size = 0;                                                  \
+                chk_malloc(dh->array, PAYLOAD_TYPE, dh->capacity);             \
+                return 1;                                                      \
+        chk_error:                                                             \
+                return 0;                                                      \
+        }                                                                      \
+                                                                               \
+        int LIB##Dyn##NAME##_malloc_set_size(                                  \
+                struct LIB##Dyn##NAME *dh, const uint64_t size)                \
+        {                                                                      \
+                chk(LIB##Dyn##NAME##_malloc(dh, size));                        \
+                dh->size = size;                                               \
+                return 1;                                                      \
+        chk_error:                                                             \
+                return 0;                                                      \
+        }                                                                      \
+                                                                               \
+        int LIB##Dyn##NAME##_push_back(                                        \
+                struct LIB##Dyn##NAME *dh, PAYLOAD_TYPE item)                  \
+        {                                                                      \
+                if (dh->size == dh->capacity) {                                \
+                        dh->capacity = dh->capacity * 2;                       \
+                        dh->array = (PAYLOAD_TYPE *)realloc(                   \
+                                (void *)dh->array,                             \
+                                dh->capacity * sizeof(PAYLOAD_TYPE));          \
+                        chk_mem(dh->array);                                    \
+                }                                                              \
+                                                                               \
+                dh->array[dh->size] = item;                                    \
+                dh->size += 1;                                                 \
+                                                                               \
+                return 1;                                                      \
+        chk_error:                                                             \
+                return 0;                                                      \
+        }
+
+#endif
+
+/* mliDynColor */
+/* ----------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNARRAY_COLOR_H_
+#define MLIDYNARRAY_COLOR_H_
+
+MLIDYNARRAY_DEFINITON(mli, Color, struct mliColor)
+MLIDYNARRAY_DEFINITON(mli, ColorPtr, struct mliColor *)
+#endif
+
+/* mliDynDouble */
+/* ------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNARRAY_DOUBLE_H_
+#define MLIDYNARRAY_DOUBLE_H_
+
+MLIDYNARRAY_DEFINITON(mli, Double, double)
 #endif
 
 /* mliDynFace */
@@ -1543,6 +1584,16 @@ MLIDYNARRAY_TEST_DEFINITON(mli, Color, struct mliColor)
 #define MLIDYNARRAY_FACE_H_
 
 MLIDYNARRAY_DEFINITON(mli, Face, struct mliFace)
+#endif
+
+/* mliDynFloat */
+/* ----------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNARRAY_FLOAT_H_
+#define MLIDYNARRAY_FLOAT_H_
+
+MLIDYNARRAY_DEFINITON(mli, Float, float)
 #endif
 
 /* mliDynMap */
@@ -1566,6 +1617,16 @@ int mliDynMap_get(
         const char *key,
         uint64_t *value);
 
+#endif
+
+/* mliDynUint32 */
+/* ------------ */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNARRAY_UINT32_H_
+#define MLIDYNARRAY_UINT32_H_
+
+MLIDYNARRAY_DEFINITON(mli, Uint32, uint32_t)
 #endif
 
 /* mliDynVec */
@@ -2019,6 +2080,22 @@ int mliObject_parse_face_line(
 int mliObject_parse_three_float_line(const char *line, struct mliVec *v);
 #endif
 
+/* mliOctOverlaps */
+/* -------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIOCTOVERLAPS_H_
+#define MLIOCTOVERLAPS_H_
+
+
+#define mliOctOverlap mliDynUint32
+#define mliOctOverlap_init mliDynUint32_init
+#define mliOctOverlap_malloc mliDynUint32_malloc
+#define mliOctOverlap_free mliDynUint32_free
+#define mliOctOverlap_push_back mliDynUint32_push_back
+
+#endif
+
 /* mliPixelWalk */
 /* ------------ */
 
@@ -2444,6 +2521,62 @@ void mliPrng_PCG32_reinit(void *pcg, const uint32_t seed);
 
 #endif
 
+/* mli_ray_grid_traversal */
+/* ---------------------- */
+
+/* Copyright 2018-2024 Sebastian Achim Mueller */
+#ifndef MLI_RAY_GRID_TRAVERSAL_H_
+#define MLI_RAY_GRID_TRAVERSAL_H_
+
+
+struct mliIdx3 {
+        int64_t x;
+        int64_t y;
+        int64_t z;
+};
+
+struct mliIdx3 mliIdx3_set(const int64_t x, const int64_t y, const int64_t z);
+
+struct mliAxisAlignedGrid {
+        struct mliAABB bounds;
+        struct mliIdx3 num_bins;
+        struct mliVec bin_width;
+};
+
+struct mliAxisAlignedGrid mliAxisAlignedGrid_set(
+        struct mliAABB bounds,
+        struct mliIdx3 num_bins);
+
+int mliAxisAlignedGrid_find_voxel_of_first_interaction(
+        const struct mliAxisAlignedGrid *grid,
+        const struct mliRay *ray,
+        struct mliIdx3 *bin);
+
+#define MLI_AXIS_ALIGNED_GRID_RAY_DOES_NOT_INTERSECT_GRID 0
+#define MLI_AXIS_ALIGNED_GRID_RAY_STARTS_INSIDE_GRID 1
+#define MLI_AXIS_ALIGNED_GRID_RAY_STARTS_OUTSIDE_GRID_BUT_INTERSECTS 2
+
+struct mliAxisAlignedGridTraversal {
+        const struct mliAxisAlignedGrid *grid;
+        struct mliIdx3 voxel;
+        struct mliVec step;
+        struct mliVec tMax;
+        struct mliVec tDelta;
+        int valid;
+};
+
+struct mliAxisAlignedGridTraversal mliAxisAlignedGridTraversal_start(
+        const struct mliAxisAlignedGrid *grid,
+        const struct mliRay *ray);
+int mliAxisAlignedGridTraversal_next(
+        struct mliAxisAlignedGridTraversal *traversal);
+
+void mliAxisAlignedGridTraversal_fprint(
+        FILE *f,
+        struct mliAxisAlignedGridTraversal *traversal);
+
+#endif
+
 /* mli_triangle_intersection */
 /* ------------------------- */
 
@@ -2552,6 +2685,17 @@ int mliColor_from_json_token(
         struct mliColor *c,
         const struct mliJson *json,
         const uint64_t token);
+#endif
+
+/* mliDynArray_color_testing */
+/* ------------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNARRAY_COLOR_TESTING_H_
+#define MLIDYNARRAY_COLOR_TESTING_H_
+
+
+MLIDYNARRAY_TEST_DEFINITON(mli, Color, struct mliColor)
 #endif
 
 /* mliDynMap_json */
@@ -3694,21 +3838,6 @@ void mliTmpOcTree_print(const struct mliTmpOcTree *octree);
 
 #endif
 
-/* mliDynPhotonInteraction */
-/* ----------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLIDYNPHOTONINTERACTION_H_
-#define MLIDYNPHOTONINTERACTION_H_
-
-
-MLIDYNARRAY_DEFINITON(mli, PhotonInteraction, struct mliPhotonInteraction)
-
-void mliDynPhotonInteraction_print(
-        const struct mliDynPhotonInteraction *history,
-        const struct mliGeometry *scenery);
-#endif
-
 /* mliOcTree */
 /* --------- */
 
@@ -4163,60 +4292,6 @@ struct mliSide mli_get_side_coming_from(
         const struct mliIntersectionSurfaceNormal *isec);
 #endif
 
-/* mli_photon_propagation */
-/* ---------------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_PHOTON_PROPAGATION_H_
-#define MLI_PHOTON_PROPAGATION_H_
-
-
-
-struct mliEnv {
-        const struct mliScenery *scenery;
-        struct mliDynPhotonInteraction *history;
-        struct mliPhoton *photon;
-        struct mliPrng *prng;
-        uint64_t max_interactions;
-};
-
-int mli_propagate_photon(
-        const struct mliScenery *scenery,
-        struct mliDynPhotonInteraction *history,
-        struct mliPhoton *photon,
-        struct mliPrng *prng,
-        const uint64_t max_interactions);
-int mli_propagate_photon_work_on_causal_intersection(struct mliEnv *env);
-int mli_propagate_photon_distance_until_absorbtion(
-        const struct mliFunc *absorbtion_in_medium_passing_through,
-        const double wavelength,
-        struct mliPrng *prng,
-        double *distance_until_absorbtion);
-int mli_propagate_photon_interact_with_object(
-        struct mliEnv *env,
-        const struct mliIntersectionSurfaceNormal *isec);
-int mli_propagate_photon_fresnel_refraction_and_reflection(
-        struct mliEnv *env,
-        const struct mliIntersectionSurfaceNormal *isec);
-int mli_propagate_photon_probability_passing_medium_coming_from(
-        const struct mliScenery *scenery,
-        const struct mliPhoton *photon,
-        const struct mliIntersectionSurfaceNormal *isec,
-        double *probability_passing);
-int mli_propagate_photon_pass_boundary_layer(
-        struct mliEnv *env,
-        const struct mliIntersectionSurfaceNormal *isec,
-        const struct mliFresnel fresnel);
-int mli_propagate_photon_phong(
-        struct mliEnv *env,
-        const struct mliIntersectionSurfaceNormal *isec);
-struct mliPhotonInteraction mliPhotonInteraction_from_Intersection(
-        const int64_t type,
-        const struct mliScenery *scenery,
-        const struct mliIntersectionSurfaceNormal *isec);
-int mli_propagate_photon_env(struct mliEnv *env);
-#endif
-
 /* mli_ray_scenery_query */
 /* --------------------- */
 
@@ -4305,5 +4380,80 @@ int mlivr_run_interactive_viewer(
 int mlivr_run_interactive_viewer_try_non_canonical_stdin(
         const struct mliScenery *scenery,
         const struct mlivrConfig config);
+#endif
+
+/* mliDynPhotonInteraction */
+/* ----------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLIDYNPHOTONINTERACTION_H_
+#define MLIDYNPHOTONINTERACTION_H_
+
+
+MLIDYNARRAY_DEFINITON(mli, PhotonInteraction, struct mliPhotonInteraction)
+
+void mliDynPhotonInteraction_print(
+        const struct mliDynPhotonInteraction *history,
+        const struct mliScenery *scenery);
+
+int mliDynPhotonInteraction_time_of_flight(
+        const struct mliDynPhotonInteraction *history,
+        const struct mliScenery *scenery,
+        const double wavelength,
+        double *total_time_of_flight);
+#endif
+
+/* mli_photon_propagation */
+/* ---------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_PHOTON_PROPAGATION_H_
+#define MLI_PHOTON_PROPAGATION_H_
+
+
+
+struct mliEnv {
+        const struct mliScenery *scenery;
+        struct mliDynPhotonInteraction *history;
+        struct mliPhoton *photon;
+        struct mliPrng *prng;
+        uint64_t max_interactions;
+};
+
+int mli_propagate_photon(
+        const struct mliScenery *scenery,
+        struct mliDynPhotonInteraction *history,
+        struct mliPhoton *photon,
+        struct mliPrng *prng,
+        const uint64_t max_interactions);
+int mli_propagate_photon_work_on_causal_intersection(struct mliEnv *env);
+int mli_propagate_photon_distance_until_absorbtion(
+        const struct mliFunc *absorbtion_in_medium_passing_through,
+        const double wavelength,
+        struct mliPrng *prng,
+        double *distance_until_absorbtion);
+int mli_propagate_photon_interact_with_object(
+        struct mliEnv *env,
+        const struct mliIntersectionSurfaceNormal *isec);
+int mli_propagate_photon_fresnel_refraction_and_reflection(
+        struct mliEnv *env,
+        const struct mliIntersectionSurfaceNormal *isec);
+int mli_propagate_photon_probability_passing_medium_coming_from(
+        const struct mliScenery *scenery,
+        const struct mliPhoton *photon,
+        const struct mliIntersectionSurfaceNormal *isec,
+        double *probability_passing);
+int mli_propagate_photon_pass_boundary_layer(
+        struct mliEnv *env,
+        const struct mliIntersectionSurfaceNormal *isec,
+        const struct mliFresnel fresnel);
+int mli_propagate_photon_phong(
+        struct mliEnv *env,
+        const struct mliIntersectionSurfaceNormal *isec);
+struct mliPhotonInteraction mliPhotonInteraction_from_Intersection(
+        const int64_t type,
+        const struct mliScenery *scenery,
+        const struct mliIntersectionSurfaceNormal *isec);
+int mli_propagate_photon_env(struct mliEnv *env);
 #endif
 

@@ -1,11 +1,8 @@
 #include "merlict_c89.h"
 
 #include <assert.h>
-#include <ctype.h>
 #include <float.h>
 #include <limits.h>
-#include <stdlib.h>
-#include <time.h>
 #include <unistd.h>
 
 /* chk */
@@ -89,6 +86,17 @@ int mliAABB_is_overlapping(const struct mliAABB a, const struct mliAABB b)
         const int over_y = (a.upper.y >= b.lower.y) && (b.upper.y >= a.lower.y);
         const int over_z = (a.upper.z >= b.lower.z) && (b.upper.z >= a.lower.z);
         return (over_x && over_y) && over_z;
+}
+
+int mliAABB_is_point_inside(const struct mliAABB a, const struct mliVec point)
+{
+        if (a.lower.x > point.x || a.upper.x <= point.x)
+                return 0;
+        if (a.lower.y > point.y || a.upper.y <= point.y)
+                return 0;
+        if (a.lower.z > point.z || a.upper.z <= point.z)
+                return 0;
+        return 1;
 }
 
 /* mliAccelerator */
@@ -1393,6 +1401,571 @@ chk_error:
         return 0;
 }
 
+/* mliAvlDict */
+/* ---------- */
+
+
+struct mliAvlDict mliAvlDict_init(void)
+{
+        struct mliAvlDict dict;
+        dict.tree.root = NULL;
+        dict.tree.compare = mliAvlNode_compare;
+
+        dict.nodes = NULL;
+        dict.capacity = 0u;
+        dict.back = 0u;
+        dict.len = 0u;
+        return dict;
+}
+
+void mliAvlDict_free(struct mliAvlDict *dict)
+{
+        free(dict->nodes);
+        (*dict) = mliAvlDict_init();
+}
+
+int mliAvlDict_malloc(struct mliAvlDict *dict, const uint64_t capacity)
+{
+        mliAvlDict_free(dict);
+        dict->capacity = capacity;
+        chk_malloc(dict->nodes, struct mliAvlNode, dict->capacity);
+        return 1;
+chk_error:
+        mliAvlDict_free(dict);
+        return 0;
+}
+
+struct mliAvlNode *mliAvlDict_find(struct mliAvlDict *dict, const int64_t key)
+{
+        struct mliAvlNode *out = NULL;
+        struct mliAvlNode probe;
+        probe.key = key;
+        out = (struct mliAvlNode *)mliAvlTree_find(
+                &dict->tree, (const struct mliAvl *)(&probe));
+
+        return out;
+}
+
+int mliAvlDict_update__(const struct mliAvlNode *node, struct mliAvlDict *out)
+{
+        if (node == NULL) {
+                return 1;
+        }
+        chk_msg(mliAvlDict_set(out, node->key, node->value),
+                "Failed to insert key/value into destination dict while "
+                "updating.");
+
+        if (node->avl.left != NULL) {
+                struct mliAvlNode *left = (struct mliAvlNode *)(node->avl.left);
+                chk_msg(mliAvlDict_update__(left, out), "1");
+        }
+        if (node->avl.right != NULL) {
+                struct mliAvlNode *right =
+                        (struct mliAvlNode *)(node->avl.right);
+                chk_msg(mliAvlDict_update__(right, out), "2");
+        }
+
+        return 1;
+chk_error:
+        return 0;
+}
+
+void mliAvlDict_swap(struct mliAvlDict *a, struct mliAvlDict *b)
+{
+        struct mliAvlDict swap = (*a);
+        (*a) = (*b);
+        (*b) = swap;
+}
+
+int mliAvlDict_grow(struct mliAvlDict *dict)
+{
+        uint64_t new_capacity = (dict->capacity * 2);
+        struct mliAvlDict tmp = mliAvlDict_init();
+
+        chk_msg(mliAvlDict_malloc(&tmp, new_capacity),
+                "Failed to malloc bigger tmp dict in order to grow.");
+
+        /* copy nodes */
+        chk_msg(mliAvlDict_update__(
+                        (const struct mliAvlNode *)dict->tree.root, &tmp),
+                "Failed to copy nodes over to bigger tmp dict while growing.");
+
+        mliAvlDict_swap(dict, &tmp);
+        mliAvlDict_free(&tmp);
+        return 1;
+chk_error:
+        return 0;
+}
+
+int mliAvlDict_insert(
+        struct mliAvlDict *dict,
+        const int64_t key,
+        const int64_t value)
+{
+        int insert_rc;
+        struct mliAvlNode *back_node;
+
+        if (dict->back == dict->capacity) {
+                chk_msg(mliAvlDict_grow(dict),
+                        "AvlTree insertion did not work.");
+        }
+
+        dict->nodes[dict->back].key = key;
+        dict->nodes[dict->back].value = value;
+        back_node = &dict->nodes[dict->back];
+
+        insert_rc =
+                mliAvlTree_insert(&dict->tree, (struct mliAvl *)(back_node));
+        chk_msg(insert_rc >= 0, "AvlTree insertion did not work.");
+
+        dict->back += 1;
+        dict->len += 1;
+
+        return 1;
+chk_error:
+        return 0;
+}
+
+int mliAvlDict_set(
+        struct mliAvlDict *dict,
+        const int64_t key,
+        const int64_t value)
+{
+        struct mliAvlNode *nn = mliAvlDict_find(dict, key);
+        if (nn != NULL) {
+                /* key is already in dict. Set it right here. */
+                nn->value = value;
+        } else {
+                /* key is not yet in dict. Insert to grow memory. */
+                chk_msg(mliAvlDict_insert(dict, key, value),
+                        "Can't insert key/value into mliAvlDict.");
+        }
+        return 1;
+chk_error:
+        return 0;
+}
+
+int mliAvlDict_shrink(struct mliAvlDict *dict)
+{
+        uint64_t new_capacity = (dict->len * 3) / 2;
+        struct mliAvlDict tmp = mliAvlDict_init();
+
+        chk_msg(mliAvlDict_malloc(&tmp, new_capacity),
+                "Failed to malloc smaller tmp dict in order to shrink.");
+
+        /* copy nodes */
+        chk_msg(mliAvlDict_update__(
+                        (const struct mliAvlNode *)dict->tree.root, &tmp),
+                "Failed to copy nodes over to smaller tmp dict while "
+                "shrinking.");
+
+        mliAvlDict_swap(dict, &tmp);
+        mliAvlDict_free(&tmp);
+        return 1;
+chk_error:
+        return 0;
+}
+
+int mliAvlDict_pop(struct mliAvlDict *dict, const int64_t key)
+{
+        int rc_remove;
+        struct mliAvlNode *nn = mliAvlDict_find(dict, key);
+        chk_msg(nn != NULL, "key does not exist, and thus can not be removed");
+
+        /* the key exists and can be removed */
+        rc_remove = mliAvlTree_remove(&dict->tree, (struct mliAvl *)nn);
+        chk_msg(rc_remove <= 0, "AvlTree remove did not work as expected.");
+
+        chk_msg(dict->len > 0, "Expected len > 0.");
+        dict->len -= 1;
+
+        if (dict->len < (dict->capacity / 2)) {
+                /* shrink */
+                chk_msg(mliAvlDict_shrink(dict), "Failed to shrink capacity.");
+        }
+
+        return 1;
+chk_error:
+        return 0;
+}
+
+int mliAvlDict_has(struct mliAvlDict *dict, const int64_t key)
+{
+        struct mliAvlNode *nn = mliAvlDict_find(dict, key);
+        if (nn == NULL) {
+                return 0;
+        } else {
+                return 1;
+        }
+}
+
+int mliAvlDict_get(struct mliAvlDict *dict, const int64_t key, int64_t *value)
+{
+        struct mliAvlNode *nn = mliAvlDict_find(dict, key);
+        if (nn == NULL) {
+                return 0;
+        } else {
+                (*value) = nn->value;
+                return 1;
+        }
+}
+
+void mliAvlDict_reset(struct mliAvlDict *dict)
+{
+        dict->tree.root = NULL;
+        dict->back = 0;
+        dict->len = 0;
+}
+
+/* mliAvlTree */
+/* ---------- */
+
+
+/* Adopted from:
+ *
+ * ANSI C Library for maintainance of AVL Balanced Trees
+ *
+ * ref.:
+ *  G. M. Adelson-Velskij & E. M. Landis
+ *  Doklady Akad. Nauk SSSR 146 (1962), 263-266
+ *
+ * see also:
+ *  D. E. Knuth: The Art of Computer Programming Vol.3 (Sorting and Searching)
+ *
+ * (C) 2000 Daniel Nagy, Budapest University of Technology and Economics
+ * Released under GNU General Public License (GPL) version 2
+ *
+ */
+
+/* Swing to the left
+ * Warning: no balance maintainance
+ */
+void mliAvl_swing_left(struct mliAvl **root)
+{
+        /* no balance maintainance */
+        struct mliAvl *a = *root;
+        struct mliAvl *b = a->right;
+        *root = b;
+        a->right = b->left;
+        b->left = a;
+}
+
+/* Swing to the right
+ * Warning: no balance maintainance
+ */
+void mliAvl_swing_right(struct mliAvl **root)
+{
+        /* no balance maintainance */
+        struct mliAvl *a = *root;
+        struct mliAvl *b = a->left;
+        *root = b;
+        a->left = b->right;
+        b->right = a;
+}
+
+/* Balance maintainance after especially nasty swings
+ */
+void mliAvl_rebalance(struct mliAvl *root)
+{
+        switch (root->balance) {
+        case -1:
+                root->left->balance = 0;
+                root->right->balance = 1;
+                break;
+        case 1:
+                root->left->balance = -1;
+                root->right->balance = 0;
+                break;
+        case 0:
+                root->left->balance = 0;
+                root->right->balance = 0;
+        }
+        root->balance = 0;
+}
+
+/* Insert element a into the AVL tree t
+ * returns 1 if the depth of the tree has grown
+ * Warning: do not insert elements already present
+ */
+int mliAvlTree_insert(struct mliAvlTree *t, struct mliAvl *a)
+{
+        /* initialize */
+        a->left = 0;
+        a->right = 0;
+        a->balance = 0;
+
+        /* insert into an empty tree */
+        if (!t->root) {
+                t->root = a;
+                return 1;
+        }
+
+        if (t->compare(t->root, a) > 0) {
+                /* insert into the left subtree */
+                if (t->root->left) {
+                        struct mliAvlTree left_subtree;
+                        left_subtree.root = t->root->left;
+                        left_subtree.compare = t->compare;
+                        if (mliAvlTree_insert(&left_subtree, a)) {
+                                switch (t->root->balance--) {
+                                case 1:
+                                        return 0;
+                                case 0:
+                                        return 1;
+                                }
+                                if (t->root->left->balance < 0) {
+                                        mliAvl_swing_right(&(t->root));
+                                        t->root->balance = 0;
+                                        t->root->right->balance = 0;
+                                } else {
+                                        mliAvl_swing_left(&(t->root->left));
+                                        mliAvl_swing_right(&(t->root));
+                                        mliAvl_rebalance(t->root);
+                                }
+                        } else {
+                                t->root->left = left_subtree.root;
+                        }
+                        return 0;
+                } else {
+                        t->root->left = a;
+                        if (t->root->balance--) {
+                                return 0;
+                        }
+                        return 1;
+                }
+        } else {
+                /* insert into the right subtree */
+                if (t->root->right) {
+                        struct mliAvlTree right_subtree;
+                        right_subtree.root = t->root->right;
+                        right_subtree.compare = t->compare;
+                        if (mliAvlTree_insert(&right_subtree, a)) {
+                                switch (t->root->balance++) {
+                                case -1:
+                                        return 0;
+                                case 0:
+                                        return 1;
+                                }
+                                if (t->root->right->balance > 0) {
+                                        mliAvl_swing_left(&(t->root));
+                                        t->root->balance = 0;
+                                        t->root->left->balance = 0;
+                                } else {
+                                        mliAvl_swing_right(&(t->root->right));
+                                        mliAvl_swing_left(&(t->root));
+                                        mliAvl_rebalance(t->root);
+                                }
+                        } else {
+                                t->root->right = right_subtree.root;
+                        }
+                        return 0;
+                } else {
+                        t->root->right = a;
+                        if (t->root->balance++) {
+                                return 0;
+                        }
+                        return 1;
+                }
+        }
+        return -1;
+}
+
+/* Remove an element a from the AVL tree t
+ * returns -1 if the depth of the tree has shrunk
+ * Warning: if the element is not present in the tree,
+ *          returns 0 as if it had been removed succesfully.
+ */
+int mliAvlTree_remove(struct mliAvlTree *t, struct mliAvl *a)
+{
+        int b;
+        if (t->root == a) {
+                return mliAvlTree_removeroot(t);
+        }
+        b = t->compare(t->root, a);
+
+        if (b >= 0) {
+                /* remove from the left subtree */
+                int ch;
+                if (t->root->left) {
+                        struct mliAvlTree left_subtree;
+                        left_subtree.root = t->root->left;
+                        left_subtree.compare = t->compare;
+                        ch = mliAvlTree_remove(&left_subtree, a);
+                        t->root->left = left_subtree.root;
+                        if (ch) {
+                                switch (t->root->balance++) {
+                                case -1:
+                                        return -1;
+                                case 0:
+                                        return 0;
+                                }
+                                switch (t->root->right->balance) {
+                                case 0:
+                                        mliAvl_swing_left(&(t->root));
+                                        t->root->balance = -1;
+                                        t->root->left->balance = 1;
+                                        return 0;
+                                case 1:
+                                        mliAvl_swing_left(&(t->root));
+                                        t->root->balance = 0;
+                                        t->root->left->balance = 0;
+                                        return -1;
+                                }
+                                mliAvl_swing_right(&(t->root->right));
+                                mliAvl_swing_left(&(t->root));
+                                mliAvl_rebalance(t->root);
+                                return -1;
+                        }
+                }
+        }
+        if (b <= 0) {
+                /* remove from the right subtree */
+                int ch;
+                if (t->root->right) {
+                        struct mliAvlTree right_subtree;
+                        right_subtree.root = t->root->right;
+                        right_subtree.compare = t->compare;
+                        ch = mliAvlTree_remove(&right_subtree, a);
+                        t->root->right = right_subtree.root;
+                        if (ch) {
+                                switch (t->root->balance--) {
+                                case 1:
+                                        return -1;
+                                case 0:
+                                        return 0;
+                                }
+                                switch (t->root->left->balance) {
+                                case 0:
+                                        mliAvl_swing_right(&(t->root));
+                                        t->root->balance = 1;
+                                        t->root->right->balance = -1;
+                                        return 0;
+                                case -1:
+                                        mliAvl_swing_right(&(t->root));
+                                        t->root->balance = 0;
+                                        t->root->right->balance = 0;
+                                        return -1;
+                                }
+                                mliAvl_swing_left(&(t->root->left));
+                                mliAvl_swing_right(&(t->root));
+                                mliAvl_rebalance(t->root);
+                                return -1;
+                        }
+                }
+        }
+        return 0;
+}
+
+/* Remove the root of the AVL tree t
+ * Warning: dumps core if t is empty
+ */
+int mliAvlTree_removeroot(struct mliAvlTree *t)
+{
+        int ch;
+        struct mliAvl *a;
+        if (!t->root->left) {
+                if (!t->root->right) {
+                        t->root = 0;
+                        return -1;
+                }
+                t->root = t->root->right;
+                return -1;
+        }
+        if (!t->root->right) {
+                t->root = t->root->left;
+                return -1;
+        }
+        if (t->root->balance < 0) {
+
+                /* remove from the left subtree */
+                a = t->root->left;
+                while (a->right)
+                        a = a->right;
+        } else {
+                /* remove from the right subtree */
+                a = t->root->right;
+                while (a->left) {
+                        a = a->left;
+                }
+        }
+        ch = mliAvlTree_remove(t, a);
+        a->left = t->root->left;
+        a->right = t->root->right;
+        a->balance = t->root->balance;
+        t->root = a;
+        if (a->balance == 0)
+                return ch;
+        return 0;
+}
+
+struct mliAvl *mliAvlTree_find(struct mliAvlTree *t, const struct mliAvl *probe)
+{
+        int64_t match;
+
+        if (t->root == NULL) {
+                return NULL;
+        }
+
+        match = t->compare(probe, t->root);
+
+        if (match == 0) {
+                return t->root;
+        } else if (match < 0) {
+                if (t->root->left != NULL) {
+                        struct mliAvlTree left_subtree;
+                        left_subtree.root = t->root->left;
+                        left_subtree.compare = t->compare;
+                        return mliAvlTree_find(&left_subtree, probe);
+                } else {
+                        return NULL;
+                }
+        } else {
+                if (t->root->right != NULL) {
+                        struct mliAvlTree right_subtree;
+                        right_subtree.root = t->root->right;
+                        right_subtree.compare = t->compare;
+                        return mliAvlTree_find(&right_subtree, probe);
+                } else {
+                        return NULL;
+                }
+        }
+        return NULL;
+}
+
+struct mliAvlNode mliAvlNode_init(void)
+{
+        struct mliAvlNode n;
+        n.avl.left = NULL;
+        n.avl.right = NULL;
+        n.avl.balance = 0;
+        n.key = 0;
+        n.value = 0;
+        return n;
+}
+
+int64_t mliAvlNode_compare(const void *a, const void *b)
+{
+        return ((struct mliAvlNode *)a)->key - ((struct mliAvlNode *)b)->key;
+}
+
+void mliAvlNode_print(struct mliAvl *a, int m)
+{
+        int n = m;
+        if (a == NULL) {
+                return;
+        };
+        if (a->right) {
+                mliAvlNode_print(a->right, m + 1);
+        }
+        while (n--) {
+                printf("   ");
+        }
+        printf("%ld (%ld)\n", ((struct mliAvlNode *)a)->key, a->balance);
+        if (a->left) {
+                mliAvlNode_print(a->left, m + 1);
+        }
+}
+
 /* mliBoundaryLayer */
 /* ---------------- */
 
@@ -1835,7 +2408,7 @@ chk_error:
 
 void mliDynPhotonInteraction_print(
         const struct mliDynPhotonInteraction *history,
-        const struct mliGeometry *scenery)
+        const struct mliScenery *scenery)
 {
         uint64_t i;
         char type_string[1024];
@@ -1863,9 +2436,11 @@ void mliDynPhotonInteraction_print(
 
                 if (phisec.on_geometry_surface == 1) {
                         printf("(% 5d;% 5d,% 5d,% 5d)  ",
-                               scenery->robject_ids[phisec.geometry_id.robj],
+                               scenery->geometry
+                                       .robject_ids[phisec.geometry_id.robj],
                                phisec.geometry_id.robj,
-                               scenery->robjects[phisec.geometry_id.robj],
+                               scenery->geometry
+                                       .robjects[phisec.geometry_id.robj],
                                phisec.geometry_id.face);
                 } else {
                         printf("            n/a            ");
@@ -1878,11 +2453,14 @@ void mliDynPhotonInteraction_print(
 
                 mli_photoninteraction_type_to_string(phisec.type, type_string);
 
-                printf("%-12s ", type_string);
+                printf("%-24s ", type_string);
 
-                printf("{% 2ld,% 2ld}  ",
-                       phisec.medium_coming_from,
-                       phisec.medium_going_to);
+                printf("{%-12s,%-12s}  ",
+                       scenery->materials
+                               .medium_names[phisec.medium_coming_from]
+                               .cstr,
+                       scenery->materials.medium_names[phisec.medium_going_to]
+                               .cstr);
 
                 if (phisec.type == MLI_PHOTON_CREATION) {
                         printf(" n/a  ");
@@ -1897,7 +2475,7 @@ void mliDynPhotonInteraction_print(
                                 printf("%s", in_out);
                         }
                 } else {
-                        printf("n/a  ");
+                        printf("n/a");
                 }
                 printf("\n");
         }
@@ -8523,6 +9101,9 @@ int mliRay_sphere_intersection(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
+#define MIN2 MLI_MIN2
+#define MAX2 MLI_MAX2
+
 int mliRay_has_overlap_aabb(
         const struct mliRay ray,
         const struct mliAABB aabb,
@@ -8532,17 +9113,19 @@ int mliRay_has_overlap_aabb(
         const double frac_y = 1. / ray.direction.y;
         const double frac_z = 1. / ray.direction.z;
 
-        const double t1 = (aabb.lower.x - ray.support.x) * frac_x;
-        const double t2 = (aabb.upper.x - ray.support.x) * frac_x;
-        const double t3 = (aabb.lower.y - ray.support.y) * frac_y;
-        const double t4 = (aabb.upper.y - ray.support.y) * frac_y;
-        const double t5 = (aabb.lower.z - ray.support.z) * frac_z;
-        const double t6 = (aabb.upper.z - ray.support.z) * frac_z;
+        const double xl = (aabb.lower.x - ray.support.x) * frac_x;
+        const double xu = (aabb.upper.x - ray.support.x) * frac_x;
+        const double yl = (aabb.lower.y - ray.support.y) * frac_y;
+        const double yu = (aabb.upper.y - ray.support.y) * frac_y;
+        const double zl = (aabb.lower.z - ray.support.z) * frac_z;
+        const double zu = (aabb.upper.z - ray.support.z) * frac_z;
 
-        const double tmin = MLI_MAX2(
-                MLI_MAX2(MLI_MIN2(t1, t2), MLI_MIN2(t3, t4)), MLI_MIN2(t5, t6));
-        const double tmax = MLI_MIN2(
-                MLI_MIN2(MLI_MAX2(t1, t2), MLI_MAX2(t3, t4)), MLI_MAX2(t5, t6));
+        const double tmin = MLI_MAX3(MIN2(xl, xu), MIN2(yl, yu), MIN2(zl, zu));
+        const double tmax = MLI_MIN3(MAX2(xl, xu), MAX2(yl, yu), MAX2(zl, zu));
+
+        /*  if tmax < 0, ray (line) is intersecting AABB
+         *  but the whole AABB is behind us
+         */
         if (tmax < 0) {
                 (*ray_parameter) = tmax;
                 return 0;
@@ -8551,7 +9134,7 @@ int mliRay_has_overlap_aabb(
         /* if tmin > tmax, ray doesn't intersect AABB */
         if (tmin > tmax) {
                 (*ray_parameter) = tmax;
-                return 0;
+                return 1;
         }
 
         (*ray_parameter) = tmin;
@@ -12064,6 +12647,16 @@ struct mliBarycentrigWeights mli_barycentric_weights(
         return weights;
 }
 
+/* mli_benchmark */
+/* ------------- */
+
+/* Copyright 2018-2024 Sebastian Achim Mueller */
+
+double mli_clock2second(const clock_t t)
+{
+        return ((double)t) / CLOCKS_PER_SEC;
+}
+
 /* mli_cstr */
 /* -------- */
 
@@ -14487,6 +15080,263 @@ uint32_t pcg_setseq_64_xsh_rr_32_random_r(struct pcg_state_setseq_64 *rng)
         uint64_t oldstate = rng->state;
         pcg_setseq_64_step_r(rng);
         return pcg_output_xsh_rr_64_32(oldstate);
+}
+
+/* mli_ray_grid_traversal */
+/* ---------------------- */
+
+/* Copyright 2018-2024 Sebastian Achim Mueller */
+
+/* Inspired by:
+ * A Fast Voxel Traversal Algorithm for Ray Tracing
+ * John Amanatides and Andrew Woo
+ * Dept. of Computer Science
+ * University of Toronto
+ * Toronto, Ontario, Canada M5S 1A4
+ */
+
+struct mliIdx3 mliIdx3_set(const int64_t x, const int64_t y, const int64_t z)
+{
+        struct mliIdx3 iii;
+        iii.x = x;
+        iii.y = y;
+        iii.z = z;
+        return iii;
+}
+
+struct mliAxisAlignedGrid mliAxisAlignedGrid_set(
+        struct mliAABB bounds,
+        struct mliIdx3 num_bins)
+{
+        struct mliAxisAlignedGrid grid;
+        grid.bounds = bounds;
+        grid.num_bins = num_bins;
+        assert(mliAABB_valid(grid.bounds));
+        assert(grid.num_bins.x > 0);
+        assert(grid.num_bins.y > 0);
+        assert(grid.num_bins.z > 0);
+        grid.bin_width.x = (grid.bounds.upper.x - grid.bounds.lower.x) /
+                           ((double)grid.num_bins.x);
+        grid.bin_width.y = (grid.bounds.upper.y - grid.bounds.lower.y) /
+                           ((double)grid.num_bins.y);
+        grid.bin_width.z = (grid.bounds.upper.z - grid.bounds.lower.z) /
+                           ((double)grid.num_bins.z);
+        return grid;
+}
+
+struct mliIdx3 mliAxisAlignedGrid_get_voxel_idx(
+        const struct mliAxisAlignedGrid *grid,
+        struct mliVec point)
+{
+        struct mliVec pg = mliVec_substract(point, grid->bounds.lower);
+        struct mliIdx3 iii;
+        pg.x /= grid->bin_width.x;
+        pg.y /= grid->bin_width.y;
+        pg.z /= grid->bin_width.z;
+        iii.x = (int64_t)floor(pg.x);
+        iii.y = (int64_t)floor(pg.y);
+        iii.z = (int64_t)floor(pg.z);
+        return iii;
+}
+
+int mliAxisAlignedGrid_find_voxel_of_first_interaction(
+        const struct mliAxisAlignedGrid *grid,
+        const struct mliRay *ray,
+        struct mliIdx3 *bin)
+{
+        if (mliAABB_is_point_inside(grid->bounds, ray->support)) {
+                (*bin) = mliAxisAlignedGrid_get_voxel_idx(grid, ray->support);
+                return MLI_AXIS_ALIGNED_GRID_RAY_STARTS_INSIDE_GRID;
+        } else {
+                double ray_parameter;
+                int has_intersection = mliRay_has_overlap_aabb(
+                        (*ray), grid->bounds, &ray_parameter);
+                if (has_intersection) {
+                        struct mliVec inner = mliRay_at(ray, ray_parameter);
+                        (*bin) = mliAxisAlignedGrid_get_voxel_idx(grid, inner);
+
+                        if (bin->x >= grid->num_bins.x) {
+                                bin->x -= 1;
+                        }
+                        if (bin->y >= grid->num_bins.y) {
+                                bin->y -= 1;
+                        }
+                        if (bin->z >= grid->num_bins.z) {
+                                bin->z -= 1;
+                        }
+
+                        return MLI_AXIS_ALIGNED_GRID_RAY_STARTS_OUTSIDE_GRID_BUT_INTERSECTS;
+                } else {
+                        return MLI_AXIS_ALIGNED_GRID_RAY_DOES_NOT_INTERSECT_GRID;
+                }
+        }
+        return 0;
+}
+
+struct mliVec mliAxisAlignedGridTraversal_first_plane(
+        const struct mliAxisAlignedGrid *grid,
+        const struct mliIdx3 voxel,
+        const struct mliVec ray_direction)
+{
+        struct mliVec voxel_lower = mliVec_init(
+                grid->bounds.lower.x + (double)voxel.x * grid->bin_width.x,
+                grid->bounds.lower.y + (double)voxel.y * grid->bin_width.y,
+                grid->bounds.lower.z + (double)voxel.z * grid->bin_width.z);
+        struct mliVec voxel_upper = mliVec_init(
+                grid->bounds.lower.x +
+                        (double)(voxel.x + 1) * grid->bin_width.x,
+                grid->bounds.lower.y +
+                        (double)(voxel.y + 1) * grid->bin_width.y,
+                grid->bounds.lower.z +
+                        (double)(voxel.z + 1) * grid->bin_width.z);
+
+        struct mliVec first;
+
+        if (ray_direction.x >= 0.0) {
+                first.x = voxel_upper.x;
+        } else {
+                first.x = voxel_lower.x;
+        }
+
+        if (ray_direction.y >= 0.0) {
+                first.y = voxel_upper.y;
+        } else {
+                first.y = voxel_lower.y;
+        }
+
+        if (ray_direction.z >= 0.0) {
+                first.z = voxel_upper.z;
+        } else {
+                first.z = voxel_lower.z;
+        }
+
+        return first;
+}
+
+double calc_t_for_x_plane(const double x_plane, const struct mliRay *ray)
+{
+        return -(ray->support.x - x_plane) / (ray->direction.x);
+}
+
+double calc_t_for_y_plane(const double y_plane, const struct mliRay *ray)
+{
+        return -(ray->support.y - y_plane) / (ray->direction.y);
+}
+
+double calc_t_for_z_plane(const double z_plane, const struct mliRay *ray)
+{
+        return -(ray->support.z - z_plane) / (ray->direction.z);
+}
+
+struct mliAxisAlignedGridTraversal mliAxisAlignedGridTraversal_start(
+        const struct mliAxisAlignedGrid *grid,
+        const struct mliRay *ray)
+{
+        struct mliAxisAlignedGridTraversal traversal;
+
+        traversal.grid = grid;
+        traversal.valid = mliAxisAlignedGrid_find_voxel_of_first_interaction(
+                grid, ray, &traversal.voxel);
+        if (traversal.valid) {
+                struct mliVec first_plane;
+                traversal.step.x = MLI_SIGN(ray->direction.x);
+                traversal.step.y = MLI_SIGN(ray->direction.y);
+                traversal.step.z = MLI_SIGN(ray->direction.z);
+
+                first_plane = mliAxisAlignedGridTraversal_first_plane(
+                        grid, traversal.voxel, ray->direction);
+
+                traversal.tMax.x = calc_t_for_x_plane(first_plane.x, ray);
+                traversal.tMax.y = calc_t_for_y_plane(first_plane.y, ray);
+                traversal.tMax.z = calc_t_for_z_plane(first_plane.z, ray);
+
+                traversal.tDelta.x = grid->bin_width.x / fabs(ray->direction.x);
+                traversal.tDelta.y = grid->bin_width.y / fabs(ray->direction.y);
+                traversal.tDelta.z = grid->bin_width.z / fabs(ray->direction.z);
+        }
+        return traversal;
+}
+
+int mliAxisAlignedGridTraversal_next(
+        struct mliAxisAlignedGridTraversal *traversal)
+{
+        struct mliAxisAlignedGridTraversal *t = traversal;
+        int RAY_LEFT_GRID = 0;
+
+        if (t->tMax.x < t->tMax.y) {
+                if (t->tMax.x < t->tMax.z) {
+                        t->voxel.x += t->step.x;
+                        if (t->voxel.x < 0 ||
+                            t->voxel.x >= t->grid->num_bins.x) {
+                                traversal->valid = RAY_LEFT_GRID;
+                                return traversal->valid;
+                        }
+                        t->tMax.x += t->tDelta.x;
+                } else {
+                        t->voxel.z += t->step.z;
+                        if (t->voxel.z < 0 ||
+                            t->voxel.z >= t->grid->num_bins.z) {
+                                traversal->valid = RAY_LEFT_GRID;
+                                return traversal->valid;
+                        }
+                        t->tMax.z += t->tDelta.z;
+                }
+        } else {
+                if (t->tMax.y < t->tMax.z) {
+                        t->voxel.y += t->step.y;
+                        if (t->voxel.y < 0 ||
+                            t->voxel.y >= t->grid->num_bins.y) {
+                                traversal->valid = RAY_LEFT_GRID;
+                                return traversal->valid;
+                        }
+                        t->tMax.y += t->tDelta.y;
+                } else {
+                        t->voxel.z += t->step.z;
+                        if (t->voxel.z < 0 ||
+                            t->voxel.z >= t->grid->num_bins.z) {
+                                traversal->valid = RAY_LEFT_GRID;
+                                return traversal->valid;
+                        }
+                        t->tMax.z += t->tDelta.z;
+                }
+        }
+        return traversal->valid;
+}
+
+void mliAxisAlignedGridTraversal_fprint(
+        FILE *f,
+        struct mliAxisAlignedGridTraversal *traversal)
+{
+        struct mliAxisAlignedGridTraversal *t = traversal;
+        fprintf(f,
+                "  grid.bounds.upper: [%f, %f, %f]\n",
+                t->grid->bounds.upper.x,
+                t->grid->bounds.upper.y,
+                t->grid->bounds.upper.z);
+        fprintf(f,
+                "  grid.bounds.lower: [%f, %f, %f]\n",
+                t->grid->bounds.lower.x,
+                t->grid->bounds.lower.y,
+                t->grid->bounds.lower.z);
+        fprintf(f,
+                "  grid.num_bins: [%ld, %ld, %ld]\n",
+                t->grid->num_bins.x,
+                t->grid->num_bins.y,
+                t->grid->num_bins.z);
+
+        fprintf(f, "  valid: %d\n", t->valid);
+        fprintf(f,
+                "  voxel: [%ld, %ld, %ld]\n",
+                t->voxel.x,
+                t->voxel.y,
+                t->voxel.z);
+        fprintf(f, "  step: [%f, %f, %f]\n", t->step.x, t->step.y, t->step.z);
+        fprintf(f, "  tMax: [%f, %f, %f]\n", t->tMax.x, t->tMax.y, t->tMax.z);
+        fprintf(f,
+                "  tDelta: [%f, %f, %f]\n",
+                t->tDelta.x,
+                t->tDelta.y,
+                t->tDelta.z);
 }
 
 /* mli_ray_octree_traversal */
