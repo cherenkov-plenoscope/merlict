@@ -1083,6 +1083,9 @@ double mli_linear_interpolate_2d(
         const double x1,
         const double y1);
 double mli_relative_ratio(const double a, const double b);
+
+double mli_interpret_int64_as_double(int64_t i);
+int64_t mli_interpret_double_as_int64(double d);
 #endif
 
 /* mli_quadratic_equation */
@@ -1199,7 +1202,7 @@ uint32_t pcg_setseq_64_xsh_rr_32_random_r(struct pcg_state_setseq_64 *rng);
 
 #define MLI_VERSION_MAYOR 1
 #define MLI_VERSION_MINOR 9
-#define MLI_VERSION_PATCH 5
+#define MLI_VERSION_PATCH 7
 
 void mli_logo_fprint(FILE *f);
 void mli_authors_and_affiliations_fprint(FILE *f);
@@ -1875,6 +1878,8 @@ int mliIo_malloc_capacity(struct mliIo *byt, const uint64_t capacity);
 int mliIo_malloc(struct mliIo *byt);
 int64_t mliIo_malloc_cstr(struct mliIo *byt, const char *s);
 int mliIo_malloc_from_path(struct mliIo *byt, const char *path);
+int mliIo_write_from_file(struct mliIo *byt, FILE *f, const uint64_t size);
+int mliIo_read_to_file(struct mliIo *byt, FILE *f, const uint64_t size);
 int mliIo_read_to_path(struct mliIo *byt, const char *path);
 int mliIo_putc(struct mliIo *byt, const unsigned char c);
 int mliIo_putchar(struct mliIo *byt, const char c);
@@ -2219,6 +2224,23 @@ int mliRay_has_overlap_aabb(
         const struct mliRay ray,
         const struct mliAABB aabb,
         double *ray_parameter);
+#endif
+
+/* mliTarIo */
+/* -------- */
+
+#ifndef MLITARIO_H_
+#define MLITARIO_H_
+
+
+int mliTar_read_data_to_io(
+        struct mliTar *tar,
+        struct mliIo *buff,
+        const uint64_t size);
+int mliTar_write_data_from_io(
+        struct mliTar *tar,
+        struct mliIo *buff,
+        const uint64_t size);
 #endif
 
 /* mliTracer */

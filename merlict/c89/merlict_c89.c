@@ -5249,6 +5249,39 @@ chk_error:
         return 0;
 }
 
+int mliIo_write_from_file(struct mliIo *byt, FILE *f, const uint64_t size)
+{
+        uint64_t i;
+        chk_msg(f, "Expected file to be open.");
+        chk_msg(byt->cstr != NULL, "Expected buffer to be allocated.");
+        for (i = 0; i < size; i++) {
+                char c = getc(f);
+                chk(mliIo_putc(byt, c))
+        }
+
+        return 1;
+chk_error:
+        return 0;
+}
+
+int mliIo_read_to_file(struct mliIo *byt, FILE *f, const uint64_t size)
+{
+        uint64_t i;
+        chk_msg(f, "Expected file to be open.");
+        chk_msg(byt->cstr != NULL, "Expected buffer to be allocated.");
+        for (i = 0; i < size; i++) {
+                int rc = mliIo_getc(byt);
+                unsigned char c;
+                chk(rc != EOF);
+                c = (unsigned char)(rc);
+                chk_fwrite(&c, sizeof(unsigned char), 1, f);
+        }
+
+        return 1;
+chk_error:
+        return 0;
+}
+
 /* mliMagicId */
 /* ---------- */
 
@@ -10710,6 +10743,49 @@ chk_error:
         return 0;
 }
 
+/* mliTarIo */
+/* -------- */
+
+/* Copyright 2018-2024 Sebastian Achim Mueller */
+
+int mliTar_read_data_to_io(
+        struct mliTar *tar,
+        struct mliIo *buff,
+        const uint64_t size)
+{
+        uint64_t i;
+        chk_msg(buff->cstr != NULL, "buff is not allocated.");
+        for (i = 0; i < size; i++) {
+                unsigned char c;
+                chk(mliTar_read_data(tar, (void *)(&c), 1));
+                chk(mliIo_putc(buff, c));
+        }
+
+        return 1;
+chk_error:
+        return 0;
+}
+
+int mliTar_write_data_from_io(
+        struct mliTar *tar,
+        struct mliIo *buff,
+        const uint64_t size)
+{
+        uint64_t i;
+        chk_msg(tar->stream, "tar is not open.");
+        for (i = 0; i < size; i++) {
+                int rc = mliIo_getc(buff);
+                unsigned char c;
+                chk(rc != EOF);
+                c = (char)(rc);
+                chk(mliTar_write_data(tar, (void *)(&c), 1));
+        }
+
+        return 1;
+chk_error:
+        return 0;
+}
+
 /* mliTmpOcTree */
 /* ------------ */
 
@@ -14233,6 +14309,20 @@ double mli_linear_interpolate_2d(
 double mli_relative_ratio(const double a, const double b)
 {
         return fabs(a - b) / (0.5 * (a + b));
+}
+
+double mli_interpret_int64_as_double(int64_t i)
+{
+        double f;
+        memcpy(&f, &i, sizeof(double));
+        return f;
+}
+
+int64_t mli_interpret_double_as_int64(double d)
+{
+        int64_t i;
+        memcpy(&i, &d, sizeof(int64_t));
+        return i;
 }
 
 /* mli_photon_propagation */
