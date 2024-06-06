@@ -1202,7 +1202,7 @@ uint32_t pcg_setseq_64_xsh_rr_32_random_r(struct pcg_state_setseq_64 *rng);
 
 #define MLI_VERSION_MAYOR 1
 #define MLI_VERSION_MINOR 9
-#define MLI_VERSION_PATCH 7
+#define MLI_VERSION_PATCH 9
 
 void mli_logo_fprint(FILE *f);
 void mli_authors_and_affiliations_fprint(FILE *f);
@@ -2220,10 +2220,16 @@ int mliRay_sphere_intersection(
 #define MLIRAY_AABB_H_
 
 
-int mliRay_has_overlap_aabb(
+void mliRay_aabb_intersections(
         const struct mliRay ray,
         const struct mliAABB aabb,
-        double *ray_parameter);
+        double *t_near,
+        double *t_far);
+int mliRay_aabb_intersections_is_valid_given_near_and_far(
+        const double t_near,
+        const double t_far);
+int mliRay_has_overlap_aabb(const struct mliRay ray, const struct mliAABB aabb);
+
 #endif
 
 /* mliTarIo */
@@ -2596,7 +2602,7 @@ int mliAxisAlignedGridTraversal_next(
 void mliAxisAlignedGridTraversal_fprint(
         FILE *f,
         struct mliAxisAlignedGridTraversal *traversal);
-
+void mliRay_fprint(FILE *f, struct mliRay *ray);
 #endif
 
 /* mli_triangle_intersection */
