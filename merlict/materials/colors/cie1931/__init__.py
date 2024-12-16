@@ -5,10 +5,10 @@ import numpy as np
 
 
 def visible_wavelength_range():
-    return [380e-9, 800e-9]
+    return [380e-9, 780e-9]
 
 
-def visable_wavelengths(num_steps_in_visable_range=32):
+def visable_wavelengths(num_steps_in_visable_range=41):
     w = [200e-9]
     vstart, vstop = visible_wavelength_range()
     visable = np.linspace(vstart, vstop, num_steps_in_visable_range)
@@ -118,6 +118,8 @@ class Cie1931:
         else:
             assert False, "Expected mode 'xyz' or 'rgb'."
 
+        val /= np.mean(val)
+
         spectrum = self._white_spectrum_visable_ones_invisable_zeros()
 
         wvl_start, wvl_stop = visible_wavelength_range()
@@ -165,7 +167,7 @@ class Cie1931:
                     spectrum[w] = spectrum[w] * (1 - mag)
                 elif best_sign == +1:
                     spectrum[w] = spectrum[w] * (1 + mag)
-        return spectrum
+        return spectrum / spectrum.max()
 
     def _observe_spectrum_xyz(self, spectrum):
         xi = np.sum(spectrum * self.x) / self.x_sum
@@ -202,3 +204,22 @@ class Cie1931:
             x=self.wavelengths, xp=spectrum[:, 0], fp=spectrum[:, 1]
         )
         return self._observe_spectrum_rgb(_spectrum)
+
+    def _print_normalized(self, channel):
+        ox = self.x.copy()
+        oy = self.y.copy()
+        oz = self.z.copy()
+        m = np.max([np.max(ox), np.max(oy), np.max(oz)])
+        ox /= m
+        oy /= m
+        oz /= m
+
+        s = ""
+        for cc in [("x", ox), ("y", oy), ("z", oz)]:
+            s += f"{cc[0]:s} = {{\n"
+            for w in range(len(self.wavelengths)):
+                wvl = self.wavelengths[w]
+                val = cc[1][w]
+                s += f"    {{{wvl:.3e}, {val:.3e}}},\n"
+            s += "}\n"
+        return s
