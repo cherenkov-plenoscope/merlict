@@ -7,6 +7,7 @@ you@com: merlict/merlict/c89$ python almagamate_merlict_c89_and_set_version.py
 ```
 """
 import os
+import glob
 import shutil
 import subprocess
 
@@ -26,9 +27,9 @@ def rm(path):
 
 
 # list the libs from within merlict_c89 which will be almagamated.
-merlict_c89_libs = ["mli", "mli_viewer"]
-merlict_c89_header_path = "merlict_c89.h"
-merlict_c89_source_path = "merlict_c89.c"
+merlict_c89_module_paths = glob.glob(os.path.join(".", "merlict_c89", "src", "*"))
+merlict_c89_header_path = "mli.h"
+merlict_c89_source_path = "mli.c"
 
 # Remove all old installations and caches
 # ---------------------------------------
@@ -54,21 +55,18 @@ rm(os.path.join(merlict_dir, "merlict", "c89", "wrapper.c"))
 
 # Set merlict python package's version
 # ------------------------------------
-MERLICT_PYTHON_VERSION_STR = "0.1.8"  # <- set version here.
+MERLICT_PYTHON_VERSION_STR = "0.2.0"  # <- set version here.
 
 # Almagamate the sources from merlict
 # -----------------------------------
+_outdir = "."
 subprocess.call(
     [
         "python",
         os.path.join(".", "merlict_c89", "tools", "almagamate.py"),
-        ".",
-        "--header_path",
-        merlict_c89_header_path,
-        "--source_path",
-        merlict_c89_source_path,
+        _outdir,
     ]
-    + [os.path.join(".", "merlict_c89", "libs", l) for l in merlict_c89_libs]
+    + merlict_c89_module_paths
 )
 
 
