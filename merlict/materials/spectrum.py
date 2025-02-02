@@ -1,7 +1,13 @@
 import numpy as np
 
 
-def Spectrum(wavelength, value, wavelength_name="wavelength", value_name="value", comment=""):
+def Spectrum(
+    wavelength,
+    value,
+    wavelength_name="wavelength",
+    value_name="value",
+    comment="",
+):
     out = {}
     out["wavelength"] = np.asarray(wavelength, dtype=float)
     out["value"] = np.asarray(value, dtype=float)

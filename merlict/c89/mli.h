@@ -1457,8 +1457,8 @@ int mli_Vec_overlap_aabb(
 
 
 #define MLI_VERSION_MAYOR 2
-#define MLI_VERSION_MINOR 0
-#define MLI_VERSION_PATCH 1
+#define MLI_VERSION_MINOR 1
+#define MLI_VERSION_PATCH 0
 
 void mli_version_logo_fprint(FILE *f);
 void mli_version_authors_and_affiliations_fprint(FILE *f);
@@ -2175,19 +2175,6 @@ struct mli_prng_PCG32 {
 struct mli_prng_PCG32 mli_prng_PCG32_init(const uint32_t seed);
 uint32_t mli_prng_PCG32_generate_uint32(struct mli_prng_PCG32 *pcg32);
 void mli_prng_PCG32_reinit(struct mli_prng_PCG32 *pcg32, const uint32_t seed);
-
-#endif
-
-/* prng_testing */
-/* ------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_PRNG_TESTING_H_
-#define MLI_PRNG_TESTING_H_
-
-
-MLI_VECTOR_DEFINITON(mtl_VectorDoubles, double)
-MLI_VECTOR_IMPLEMENTATION(mtl_VectorDoubles, double)
 
 #endif
 
@@ -3998,6 +3985,7 @@ int mli_String_from_io(struct mli_String *self, struct mli_IO *f);
 
 struct mli_Map;
 struct mli_String;
+struct mli_Materials;
 
 #define MLI_SURFACE_TYPE_COOKTORRANCE 5000
 
@@ -4024,6 +4012,10 @@ int mli_Surface_CookTorrance_from_json_string(
         const struct mli_Map *spectra_names,
         const struct mli_String *json_string);
 
+int mli_Surface_CookTorrance_valid_wrt_materials(
+        const struct mli_Surface_CookTorrance *self,
+        const struct mli_Materials *materials);
+
 #endif
 
 /* surface_transparent */
@@ -4035,6 +4027,7 @@ int mli_Surface_CookTorrance_from_json_string(
 
 struct mli_Map;
 struct mli_String;
+struct mli_Materials;
 
 #define MLI_SURFACE_TYPE_TRANSPARENT 1000
 
@@ -4057,6 +4050,10 @@ int mli_Surface_Transparent_from_json_string(
         struct mli_Surface_Transparent *self,
         const struct mli_Map *spectra_names,
         const struct mli_String *json_string);
+
+int mli_Surface_Transparent_valid_wrt_materials(
+        const struct mli_Surface_Transparent *self,
+        const struct mli_Materials *materials);
 
 #endif
 
@@ -4611,6 +4608,7 @@ MLI_ARRAY_DEFINITON(mli_SpectrumArray, struct mli_Spectrum)
 
 struct mli_IO;
 struct mli_Map;
+struct mli_Materials;
 
 #define MLI_SURFACE_TYPE_NONE 0
 
@@ -4641,6 +4639,10 @@ int mli_Surface_from_json_string_and_name(
         const struct mli_Map *spectra_names,
         const struct mli_String *json_string,
         const struct mli_String *name);
+
+int mli_Surface_valid_wrt_materials(
+        const struct mli_Surface *self,
+        const struct mli_Materials *materials);
 
 #endif
 
@@ -5665,6 +5667,13 @@ struct mli_Shader {
         const struct mli_shader_Config *config;
 };
 
+struct mli_ShaderPath {
+        double weight;
+        uint64_t num_interactions;
+};
+
+struct mli_ShaderPath mli_ShaderPath_init(void);
+
 struct mli_Shader mli_Shader_init(void);
 
 double mli_Shader_estimate_sun_obstruction_weight(
@@ -5711,23 +5720,30 @@ struct mli_ColorSpectrum mli_Shader_trace_ambient_sun_whitebox(
 struct mli_ColorSpectrum mli_Shader_trace_path_to_next_intersection(
         const struct mli_Shader *tracer,
         const struct mli_Ray ray,
+        struct mli_ShaderPath path,
         struct mli_Prng *prng);
 
 struct mli_ColorSpectrum mli_Shader_trace_next_intersection(
         const struct mli_Shader *tracer,
+        const struct mli_Ray ray,
         const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_ShaderPath path,
         struct mli_Prng *prng);
 
 struct mli_ColorSpectrum mli_Shader_trace_intersection_cooktorrance(
         const struct mli_Shader *tracer,
+        const struct mli_Ray ray,
         const struct mli_IntersectionSurfaceNormal *intersection,
         const struct mli_IntersectionLayer *intersection_layer,
+        struct mli_ShaderPath path,
         struct mli_Prng *prng);
 
 struct mli_ColorSpectrum mli_Shader_trace_intersection_transparent(
         const struct mli_Shader *tracer,
+        const struct mli_Ray ray,
         const struct mli_IntersectionSurfaceNormal *intersection,
         const struct mli_IntersectionLayer *intersection_layer,
+        struct mli_ShaderPath path,
         struct mli_Prng *prng);
 
 #endif

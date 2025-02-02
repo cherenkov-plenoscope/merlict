@@ -11005,6 +11005,31 @@ int mli_Materials_info_fprint(FILE *f, const struct mli_Materials *self)
         fprintf(f, "---------\n");
         fprintf(f, "\n");
 
+        fprintf(f, "    spectra\n");
+        fprintf(f, "    ");
+        for (i = 0; i < 70; i++) {
+                fprintf(f, "-");
+        }
+        fprintf(f, "\n");
+        fprintf(f, "    ");
+        fprintf(f, "%3s ", "#");
+        fprintf(f, "%24s ", "name");
+        fprintf(f, "\n");
+        fprintf(f, "    ");
+        for (i = 0; i < 70; i++) {
+                fprintf(f, "-");
+        }
+        fprintf(f, "\n");
+        for (i = 0; i < self->spectra.size; i++) {
+                struct mli_Spectrum *spectrum = &self->spectra.array[i];
+                fprintf(f, "    ");
+                fprintf(f, "% 3d ", i);
+                fprintf(f, "%24s ", spectrum->name.array);
+
+                fprintf(f, "\n");
+        }
+        fprintf(f, "\n");
+
         fprintf(f, "    media\n");
         fprintf(f, "    ");
         for (i = 0; i < 70; i++) {
@@ -11014,6 +11039,8 @@ int mli_Materials_info_fprint(FILE *f, const struct mli_Materials *self)
         fprintf(f, "    ");
         fprintf(f, "%3s ", "#");
         fprintf(f, "%24s ", "name");
+        fprintf(f, "%12s ", "refraction");
+        fprintf(f, "%12s ", "absorbtion");
         fprintf(f, "%12s ", "default");
         fprintf(f, "\n");
         fprintf(f, "    ");
@@ -11026,6 +11053,8 @@ int mli_Materials_info_fprint(FILE *f, const struct mli_Materials *self)
                 fprintf(f, "    ");
                 fprintf(f, "% 3d ", i);
                 fprintf(f, "%24s ", medium->name.array);
+                fprintf(f, "%12lu ", medium->refraction_spectrum);
+                fprintf(f, "%12lu ", medium->absorbtion_spectrum);
 
                 if (i == self->default_medium) {
                         fprintf(f, "%12s", "True");
@@ -11537,8 +11566,6 @@ int mli_Materials_from_Archive(
         struct mli_materials_Names *names,
         const struct mli_Archive *archive)
 {
-        uint64_t iii = 0;
-        struct mli_IO ioerr = mli_IO_init();
         struct mli_MaterialsCapacity capacity = mli_MaterialsCapacity_init();
 
         /* free */
@@ -11577,14 +11604,6 @@ int mli_Materials_from_Archive(
         chk_msg(mli_Materials_from_Archive__set_default_medium(
                         materials, names, archive),
                 "Can't set default_medium from archive.");
-
-        chk(mli_IO_adopt_file(&ioerr, stderr));
-        chk(mli_IO_text_write_cstr_format(&ioerr, "materials->spectra\n"));
-        chk(mli_IO_text_write_cstr_format(&ioerr, "------------------\n"));
-        for (iii = 0; iii < materials->spectra.size; iii++) {
-                struct mli_Spectrum *spectrum = &materials->spectra.array[iii];
-                chk(mli_Spectrum_print_to_io(spectrum, &ioerr));
-        }
 
         return 1;
 chk_error:
@@ -11739,8 +11758,9 @@ int mli_Materials_valid_surfaces(const struct mli_Materials *self)
 {
         uint64_t i = 0u;
         for (i = 0; i < self->surfaces.size; i++) {
-                chk(self);
-                chk_warning("IMPLEMENT ME!!!");
+                chk_msg(mli_Surface_valid_wrt_materials(
+                                &self->surfaces.array[i], self),
+                        "Surface is not valid.");
         }
         return 1;
 chk_error:
@@ -17420,6 +17440,14 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
+struct mli_ShaderPath mli_ShaderPath_init(void)
+{
+        struct mli_ShaderPath out;
+        out.weight = 1.0;
+        out.num_interactions = 0u;
+        return out;
+}
+
 struct mli_Shader mli_Shader_init(void)
 {
         struct mli_Shader tracer;
@@ -17480,9 +17508,10 @@ struct mli_Color mli_Shader_trace_ray(
 {
         struct mli_ColorSpectrum spectrum;
         struct mli_Vec xyz, rgb;
+        struct mli_ShaderPath path = mli_ShaderPath_init();
 
-        spectrum =
-                mli_Shader_trace_path_to_next_intersection(tracer, ray, prng);
+        spectrum = mli_Shader_trace_path_to_next_intersection(
+                tracer, ray, path, prng);
 
         xyz = mli_ColorMaterials_ColorSpectrum_to_xyz(
                 tracer->scenery_color_materials, &spectrum);
@@ -17498,18 +17527,27 @@ struct mli_Color mli_Shader_trace_ray(
 struct mli_ColorSpectrum mli_Shader_trace_path_to_next_intersection(
         const struct mli_Shader *tracer,
         const struct mli_Ray ray,
+        struct mli_ShaderPath path,
         struct mli_Prng *prng)
 {
         struct mli_IntersectionSurfaceNormal intersection =
                 mli_IntersectionSurfaceNormal_init();
         struct mli_ColorSpectrum out;
-        int has_intersection =
+        int has_intersection = 0;
+
+        if (path.weight < 0.05 || path.num_interactions > 25) {
+                return mli_ColorSpectrum_init_zeros();
+        }
+
+        path.num_interactions += 1;
+
+        has_intersection =
                 mli_raytracing_query_intersection_with_surface_normal(
                         tracer->scenery, ray, &intersection);
 
         if (has_intersection) {
                 out = mli_Shader_trace_next_intersection(
-                        tracer, &intersection, prng);
+                        tracer, ray, &intersection, path, prng);
         } else {
                 out = mli_Shader_trace_ambient_background(tracer, ray);
         }
@@ -17593,7 +17631,9 @@ struct mli_ColorSpectrum mli_Shader_trace_ambient_sun_whitebox(
 
 struct mli_ColorSpectrum mli_Shader_trace_next_intersection(
         const struct mli_Shader *tracer,
+        const struct mli_Ray ray,
         const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_ShaderPath path,
         struct mli_Prng *prng)
 {
         struct mli_ColorSpectrum out;
@@ -17605,11 +17645,21 @@ struct mli_ColorSpectrum mli_Shader_trace_next_intersection(
         switch (intersection_layer.side_coming_from.surface->type) {
         case MLI_SURFACE_TYPE_COOKTORRANCE:
                 out = mli_Shader_trace_intersection_cooktorrance(
-                        tracer, intersection, &intersection_layer, prng);
+                        tracer,
+                        ray,
+                        intersection,
+                        &intersection_layer,
+                        path,
+                        prng);
                 break;
         case MLI_SURFACE_TYPE_TRANSPARENT:
                 out = mli_Shader_trace_intersection_transparent(
-                        tracer, intersection, &intersection_layer, prng);
+                        tracer,
+                        ray,
+                        intersection,
+                        &intersection_layer,
+                        path,
+                        prng);
                 break;
         default:
                 chk_warning("surface type is not implemented.");
@@ -17620,53 +17670,149 @@ struct mli_ColorSpectrum mli_Shader_trace_next_intersection(
 
 struct mli_ColorSpectrum mli_Shader_trace_intersection_cooktorrance(
         const struct mli_Shader *tracer,
+        const struct mli_Ray ray,
         const struct mli_IntersectionSurfaceNormal *intersection,
         const struct mli_IntersectionLayer *intersection_layer,
+        struct mli_ShaderPath path,
         struct mli_Prng *prng)
 {
-        struct mli_ColorSpectrum incoming;
-        struct mli_ColorSpectrum outgoing;
-        struct mli_ColorSpectrum reflection;
+        struct mli_ColorSpectrum out = mli_ColorSpectrum_init_zeros();
+
         const struct mli_Surface_CookTorrance *cook =
                 &intersection_layer->side_coming_from.surface->data
                          .cooktorrance;
-        double theta;
-        double lambert_factor;
-        double factor;
 
-        assert(intersection_layer->side_coming_from.surface->type ==
-               MLI_SURFACE_TYPE_COOKTORRANCE);
+        struct mli_ColorSpectrum reflection =
+                tracer->scenery_color_materials->spectra
+                        .array[cook->reflection_spectrum];
 
-        incoming = mli_Shader_trace_ambient_sun(tracer, intersection, prng);
+        struct mli_Vec facing_surface_normal =
+                intersection->from_outside_to_inside
+                        ? intersection->surface_normal
+                        : mli_Vec_multiply(intersection->surface_normal, -1.0);
 
-        reflection = tracer->scenery_color_materials->spectra
-                             .array[cook->reflection_spectrum];
+        /* diffuse */
+        if (path.weight * cook->diffuse_weight > 0.05) {
+                struct mli_ColorSpectrum diffuse;
+                double theta_source = mli_Vec_angle_between(
+                        tracer->config->atmosphere.sunDirection,
+                        facing_surface_normal);
+                double theta_view = mli_Vec_angle_between(
+                        ray.direction, facing_surface_normal);
 
-        theta = mli_Vec_angle_between(
-                tracer->config->atmosphere.sunDirection,
-                intersection->surface_normal);
+                double lambert_factor_source = fabs(cos(theta_source));
+                double lambert_factor_view = fabs(cos(theta_view));
 
-        lambert_factor = fabs(cos(theta));
+                double factor = lambert_factor_source * lambert_factor_view *
+                                cook->diffuse_weight;
 
-        factor = lambert_factor * cook->diffuse_weight;
+                struct mli_ColorSpectrum incoming =
+                        mli_Shader_trace_ambient_sun(
+                                tracer, intersection, prng);
 
-        outgoing = mli_ColorSpectrum_multiply(incoming, reflection);
-        outgoing = mli_ColorSpectrum_multiply_scalar(outgoing, factor);
-        return outgoing;
+                diffuse = mli_ColorSpectrum_multiply(incoming, reflection);
+                diffuse = mli_ColorSpectrum_multiply_scalar(diffuse, factor);
+                out = mli_ColorSpectrum_add(out, diffuse);
+        }
+
+        /* specular */
+        if (path.weight * cook->specular_weight > 0.05) {
+
+                struct mli_ColorSpectrum specular;
+                struct mli_Vec specular_reflection_direction =
+                        mli_Vec_mirror(ray.direction, facing_surface_normal);
+
+                struct mli_Ray nray = mli_Ray_set(
+                        intersection->position, specular_reflection_direction);
+
+                path.weight *= cook->specular_weight;
+                specular = mli_Shader_trace_path_to_next_intersection(
+                        tracer, nray, path, prng);
+                specular = mli_ColorSpectrum_multiply(specular, reflection);
+                specular = mli_ColorSpectrum_multiply_scalar(
+                        specular, cook->specular_weight);
+                out = mli_ColorSpectrum_add(out, specular);
+        }
+
+        return out;
 }
 
 struct mli_ColorSpectrum mli_Shader_trace_intersection_transparent(
         const struct mli_Shader *tracer,
+        const struct mli_Ray ray,
         const struct mli_IntersectionSurfaceNormal *intersection,
         const struct mli_IntersectionLayer *intersection_layer,
+        struct mli_ShaderPath path,
         struct mli_Prng *prng)
 {
-        const struct mli_Surface_Transparent *transparent =
-                &intersection_layer->side_coming_from.surface->data.transparent;
-        assert(intersection_layer->side_coming_from.surface->type ==
-               MLI_SURFACE_TYPE_TRANSPARENT);
+        const uint64_t WAVELENGTH_BIN = 12;
+        const uint64_t n_from_idx = intersection_layer->side_coming_from.medium
+                                            ->refraction_spectrum;
+        const uint64_t n_to_idx =
+                intersection_layer->side_going_to.medium->refraction_spectrum;
+        double n_from =
+                tracer->scenery_color_materials->spectra.array[n_from_idx]
+                        .values[WAVELENGTH_BIN];
+        double n_to = tracer->scenery_color_materials->spectra.array[n_to_idx]
+                              .values[WAVELENGTH_BIN];
 
-        return mli_ColorSpectrum_init_zeros();
+        double reflection_weight = -1.0;
+        double refraction_weight = -1.0;
+        struct mli_Vec facing_surface_normal;
+        struct mli_ColorSpectrum reflection_component;
+        struct mli_ColorSpectrum refraction_component;
+        struct mli_ColorSpectrum out = mli_ColorSpectrum_init_zeros();
+        struct mli_Fresnel fresnel;
+
+        facing_surface_normal =
+                intersection->from_outside_to_inside
+                        ? intersection->surface_normal
+                        : mli_Vec_multiply(intersection->surface_normal, -1.0);
+
+        fresnel = mli_Fresnel_init(
+                ray.direction, facing_surface_normal, n_from, n_to);
+
+        reflection_weight = mli_Fresnel_reflection_propability(fresnel);
+        refraction_weight = 1.0 - reflection_weight;
+
+        assert(reflection_weight >= 0.0);
+        assert(reflection_weight <= 1.0);
+
+        assert(refraction_weight >= 0.0);
+        assert(refraction_weight <= 1.0);
+
+        if (path.weight * reflection_weight > 0.05) {
+                struct mli_Ray nray = mli_Ray_set(
+                        intersection->position,
+                        mli_Fresnel_reflection_direction(fresnel));
+
+                path.weight *= reflection_weight;
+                reflection_component =
+                        mli_Shader_trace_path_to_next_intersection(
+                                tracer, nray, path, prng);
+
+                reflection_component = mli_ColorSpectrum_multiply_scalar(
+                        reflection_component, reflection_weight);
+
+                out = mli_ColorSpectrum_add(out, reflection_component);
+        }
+
+        if (path.weight * refraction_weight > 0.05) {
+                struct mli_Ray nray = mli_Ray_set(
+                        intersection->position,
+                        mli_Fresnel_refraction_direction(fresnel));
+                path.weight *= refraction_weight;
+                refraction_component =
+                        mli_Shader_trace_path_to_next_intersection(
+                                tracer, nray, path, prng);
+
+                refraction_component = mli_ColorSpectrum_multiply_scalar(
+                        refraction_component, refraction_weight);
+
+                out = mli_ColorSpectrum_add(out, refraction_component);
+        }
+
+        return out;
 }
 
 /* shader_atmosphere */
@@ -18676,6 +18822,32 @@ chk_error:
         return 0;
 }
 
+int mli_Surface_valid_wrt_materials(
+        const struct mli_Surface *self,
+        const struct mli_Materials *materials)
+{
+        chk_msg(mli_String_valid(&self->name, 1), "name is invalid.");
+
+        switch (self->type) {
+        case MLI_SURFACE_TYPE_TRANSPARENT:
+                chk_msg(mli_Surface_Transparent_valid_wrt_materials(
+                                &self->data.transparent, materials),
+                        "'transparent' surfaces are not valid.");
+                break;
+        case MLI_SURFACE_TYPE_COOKTORRANCE:
+                chk_msg(mli_Surface_CookTorrance_valid_wrt_materials(
+                                &self->data.cooktorrance, materials),
+                        "'cook-torrance' surfaces are not valid.");
+                break;
+        default:
+                chk_badf(("surface-type-id '%lu' is unknown.", self->type));
+        }
+
+        return 1;
+chk_error:
+        return 0;
+}
+
 /* surface_array */
 /* ------------- */
 
@@ -18793,6 +18965,32 @@ chk_error:
         return 0;
 }
 
+int mli_Surface_CookTorrance_valid_wrt_materials(
+        const struct mli_Surface_CookTorrance *self,
+        const struct mli_Materials *materials)
+{
+        chk_msg(self->reflection_spectrum < materials->spectra.size,
+                "reflection_spectrum index is not in materials.");
+
+        chk_msg(self->diffuse_weight >= 0.0, "Expected diffuse_weight >= 0.0");
+        chk_msg(self->diffuse_weight <= 1.0, "Expected diffuse_weight <= 1.0");
+
+        chk_msg(self->specular_weight >= 0.0,
+                "Expected specular_weight >= 0.0");
+        chk_msg(self->specular_weight <= 1.0,
+                "Expected specular_weight <= 1.0");
+
+        chk_msg(self->specular_weight + self->diffuse_weight <= 1.0,
+                "Expected (specular_weight + diffuse_weight) <= 1.0");
+
+        chk_msg(self->roughness >= 0.0, "Expected roughness >= 0.0");
+        chk_msg(self->roughness <= 1.0, "Expected roughness <= 1.0");
+
+        return 1;
+chk_error:
+        return 0;
+}
+
 /* surface_transparent */
 /* ------------------- */
 
@@ -18845,6 +19043,17 @@ int mli_Surface_Transparent_from_json_string(
 
         self->nothing = 0;
 
+        return 1;
+chk_error:
+        return 0;
+}
+
+int mli_Surface_Transparent_valid_wrt_materials(
+        const struct mli_Surface_Transparent *self,
+        const struct mli_Materials *materials)
+{
+        chk(self);
+        chk(materials);
         return 1;
 chk_error:
         return 0;

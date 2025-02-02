@@ -22,7 +22,7 @@ extensions = [
         sources=[
             os.path.join("merlict", "c89", "wrapper.pyx"),
             os.path.join("merlict", "c89", "bridge.c"),
-            os.path.join("merlict", "c89", "merlict_c89.c"),
+            os.path.join("merlict", "c89", "mli.c"),
         ],
         language="c",
         include_dirs=[numpy.get_include()],

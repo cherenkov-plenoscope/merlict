@@ -13,41 +13,41 @@ from .. import intersection as _intersection
 from .. import intersectionSurfaceNormal as _intersectionSurfaceNormal
 
 
-cdef _mliVec2py(mliVec mliv):
+cdef _mli_Vec2py(mli_Vec mliv):
     return np.array([mliv.x, mliv.y, mliv.z], dtype=np.float64)
 
 
-cdef _mliVec(v):
-    cdef mliVec mliv
+cdef _mli_Vec(v):
+    cdef mli_Vec mliv
     mliv.x = v[0]
     mliv.y = v[1]
     mliv.z = v[2]
     return mliv
 
 
-cdef _mliImage2py(mliImage mliimg):
+cdef _mli_Image2py(mli_Image mliimg):
     out = np.zeros(
-        shape=(mliimg.num_cols, mliimg.num_rows, 3),
+        shape=(mli_Image_num_cols(&mliimg), mli_Image_num_rows(&mliimg), 3),
         dtype=np.float32)
-    cdef mliColor c
-    for ix in range(mliimg.num_cols):
-        for iy in range(mliimg.num_rows):
-            c = mliImage_at(&mliimg, ix, iy)
+    cdef mli_Color c
+    for ix in range(mli_Image_num_cols(&mliimg)):
+        for iy in range(mli_Image_num_rows(&mliimg)):
+            c = mli_Image_get_by_col_row(&mliimg, ix, iy)
             out[ix, iy, 0] = c.r
             out[ix, iy, 1] = c.g
             out[ix, iy, 2] = c.b
     return out
 
 
-cdef _mliView(position, rotation, field_of_view):
-    cdef mliView view
-    view.position = _mliVec(position)
-    view.rotation = _mliVec(rotation)
+cdef _mli_View(position, rotation, field_of_view):
+    cdef mli_View view
+    view.position = _mli_Vec(position)
+    view.rotation = _mli_Vec(rotation)
     view.field_of_view = field_of_view
     return view
 
 
-cdef _mlivrConfig_init(
+cdef _mli_viewer_Config_init(
     step_length,
     preview_num_cols,
     preview_num_rows,
@@ -58,7 +58,8 @@ cdef _mlivrConfig_init(
     field_of_view,
     aperture_camera_f_stop_ratio,
     aperture_camera_image_sensor_width,
-    random_seed
+    random_seed,
+    gamma
 ):
     assert step_length > 0
     assert preview_num_cols > 0
@@ -68,19 +69,21 @@ cdef _mlivrConfig_init(
     assert 0 < field_of_view <= np.pi
     assert aperture_camera_f_stop_ratio > 0
     assert aperture_camera_image_sensor_width > 0
+    assert gamma > 0.0
 
-    cdef mlivrConfig _c
+    cdef mli_viewer_Config _c
     _c.random_seed = int(random_seed)
     _c.preview_num_cols = int(preview_num_cols)
     _c.preview_num_rows = int(preview_num_rows)
     _c.export_num_cols = int(export_num_cols)
     _c.export_num_rows = int(export_num_rows)
     _c.step_length = float(step_length)
-    _c.view = _mliView(
+    _c.view = _mli_View(
         position=view_position,
         rotation=view_rotation_tait_bryan_xyz,
         field_of_view=float(field_of_view),
     )
+    _c.gamma = float(gamma)
     _c.aperture_camera_f_stop_ratio = float(aperture_camera_f_stop_ratio)
     _c.aperture_camera_image_sensor_width = float(
         aperture_camera_image_sensor_width
@@ -88,8 +91,8 @@ cdef _mlivrConfig_init(
     return _c
 
 
-cdef _mliArchive_push_back_path_and_payload(
-    mliArchive *archive,
+cdef _mli_Archive_push_back_path_and_payload(
+    mli_Archive *archive,
     path,
     payload,
 ):
@@ -107,7 +110,7 @@ cdef _mliArchive_push_back_path_and_payload(
     cdef char* _cpath = _py_path
     cdef char* _cpayload = _py_payload
 
-    rc = mliArchive_push_back_cstr(
+    rc = mli_Archive_push_back_cstr(
         archive,
         _cpath,
         path_length,
@@ -142,13 +145,13 @@ cdef class Merlict:
         Init from a dump without setting up the tree structure for
         acceleration again from just a sceneryStr.
     """
-    cdef mliScenery scenery
+    cdef mli_Scenery scenery
 
     def __cinit__(self):
-        self.scenery = mliScenery_init()
+        self.scenery = mli_Scenery_init()
 
     def __dealloc__(self):
-        mliScenery_free(&self.scenery)
+        mli_Scenery_free(&self.scenery)
 
     def __init__(self, path=None, sceneryStr=None):
         if path and not sceneryStr:
@@ -180,6 +183,7 @@ cdef class Merlict:
         aperture_camera_f_stop_ratio=2.0,
         aperture_camera_image_sensor_width=24e-3,
         random_seed=0,
+        gamma=1.0,
     ):
         """
         An interactive view which displays images in stdout.
@@ -217,10 +221,13 @@ cdef class Merlict:
         aperture_camera_image_sensor_width : float
             Physical width (along the columns) of the image sensor in the
             camera rendering the high-res image.
+        gamma : float
+            Color values in the output image are raised to the power of gamma
+            in order to compensate for different illumination levels.
         """
-        cdef mlivrConfig cconfig
+        cdef mli_viewer_Config cconfig
 
-        cconfig = _mlivrConfig_init(
+        cconfig = _mli_viewer_Config_init(
             step_length=step_length,
             preview_num_cols=preview_num_cols,
             preview_num_rows=preview_num_rows,
@@ -231,7 +238,8 @@ cdef class Merlict:
             field_of_view=field_of_view,
             aperture_camera_f_stop_ratio=aperture_camera_f_stop_ratio,
             aperture_camera_image_sensor_width=aperture_camera_image_sensor_width,
-            random_seed=random_seed)
+            random_seed=random_seed,
+            gamma=gamma)
 
         fd = sys.stdin.fileno()
         old_attr = termios.tcgetattr(fd)
@@ -241,7 +249,7 @@ cdef class Merlict:
         new_attr[C_FLAG] = new_attr[C_FLAG] & ~termios.ICANON
         try:
             termios.tcsetattr(fd, termios.TCSADRAIN, new_attr)
-            _rc = mlivr_run_interactive_viewer(&self.scenery, cconfig)
+            _rc = mli_viewer_run_interactive_viewer(&self.scenery, cconfig)
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_attr)
 
@@ -251,18 +259,18 @@ cdef class Merlict:
         cdef bytes _py_path = _path.encode()
         cdef char* _cpath = _py_path  # Who is responsible for this memory?
 
-        cdef mliArchive archive = mliArchive_init()
+        cdef mli_Archive archive = mli_Archive_init()
         try:
-            rc = mliArchive_malloc_from_path(&archive, _cpath)
+            rc = mli_Archive__from_path_cstr(&archive, _cpath)
             assert rc != 0
-            rc = mliScenery_malloc_from_Archive(&self.scenery, &archive)
+            rc = mli_Scenery_malloc_from_Archive(&self.scenery, &archive)
             assert rc != 0
         finally:
-            mliArchive_free(&archive)
+            mli_Archive_free(&archive)
 
     def init_from_dump(self, path):
         """
-        Inits the server from a previous dump.
+        Loads Merlict from a previous dump.
 
         Warning
         -------
@@ -279,12 +287,12 @@ cdef class Merlict:
         _path = str(path)
         cdef bytes _py_path = _path.encode()
         cdef char* _cpath = _py_path
-        rc = mliScenery_malloc_from_path(&self.scenery, _cpath)
+        rc = mli_Scenery_malloc_from_path(&self.scenery, _cpath)
         assert rc != 0
 
     def dump(self, path):
         """
-        Dumps the compiled scenery to path.
+        Dumps the compiled Merlict to path.
 
         Warning
         -------
@@ -305,27 +313,27 @@ cdef class Merlict:
         _path = str(path)
         cdef bytes _py_path = _path.encode()
         cdef char* _cpath = _py_path
-        rc = mliScenery_write_to_path(&self.scenery, _cpath)
+        rc = mli_Scenery_write_to_path(&self.scenery, _cpath)
         assert rc != 0
 
     def init_from_sceneryStr(self, sceneryStr):
         cdef int rc
-        cdef mliArchive tmp_archive = mliArchive_init()
+        cdef mli_Archive tmp_archive = mli_Archive_init()
         try:
-            rc = mliArchive_malloc(&tmp_archive)
+            rc = mli_Archive_malloc(&tmp_archive)
             assert rc != 0
 
             for item in sceneryStr:
                 filename, payload = item
-                _mliArchive_push_back_path_and_payload(
+                _mli_Archive_push_back_path_and_payload(
                     &tmp_archive,
                     filename,
                     payload)
 
-            rc = mliScenery_malloc_from_Archive(&self.scenery, &tmp_archive)
+            rc = mli_Scenery_malloc_from_Archive(&self.scenery, &tmp_archive)
             assert rc != 0
         finally:
-            mliArchive_free(&tmp_archive)
+            mli_Archive_free(&tmp_archive)
 
     def query_intersection(self, rays):
         cdef int rc
@@ -333,12 +341,12 @@ cdef class Merlict:
         cdef stdint.uint64_t num_ray = rays.shape[0]
         isecs = _intersection.init(size=num_ray)
 
-        cdef cnumpy.ndarray[mliRay, mode="c"] crays = np.ascontiguousarray(
+        cdef cnumpy.ndarray[mli_Ray, mode="c"] crays = np.ascontiguousarray(
             rays
         )
 
         cdef cnumpy.ndarray[
-            mliIntersection, mode="c"
+            mli_Intersection, mode="c"
         ] cisecs = np.ascontiguousarray(
             isecs
         )
@@ -350,7 +358,7 @@ cdef class Merlict:
         )
 
         if num_ray:
-            rc = mliBridge_query_many_intersection(
+            rc = mli_Bridge_query_many_intersection(
                 &self.scenery,
                 num_ray,
                 &crays[0],
@@ -369,12 +377,12 @@ cdef class Merlict:
         cdef stdint.uint64_t num_ray = rays.shape[0]
         isecs = _intersectionSurfaceNormal.init(size=num_ray)
 
-        cdef cnumpy.ndarray[mliRay, mode="c"] crays = np.ascontiguousarray(
+        cdef cnumpy.ndarray[mli_Ray, mode="c"] crays = np.ascontiguousarray(
             rays
         )
 
         cdef cnumpy.ndarray[
-            mliIntersectionSurfaceNormal, mode="c"
+            mli_IntersectionSurfaceNormal, mode="c"
         ] cisecs = np.ascontiguousarray(
             isecs
         )
@@ -386,7 +394,7 @@ cdef class Merlict:
         )
 
         if num_ray:
-            rc = mliBridge_query_many_intersectionSurfaceNormal(
+            rc = mli_Bridge_query_many_intersectionSurfaceNormal(
                 &self.scenery,
                 num_ray,
                 &crays[0],

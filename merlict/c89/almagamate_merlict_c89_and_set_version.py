@@ -6,6 +6,7 @@ This is only ever executed once by the developers.
 you@com: merlict/merlict/c89$ python almagamate_merlict_c89_and_set_version.py
 ```
 """
+
 import os
 import glob
 import shutil
@@ -27,7 +28,9 @@ def rm(path):
 
 
 # list the libs from within merlict_c89 which will be almagamated.
-merlict_c89_module_paths = glob.glob(os.path.join(".", "merlict_c89", "src", "*"))
+merlict_c89_module_paths = glob.glob(
+    os.path.join(".", "merlict_c89", "src", "*")
+)
 merlict_c89_header_path = "mli.h"
 merlict_c89_source_path = "mli.c"
 
