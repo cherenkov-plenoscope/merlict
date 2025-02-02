@@ -17,6 +17,7 @@ def init(default_medium="vacuum"):
     sceneryPy = {
         "readme": _default_readme(),
         "materials": {
+            "spectra": {},
             "media": {},
             "surfaces": {},
             "boundary_layers": {},

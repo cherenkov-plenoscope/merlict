@@ -42,20 +42,29 @@ def sceneryPy_to_sceneryStr(sceneryPy, indent=4, relations_indent=0):
     )
     sceneryStr.append((filepath, payload))
 
+    for spectra_key in sceneryPy["materials"]["spectra"]:
+        spectra_dir = join("materials", "spectra", f"{spectra_key:s}")
+        spectrum = sceneryPy["materials"]["spectra"][spectra_key]
+        payload = function_csv.dumps(
+            func=spectrum["spectrum"],
+            header=("wavelength/m", "refraction/1"),
+        )
+        sceneryStr.append((join(media_dir, "refraction.csv"), payload))
+
     for media_key in sceneryPy["materials"]["media"]:
         media_dir = join("materials", "media", f"{media_key:s}")
 
         # refraction
         payload = function_csv.dumps(
             func=sceneryPy["materials"]["media"][media_key]["refraction"],
-            comment="",
+            header=("wavelength/m", "refraction/1"),
         )
         sceneryStr.append((join(media_dir, "refraction.csv"), payload))
 
         # absorbtion
         payload = function_csv.dumps(
             func=sceneryPy["materials"]["media"][media_key]["absorbtion"],
-            comment="",
+            header=("wavelength/m", "absorbtion/m^{-1}"),
         )
         sceneryStr.append((join(media_dir, "absorbtion.csv"), payload))
 
@@ -67,7 +76,7 @@ def sceneryPy_to_sceneryStr(sceneryPy, indent=4, relations_indent=0):
             func=sceneryPy["materials"]["surfaces"][surface_key][
                 "specular_reflection"
             ],
-            comment="",
+            header=("wavelength/m", "reflection/1"),
         )
         sceneryStr.append(
             (join(surface_dir, "specular_reflection.csv"), payload)
@@ -78,7 +87,7 @@ def sceneryPy_to_sceneryStr(sceneryPy, indent=4, relations_indent=0):
             func=sceneryPy["materials"]["surfaces"][surface_key][
                 "diffuse_reflection"
             ],
-            comment="",
+            header=("wavelength/m", "reflection/1"),
         )
         sceneryStr.append(
             (join(surface_dir, "diffuse_reflection.csv"), payload)

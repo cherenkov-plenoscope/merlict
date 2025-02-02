@@ -16,7 +16,7 @@ def list_resources():
     )
 
 
-def from_resources(key="perfect_absorber"):
+def init(key="perfect_absorber"):
     """
     Returns the surface's properties from merlict's own library-resources.
     If `key` is followed by a pattern such as `key/rgb_R_G_B`, then the
