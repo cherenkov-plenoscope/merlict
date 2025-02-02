@@ -1,6 +1,7 @@
 import json_numpy as jsonp
 import triangle_mesh_io as tmi
 import posixpath
+from . import function_csv
 
 
 def sceneryPy_to_sceneryStr(sceneryPy, indent=4, relations_indent=0):
@@ -41,19 +42,51 @@ def sceneryPy_to_sceneryStr(sceneryPy, indent=4, relations_indent=0):
     )
     sceneryStr.append((filepath, payload))
 
-    for mkey in sceneryPy["materials"]["media"]:
-        filepath = join("materials", "media", "{:s}.json".format(mkey))
-        payload = jsonp.dumps(
-            sceneryPy["materials"]["media"][mkey], indent=indent
-        )
-        sceneryStr.append((filepath, payload))
+    for media_key in sceneryPy["materials"]["media"]:
+        media_dir = join("materials", "media", f"{media_key:s}")
 
-    for skey in sceneryPy["materials"]["surfaces"]:
-        filepath = join("materials", "surfaces", "{:s}.json".format(skey))
-        payload = jsonp.dumps(
-            sceneryPy["materials"]["surfaces"][skey], indent=indent
+        # refraction
+        payload = function_csv.dumps(
+            func=sceneryPy["materials"]["media"][media_key]["refraction"],
+            comment="",
         )
-        sceneryStr.append((filepath, payload))
+        sceneryStr.append((join(media_dir, "refraction.csv"), payload))
+
+        # absorbtion
+        payload = function_csv.dumps(
+            func=sceneryPy["materials"]["media"][media_key]["absorbtion"],
+            comment="",
+        )
+        sceneryStr.append((join(media_dir, "absorbtion.csv"), payload))
+
+    for surface_key in sceneryPy["materials"]["surfaces"]:
+        surface_dir = join("materials", "surfaces", f"{surface_key:s}")
+
+        # specular_reflection
+        payload = function_csv.dumps(
+            func=sceneryPy["materials"]["surfaces"][surface_key][
+                "specular_reflection"
+            ],
+            comment="",
+        )
+        sceneryStr.append(
+            (join(surface_dir, "specular_reflection.csv"), payload)
+        )
+
+        # diffuse_reflection
+        payload = function_csv.dumps(
+            func=sceneryPy["materials"]["surfaces"][surface_key][
+                "diffuse_reflection"
+            ],
+            comment="",
+        )
+        sceneryStr.append(
+            (join(surface_dir, "diffuse_reflection.csv"), payload)
+        )
+
+        # material
+        payload = sceneryPy["materials"]["surfaces"][surface_key]["material"]
+        sceneryStr.append((join(surface_dir, "material.txt"), payload))
 
     filepath = join("materials", "boundary_layers.json")
     payload = jsonp.dumps(
