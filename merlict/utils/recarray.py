@@ -12,7 +12,7 @@ def isdtype(r, dtype):
     dtype : list of tuples(str, dtype)
         Expected dtype
     """
-    if not isinstance(r, np.core.records.recarray):
+    if not isinstance(r, np.recarray):
         return False
 
     if len(dtype) != len(r.dtype.names):
@@ -30,7 +30,7 @@ def isdtype(r, dtype):
 
 
 def zeros(size, dtype):
-    out = np.core.records.recarray(shape=size, dtype=dtype)
+    out = np.recarray(shape=size, dtype=dtype)
     for key in out.dtype.names:
         out[key] = np.zeros(size, dtype=out.dtype[key])
     return out
