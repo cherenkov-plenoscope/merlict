@@ -2137,7 +2137,7 @@ void mli_camera_Aperture_aquire_pixels(
         const struct mli_camera_Aperture self,
         const struct mli_Image *image,
         const struct mli_HomTraComp camera2root_comp,
-        const struct mli_Shader *tracer,
+        const struct mli_PathTracer *pathtracer,
         const struct mli_image_PixelVector *pixels_to_do,
         struct mli_ColorVector *colors_to_do,
         struct mli_Prng *prng)
@@ -2164,8 +2164,8 @@ void mli_camera_Aperture_aquire_pixels(
                 struct mli_Ray ray_wrt_root =
                         mli_HomTraComp_ray(&camera2root, ray_wrt_camera);
 
-                struct mli_Color set_color =
-                        mli_Shader_trace_ray(tracer, ray_wrt_root, prng);
+                struct mli_Color set_color = mli_pathtracer_trace_ray(
+                        pathtracer, ray_wrt_root, prng);
 
                 mli_ColorVector_push_back(colors_to_do, set_color);
         }
@@ -2200,7 +2200,7 @@ void mli_camera_Aperture_assign_pixel_colors_to_sum_and_exposure_image(
 int mli_camera_Aperture_render_image(
         const struct mli_camera_Aperture self,
         const struct mli_HomTraComp camera2root_comp,
-        const struct mli_Shader *tracer,
+        const struct mli_PathTracer *pathtracer,
         struct mli_Image *image,
         struct mli_Prng *prng)
 {
@@ -2256,7 +2256,7 @@ int mli_camera_Aperture_render_image(
                 self,
                 image,
                 camera2root_comp,
-                tracer,
+                pathtracer,
                 &pixels_to_do,
                 &colors_to_do,
                 prng);
@@ -2285,7 +2285,7 @@ int mli_camera_Aperture_render_image(
                         self,
                         image,
                         camera2root_comp,
-                        tracer,
+                        pathtracer,
                         &pixels_to_do,
                         &colors_to_do,
                         prng);
@@ -5985,7 +5985,6 @@ struct mli_FuncInfo mli_FuncInfo_init(void)
         struct mli_FuncInfo out;
         out.x = mli_String_init();
         out.y = mli_String_init();
-        out.comment = mli_String_init();
         return out;
 }
 
@@ -5993,7 +5992,6 @@ void mli_FuncInfo_free(struct mli_FuncInfo *self)
 {
         mli_String_free(&self->x);
         mli_String_free(&self->y);
-        mli_String_free(&self->comment);
         (*self) = mli_FuncInfo_init();
 }
 
@@ -6001,7 +5999,6 @@ int mli_FuncInfo_malloc(struct mli_FuncInfo *self)
 {
         chk(mli_String_malloc(&self->x, 0u));
         chk(mli_String_malloc(&self->y, 0u));
-        chk(mli_String_malloc(&self->comment, 0u));
         return 1;
 chk_error:
         return 0;
@@ -6015,8 +6012,6 @@ int mli_FuncInfo_equal(
                 return 0;
         if (!mli_String_equal(&a->y, &b->y))
                 return 0;
-        if (!mli_String_equal(&a->comment, &b->comment))
-                return 0;
         return 1;
 }
 
@@ -6027,7 +6022,6 @@ int mli_FuncInfo_to_io(const struct mli_FuncInfo *self, struct mli_IO *f)
         chk_IO_write(&magic, sizeof(struct mli_MagicId), 1u, f);
         chk(mli_String_to_io(&self->x, f));
         chk(mli_String_to_io(&self->y, f));
-        chk(mli_String_to_io(&self->comment, f));
         return 1;
 chk_error:
         return 0;
@@ -6041,7 +6035,6 @@ int mli_FuncInfo_from_io(struct mli_FuncInfo *self, struct mli_IO *f)
         mli_MagicId_warn_version(&magic);
         chk(mli_String_from_io(&self->x, f));
         chk(mli_String_from_io(&self->y, f));
-        chk(mli_String_from_io(&self->comment, f));
         return 1;
 chk_error:
         return 0;
@@ -14609,6 +14602,531 @@ chk_error:
         return 0;
 }
 
+/* pathtracer */
+/* ---------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+
+struct mli_PathTracer mli_pathtracer_init(void)
+{
+        struct mli_PathTracer tracer;
+        tracer.scenery = NULL;
+        tracer.scenery_color_materials = NULL;
+        tracer.config = NULL;
+        return tracer;
+}
+
+double mli_pathtracer_estimate_sun_visibility_weight(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Vec position,
+        struct mli_Prng *prng)
+{
+        return (1.0 - mli_pathtracer_estimate_sun_obstruction_weight(
+                              tracer, position, prng));
+}
+
+double mli_pathtracer_estimate_sun_obstruction_weight(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Vec position,
+        struct mli_Prng *prng)
+{
+        uint64_t i;
+        double num_obstructions = 0.0;
+
+        for (i = 0; i < tracer->config->num_trails_global_light_source; i++) {
+                struct mli_Vec pos_in_source = mli_Vec_add(
+                        mli_Vec_multiply(
+                                tracer->config->atmosphere.sunDirection,
+                                tracer->config->atmosphere.sunDistance),
+                        mli_Vec_multiply(
+                                mli_Vec_random_position_inside_unit_sphere(
+                                        prng),
+                                tracer->config->atmosphere.sunRadius));
+
+                struct mli_Ray line_of_sight_to_source = mli_Ray_set(
+                        position, mli_Vec_substract(pos_in_source, position));
+
+                struct mli_Intersection isec;
+
+                const int has_intersection = mli_raytracing_query_intersection(
+                        tracer->scenery, line_of_sight_to_source, &isec);
+
+                if (has_intersection) {
+                        num_obstructions += 1.0;
+                }
+        }
+
+        return num_obstructions /
+               tracer->config->num_trails_global_light_source;
+}
+
+struct mli_Color mli_pathtracer_trace_ray(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray,
+        struct mli_Prng *prng)
+{
+        struct mli_ColorSpectrum spectrum;
+        struct mli_Vec xyz, rgb;
+        struct mli_pathtracer_Path path = mli_pathtracer_Path_init();
+
+        spectrum = mli_pathtracer_trace_path_to_next_intersection(
+                tracer, ray, path, prng);
+
+        xyz = mli_ColorMaterials_ColorSpectrum_to_xyz(
+                tracer->scenery_color_materials, &spectrum);
+
+        rgb = mli_Mat_dot_product(
+                &tracer->scenery_color_materials
+                         ->observer_matching_curve_xyz_to_rgb,
+                xyz);
+
+        return mli_Color_set(rgb.x, rgb.y, rgb.z);
+}
+
+struct mli_ColorSpectrum mli_pathtracer_trace_path_to_next_intersection(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray,
+        struct mli_pathtracer_Path path,
+        struct mli_Prng *prng)
+{
+        struct mli_IntersectionSurfaceNormal intersection =
+                mli_IntersectionSurfaceNormal_init();
+        struct mli_ColorSpectrum out;
+        int has_intersection = 0;
+
+        if (path.weight < 0.05 || path.num_interactions > 25) {
+                return mli_ColorSpectrum_init_zeros();
+        }
+
+        path.num_interactions += 1;
+
+        has_intersection =
+                mli_raytracing_query_intersection_with_surface_normal(
+                        tracer->scenery, ray, &intersection);
+
+        if (has_intersection) {
+                out = mli_pathtracer_trace_next_intersection(
+                        tracer, ray, &intersection, path, prng);
+        } else {
+                out = mli_pathtracer_trace_ambient_background(tracer, ray);
+        }
+        return out;
+}
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_background(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray)
+{
+        if (tracer->config->have_atmosphere) {
+                return mli_pathtracer_trace_ambient_background_atmosphere(
+                        tracer, ray);
+        } else {
+                return mli_pathtracer_trace_ambient_background_whitebox(tracer);
+        }
+}
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_background_atmosphere(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray)
+{
+        return mli_Atmosphere_query(
+                &tracer->config->atmosphere, ray.support, ray.direction);
+}
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_background_whitebox(
+        const struct mli_PathTracer *tracer)
+{
+        return mli_ColorSpectrum_multiply_scalar(
+                tracer->config->ambient_radiance_W_per_m2_per_sr, 0.5);
+}
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_sun(
+        const struct mli_PathTracer *tracer,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_Prng *prng)
+{
+        if (tracer->config->have_atmosphere) {
+                return mli_pathtracer_trace_ambient_sun_atmosphere(
+                        tracer, intersection, prng);
+        } else {
+                return mli_pathtracer_trace_ambient_sun_whitebox(
+                        tracer, intersection, prng);
+        }
+}
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_sun_atmosphere(
+        const struct mli_PathTracer *tracer,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_Prng *prng)
+{
+        struct mli_ColorSpectrum tone;
+
+        const double sun_visibility =
+                mli_pathtracer_estimate_sun_visibility_weight(
+                        tracer, intersection->position, prng);
+
+        if (sun_visibility > 0.0) {
+                tone = mli_raytracing_color_tone_of_sun(
+                        tracer->config, intersection->position);
+                tone = mli_ColorSpectrum_multiply_scalar(tone, sun_visibility);
+        } else {
+                tone = mli_raytracing_color_tone_of_diffuse_sky(
+                        tracer, intersection, prng);
+        }
+        return tone;
+}
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_sun_whitebox(
+        const struct mli_PathTracer *tracer,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_Prng *prng)
+{
+        const double sun_visibility =
+                mli_pathtracer_estimate_sun_visibility_weight(
+                        tracer, intersection->position, prng);
+
+        return mli_ColorSpectrum_multiply_scalar(
+                tracer->config->ambient_radiance_W_per_m2_per_sr,
+                sun_visibility);
+}
+
+struct mli_ColorSpectrum mli_pathtracer_trace_next_intersection(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_pathtracer_Path path,
+        struct mli_Prng *prng)
+{
+        struct mli_ColorSpectrum out;
+        struct mli_IntersectionLayer intersection_layer;
+
+        intersection_layer = mli_raytracing_get_intersection_layer(
+                tracer->scenery, intersection);
+
+        switch (intersection_layer.side_coming_from.surface->type) {
+        case MLI_SURFACE_TYPE_COOKTORRANCE:
+                out = mli_pathtracer_trace_intersection_cooktorrance(
+                        tracer,
+                        ray,
+                        intersection,
+                        &intersection_layer,
+                        path,
+                        prng);
+                break;
+        case MLI_SURFACE_TYPE_TRANSPARENT:
+                out = mli_pathtracer_trace_intersection_transparent(
+                        tracer,
+                        ray,
+                        intersection,
+                        &intersection_layer,
+                        path,
+                        prng);
+                break;
+        default:
+                chk_warning("surface type is not implemented.");
+                out = mli_ColorSpectrum_init_zeros();
+        }
+        return out;
+}
+
+struct mli_ColorSpectrum mli_pathtracer_trace_intersection_cooktorrance(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        const struct mli_IntersectionLayer *intersection_layer,
+        struct mli_pathtracer_Path path,
+        struct mli_Prng *prng)
+{
+        struct mli_ColorSpectrum out = mli_ColorSpectrum_init_zeros();
+
+        const struct mli_Surface_CookTorrance *cook =
+                &intersection_layer->side_coming_from.surface->data
+                         .cooktorrance;
+
+        struct mli_ColorSpectrum reflection =
+                tracer->scenery_color_materials->spectra
+                        .array[cook->reflection_spectrum];
+
+        struct mli_Vec facing_surface_normal =
+                intersection->from_outside_to_inside
+                        ? intersection->surface_normal
+                        : mli_Vec_multiply(intersection->surface_normal, -1.0);
+
+        /* diffuse */
+        if (path.weight * cook->diffuse_weight > 0.05) {
+                struct mli_ColorSpectrum diffuse;
+                double theta_source = mli_Vec_angle_between(
+                        tracer->config->atmosphere.sunDirection,
+                        facing_surface_normal);
+                double theta_view = mli_Vec_angle_between(
+                        ray.direction, facing_surface_normal);
+
+                double lambert_factor_source = fabs(cos(theta_source));
+                double lambert_factor_view = fabs(cos(theta_view));
+
+                double factor = lambert_factor_source * lambert_factor_view *
+                                cook->diffuse_weight;
+
+                struct mli_ColorSpectrum incoming =
+                        mli_pathtracer_trace_ambient_sun(
+                                tracer, intersection, prng);
+
+                diffuse = mli_ColorSpectrum_multiply(incoming, reflection);
+                diffuse = mli_ColorSpectrum_multiply_scalar(diffuse, factor);
+                out = mli_ColorSpectrum_add(out, diffuse);
+        }
+
+        /* specular */
+        if (path.weight * cook->specular_weight > 0.05) {
+
+                struct mli_ColorSpectrum specular;
+                struct mli_Vec specular_reflection_direction =
+                        mli_Vec_mirror(ray.direction, facing_surface_normal);
+
+                struct mli_Ray nray = mli_Ray_set(
+                        intersection->position, specular_reflection_direction);
+
+                path.weight *= cook->specular_weight;
+                specular = mli_pathtracer_trace_path_to_next_intersection(
+                        tracer, nray, path, prng);
+                specular = mli_ColorSpectrum_multiply(specular, reflection);
+                specular = mli_ColorSpectrum_multiply_scalar(
+                        specular, cook->specular_weight);
+                out = mli_ColorSpectrum_add(out, specular);
+        }
+
+        return out;
+}
+
+struct mli_ColorSpectrum mli_pathtracer_trace_intersection_transparent(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        const struct mli_IntersectionLayer *intersection_layer,
+        struct mli_pathtracer_Path path,
+        struct mli_Prng *prng)
+{
+        const uint64_t WAVELENGTH_BIN = 12;
+        const uint64_t n_from_idx = intersection_layer->side_coming_from.medium
+                                            ->refraction_spectrum;
+        const uint64_t n_to_idx =
+                intersection_layer->side_going_to.medium->refraction_spectrum;
+        double n_from =
+                tracer->scenery_color_materials->spectra.array[n_from_idx]
+                        .values[WAVELENGTH_BIN];
+        double n_to = tracer->scenery_color_materials->spectra.array[n_to_idx]
+                              .values[WAVELENGTH_BIN];
+
+        double reflection_weight = -1.0;
+        double refraction_weight = -1.0;
+        struct mli_Vec facing_surface_normal;
+        struct mli_ColorSpectrum reflection_component;
+        struct mli_ColorSpectrum refraction_component;
+        struct mli_ColorSpectrum out = mli_ColorSpectrum_init_zeros();
+        struct mli_Fresnel fresnel;
+
+        facing_surface_normal =
+                intersection->from_outside_to_inside
+                        ? intersection->surface_normal
+                        : mli_Vec_multiply(intersection->surface_normal, -1.0);
+
+        fresnel = mli_Fresnel_init(
+                ray.direction, facing_surface_normal, n_from, n_to);
+
+        reflection_weight = mli_Fresnel_reflection_propability(fresnel);
+        refraction_weight = 1.0 - reflection_weight;
+
+        assert(reflection_weight >= 0.0);
+        assert(reflection_weight <= 1.0);
+
+        assert(refraction_weight >= 0.0);
+        assert(refraction_weight <= 1.0);
+
+        if (path.weight * reflection_weight > 0.05) {
+                struct mli_Ray nray = mli_Ray_set(
+                        intersection->position,
+                        mli_Fresnel_reflection_direction(fresnel));
+
+                path.weight *= reflection_weight;
+                reflection_component =
+                        mli_pathtracer_trace_path_to_next_intersection(
+                                tracer, nray, path, prng);
+
+                reflection_component = mli_ColorSpectrum_multiply_scalar(
+                        reflection_component, reflection_weight);
+
+                out = mli_ColorSpectrum_add(out, reflection_component);
+        }
+
+        if (path.weight * refraction_weight > 0.05) {
+                struct mli_Ray nray = mli_Ray_set(
+                        intersection->position,
+                        mli_Fresnel_refraction_direction(fresnel));
+                path.weight *= refraction_weight;
+                refraction_component =
+                        mli_pathtracer_trace_path_to_next_intersection(
+                                tracer, nray, path, prng);
+
+                refraction_component = mli_ColorSpectrum_multiply_scalar(
+                        refraction_component, refraction_weight);
+
+                out = mli_ColorSpectrum_add(out, refraction_component);
+        }
+
+        return out;
+}
+
+/* pathtracer_atmosphere */
+/* --------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+
+struct mli_ColorSpectrum mli_raytracing_color_tone_of_sun(
+        const struct mli_pathtracer_Config *config,
+        const struct mli_Vec support)
+{
+        struct mli_ColorSpectrum sun_spectrum = config->atmosphere.sun_spectrum;
+        double width_atmosphere = config->atmosphere.atmosphereRadius -
+                                  config->atmosphere.earthRadius;
+
+        if (config->atmosphere.altitude < width_atmosphere) {
+                struct mli_ColorSpectrum color_close_to_sun =
+                        mli_Atmosphere_query(
+                                &config->atmosphere,
+                                support,
+                                config->atmosphere.sunDirection);
+
+                double f = config->atmosphere.sunDirection.z;
+                uint64_t argmax = 0;
+                double vmax = 1.0;
+                MLI_MATH_ARRAY_ARGMAX(
+                        color_close_to_sun.values,
+                        MLI_COLORSPECTRUM_SIZE,
+                        argmax);
+                vmax = color_close_to_sun.values[argmax];
+                color_close_to_sun = mli_ColorSpectrum_multiply_scalar(
+                        color_close_to_sun, (1.0 / vmax));
+
+                return mli_ColorSpectrum_add(
+                        mli_ColorSpectrum_multiply_scalar(sun_spectrum, f),
+                        mli_ColorSpectrum_multiply_scalar(
+                                color_close_to_sun, (1.0 - f)));
+        } else {
+                return sun_spectrum;
+        }
+}
+
+struct mli_ColorSpectrum mli_raytracing_color_tone_of_diffuse_sky(
+        const struct mli_PathTracer *tracer,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_Prng *prng)
+{
+        int i;
+        struct mli_ColorSpectrum sky = mli_ColorSpectrum_init_zeros();
+        struct mli_Ray obstruction_ray;
+        struct mli_Vec facing_surface_normal;
+        struct mli_Intersection isec;
+        int has_direct_view_to_sky = 0;
+        int num_samples = 5;
+
+        facing_surface_normal =
+                intersection->from_outside_to_inside
+                        ? intersection->surface_normal
+                        : mli_Vec_multiply(intersection->surface_normal, -1.0);
+
+        for (i = 0; i < num_samples; i++) {
+                struct mli_Vec rnd_dir = mli_Vec_random_direction_in_hemisphere(
+                        prng, facing_surface_normal);
+
+                obstruction_ray.support = intersection->position;
+                obstruction_ray.direction = rnd_dir;
+
+                has_direct_view_to_sky = !mli_raytracing_query_intersection(
+                        tracer->scenery, obstruction_ray, &isec);
+
+                if (has_direct_view_to_sky) {
+                        struct mli_ColorSpectrum sample = mli_Atmosphere_query(
+                                &tracer->config->atmosphere,
+                                intersection->position,
+                                rnd_dir);
+
+                        double theta = mli_Vec_angle_between(
+                                rnd_dir, facing_surface_normal);
+                        double lambert_factor = fabs(cos(theta));
+
+                        sky = mli_ColorSpectrum_add(
+                                sky,
+                                mli_ColorSpectrum_multiply_scalar(
+                                        sample, lambert_factor));
+                }
+        }
+
+        return mli_ColorSpectrum_multiply_scalar(
+                sky, 1.0 / (255.0 * num_samples));
+}
+
+/* pathtracer_config */
+/* ----------------- */
+
+/* Copyright 2018-2024 Sebastian Achim Mueller */
+
+struct mli_pathtracer_Config mli_pathtracer_Config_init(void)
+{
+        struct mli_pathtracer_Config config;
+        mli_ColorSpectrum_set_radiance_of_black_body_W_per_m2_per_sr(
+                &config.ambient_radiance_W_per_m2_per_sr, 5000.0);
+
+        config.num_trails_global_light_source = 3;
+        config.have_atmosphere = 0;
+        config.atmosphere = mli_Atmosphere_init();
+        return config;
+}
+
+/* pathtracer_config_json */
+/* ---------------------- */
+
+/* Copyright 2018-2021 Sebastian Achim Mueller */
+
+int mli_pathtracer_Config_from_json_token(
+        struct mli_pathtracer_Config *tc,
+        const struct mli_Json *json,
+        const uint64_t tkn)
+{
+        uint64_t atmtkn;
+        uint64_t have_atmosphere;
+        chk(mli_Json_uint64_by_key(
+                json,
+                tkn,
+                &tc->num_trails_global_light_source,
+                "num_trails_global_light_source"));
+        chk_msg(tc->num_trails_global_light_source > 0,
+                "Expected num_trails_global_light_source > 0.");
+
+        chk(mli_Json_uint64_by_key(
+                json, tkn, &have_atmosphere, "have_atmosphere"));
+        tc->have_atmosphere = (int)have_atmosphere;
+
+        chk(mli_Json_token_by_key(json, tkn, "atmosphere", &atmtkn));
+        chk(mli_Atmosphere_from_json_token(&tc->atmosphere, json, atmtkn + 1));
+
+        return 1;
+chk_error:
+        return 0;
+}
+
+/* pathtracer_path */
+/* --------------- */
+
+/* Copyright 2018-2024 Sebastian Achim Mueller */
+
+struct mli_pathtracer_Path mli_pathtracer_Path_init(void)
+{
+        struct mli_pathtracer_Path out;
+        out.weight = 1.0;
+        out.num_interactions = 0u;
+        return out;
+}
+
 /* photon */
 /* ------ */
 
@@ -15335,7 +15853,7 @@ struct mli_Ray mli_camera_PinHole_ray_at_row_col(
 void mli_camera_PinHole_render_image(
         struct mli_camera_PinHole self,
         const struct mli_HomTraComp camera2root_comp,
-        const struct mli_Shader *shader,
+        const struct mli_PathTracer *pathtracer,
         struct mli_Image *image,
         struct mli_Prng *prng)
 {
@@ -15355,8 +15873,8 @@ void mli_camera_PinHole_render_image(
                 struct mli_Ray ray_wrt_root =
                         mli_HomTraComp_ray(&camera2root, ray_wrt_camera);
 
-                struct mli_Color color =
-                        mli_Shader_trace_ray(shader, ray_wrt_root, prng);
+                struct mli_Color color = mli_pathtracer_trace_ray(
+                        pathtracer, ray_wrt_root, prng);
                 mli_Image_set_by_col_row(image, px.col, px.row, color);
                 mli_image_PixelWalk_walk(&walk, &image->geometry);
         }
@@ -15364,7 +15882,7 @@ void mli_camera_PinHole_render_image(
 
 void mli_camera_PinHole_render_image_with_view(
         const struct mli_View view,
-        const struct mli_Shader *shader,
+        const struct mli_PathTracer *pathtracer,
         struct mli_Image *image,
         const double row_over_column_pixel_ratio,
         struct mli_Prng *prng)
@@ -15373,7 +15891,7 @@ void mli_camera_PinHole_render_image_with_view(
                 view.field_of_view, image, row_over_column_pixel_ratio);
         struct mli_HomTraComp camera2root_comp = mli_View_to_HomTraComp(view);
         mli_camera_PinHole_render_image(
-                camera, camera2root_comp, shader, image, prng);
+                camera, camera2root_comp, pathtracer, image, prng);
 }
 
 /* prng */
@@ -17435,524 +17953,6 @@ chk_error:
         return 0;
 }
 
-/* shader */
-/* ------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-
-struct mli_ShaderPath mli_ShaderPath_init(void)
-{
-        struct mli_ShaderPath out;
-        out.weight = 1.0;
-        out.num_interactions = 0u;
-        return out;
-}
-
-struct mli_Shader mli_Shader_init(void)
-{
-        struct mli_Shader tracer;
-        tracer.scenery = NULL;
-        tracer.scenery_color_materials = NULL;
-        tracer.config = NULL;
-        return tracer;
-}
-
-double mli_Shader_estimate_sun_visibility_weight(
-        const struct mli_Shader *tracer,
-        const struct mli_Vec position,
-        struct mli_Prng *prng)
-{
-        return (1.0 - mli_Shader_estimate_sun_obstruction_weight(
-                              tracer, position, prng));
-}
-
-double mli_Shader_estimate_sun_obstruction_weight(
-        const struct mli_Shader *tracer,
-        const struct mli_Vec position,
-        struct mli_Prng *prng)
-{
-        uint64_t i;
-        double num_obstructions = 0.0;
-
-        for (i = 0; i < tracer->config->num_trails_global_light_source; i++) {
-                struct mli_Vec pos_in_source = mli_Vec_add(
-                        mli_Vec_multiply(
-                                tracer->config->atmosphere.sunDirection,
-                                tracer->config->atmosphere.sunDistance),
-                        mli_Vec_multiply(
-                                mli_Vec_random_position_inside_unit_sphere(
-                                        prng),
-                                tracer->config->atmosphere.sunRadius));
-
-                struct mli_Ray line_of_sight_to_source = mli_Ray_set(
-                        position, mli_Vec_substract(pos_in_source, position));
-
-                struct mli_Intersection isec;
-
-                const int has_intersection = mli_raytracing_query_intersection(
-                        tracer->scenery, line_of_sight_to_source, &isec);
-
-                if (has_intersection) {
-                        num_obstructions += 1.0;
-                }
-        }
-
-        return num_obstructions /
-               tracer->config->num_trails_global_light_source;
-}
-
-struct mli_Color mli_Shader_trace_ray(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray,
-        struct mli_Prng *prng)
-{
-        struct mli_ColorSpectrum spectrum;
-        struct mli_Vec xyz, rgb;
-        struct mli_ShaderPath path = mli_ShaderPath_init();
-
-        spectrum = mli_Shader_trace_path_to_next_intersection(
-                tracer, ray, path, prng);
-
-        xyz = mli_ColorMaterials_ColorSpectrum_to_xyz(
-                tracer->scenery_color_materials, &spectrum);
-
-        rgb = mli_Mat_dot_product(
-                &tracer->scenery_color_materials
-                         ->observer_matching_curve_xyz_to_rgb,
-                xyz);
-
-        return mli_Color_set(rgb.x, rgb.y, rgb.z);
-}
-
-struct mli_ColorSpectrum mli_Shader_trace_path_to_next_intersection(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray,
-        struct mli_ShaderPath path,
-        struct mli_Prng *prng)
-{
-        struct mli_IntersectionSurfaceNormal intersection =
-                mli_IntersectionSurfaceNormal_init();
-        struct mli_ColorSpectrum out;
-        int has_intersection = 0;
-
-        if (path.weight < 0.05 || path.num_interactions > 25) {
-                return mli_ColorSpectrum_init_zeros();
-        }
-
-        path.num_interactions += 1;
-
-        has_intersection =
-                mli_raytracing_query_intersection_with_surface_normal(
-                        tracer->scenery, ray, &intersection);
-
-        if (has_intersection) {
-                out = mli_Shader_trace_next_intersection(
-                        tracer, ray, &intersection, path, prng);
-        } else {
-                out = mli_Shader_trace_ambient_background(tracer, ray);
-        }
-        return out;
-}
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_background(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray)
-{
-        if (tracer->config->have_atmosphere) {
-                return mli_Shader_trace_ambient_background_atmosphere(
-                        tracer, ray);
-        } else {
-                return mli_Shader_trace_ambient_background_whitebox(tracer);
-        }
-}
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_background_atmosphere(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray)
-{
-        return mli_Atmosphere_query(
-                &tracer->config->atmosphere, ray.support, ray.direction);
-}
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_background_whitebox(
-        const struct mli_Shader *tracer)
-{
-        return mli_ColorSpectrum_multiply_scalar(
-                tracer->config->ambient_radiance_W_per_m2_per_sr, 0.5);
-}
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_sun(
-        const struct mli_Shader *tracer,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        struct mli_Prng *prng)
-{
-        if (tracer->config->have_atmosphere) {
-                return mli_Shader_trace_ambient_sun_atmosphere(
-                        tracer, intersection, prng);
-        } else {
-                return mli_Shader_trace_ambient_sun_whitebox(
-                        tracer, intersection, prng);
-        }
-}
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_sun_atmosphere(
-        const struct mli_Shader *tracer,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        struct mli_Prng *prng)
-{
-        struct mli_ColorSpectrum tone;
-
-        const double sun_visibility = mli_Shader_estimate_sun_visibility_weight(
-                tracer, intersection->position, prng);
-
-        if (sun_visibility > 0.0) {
-                tone = mli_raytracing_color_tone_of_sun(
-                        tracer->config, intersection->position);
-                tone = mli_ColorSpectrum_multiply_scalar(tone, sun_visibility);
-        } else {
-                tone = mli_raytracing_color_tone_of_diffuse_sky(
-                        tracer, intersection, prng);
-        }
-        return tone;
-}
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_sun_whitebox(
-        const struct mli_Shader *tracer,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        struct mli_Prng *prng)
-{
-        const double sun_visibility = mli_Shader_estimate_sun_visibility_weight(
-                tracer, intersection->position, prng);
-
-        return mli_ColorSpectrum_multiply_scalar(
-                tracer->config->ambient_radiance_W_per_m2_per_sr,
-                sun_visibility);
-}
-
-struct mli_ColorSpectrum mli_Shader_trace_next_intersection(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        struct mli_ShaderPath path,
-        struct mli_Prng *prng)
-{
-        struct mli_ColorSpectrum out;
-        struct mli_IntersectionLayer intersection_layer;
-
-        intersection_layer = mli_raytracing_get_intersection_layer(
-                tracer->scenery, intersection);
-
-        switch (intersection_layer.side_coming_from.surface->type) {
-        case MLI_SURFACE_TYPE_COOKTORRANCE:
-                out = mli_Shader_trace_intersection_cooktorrance(
-                        tracer,
-                        ray,
-                        intersection,
-                        &intersection_layer,
-                        path,
-                        prng);
-                break;
-        case MLI_SURFACE_TYPE_TRANSPARENT:
-                out = mli_Shader_trace_intersection_transparent(
-                        tracer,
-                        ray,
-                        intersection,
-                        &intersection_layer,
-                        path,
-                        prng);
-                break;
-        default:
-                chk_warning("surface type is not implemented.");
-                out = mli_ColorSpectrum_init_zeros();
-        }
-        return out;
-}
-
-struct mli_ColorSpectrum mli_Shader_trace_intersection_cooktorrance(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        const struct mli_IntersectionLayer *intersection_layer,
-        struct mli_ShaderPath path,
-        struct mli_Prng *prng)
-{
-        struct mli_ColorSpectrum out = mli_ColorSpectrum_init_zeros();
-
-        const struct mli_Surface_CookTorrance *cook =
-                &intersection_layer->side_coming_from.surface->data
-                         .cooktorrance;
-
-        struct mli_ColorSpectrum reflection =
-                tracer->scenery_color_materials->spectra
-                        .array[cook->reflection_spectrum];
-
-        struct mli_Vec facing_surface_normal =
-                intersection->from_outside_to_inside
-                        ? intersection->surface_normal
-                        : mli_Vec_multiply(intersection->surface_normal, -1.0);
-
-        /* diffuse */
-        if (path.weight * cook->diffuse_weight > 0.05) {
-                struct mli_ColorSpectrum diffuse;
-                double theta_source = mli_Vec_angle_between(
-                        tracer->config->atmosphere.sunDirection,
-                        facing_surface_normal);
-                double theta_view = mli_Vec_angle_between(
-                        ray.direction, facing_surface_normal);
-
-                double lambert_factor_source = fabs(cos(theta_source));
-                double lambert_factor_view = fabs(cos(theta_view));
-
-                double factor = lambert_factor_source * lambert_factor_view *
-                                cook->diffuse_weight;
-
-                struct mli_ColorSpectrum incoming =
-                        mli_Shader_trace_ambient_sun(
-                                tracer, intersection, prng);
-
-                diffuse = mli_ColorSpectrum_multiply(incoming, reflection);
-                diffuse = mli_ColorSpectrum_multiply_scalar(diffuse, factor);
-                out = mli_ColorSpectrum_add(out, diffuse);
-        }
-
-        /* specular */
-        if (path.weight * cook->specular_weight > 0.05) {
-
-                struct mli_ColorSpectrum specular;
-                struct mli_Vec specular_reflection_direction =
-                        mli_Vec_mirror(ray.direction, facing_surface_normal);
-
-                struct mli_Ray nray = mli_Ray_set(
-                        intersection->position, specular_reflection_direction);
-
-                path.weight *= cook->specular_weight;
-                specular = mli_Shader_trace_path_to_next_intersection(
-                        tracer, nray, path, prng);
-                specular = mli_ColorSpectrum_multiply(specular, reflection);
-                specular = mli_ColorSpectrum_multiply_scalar(
-                        specular, cook->specular_weight);
-                out = mli_ColorSpectrum_add(out, specular);
-        }
-
-        return out;
-}
-
-struct mli_ColorSpectrum mli_Shader_trace_intersection_transparent(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        const struct mli_IntersectionLayer *intersection_layer,
-        struct mli_ShaderPath path,
-        struct mli_Prng *prng)
-{
-        const uint64_t WAVELENGTH_BIN = 12;
-        const uint64_t n_from_idx = intersection_layer->side_coming_from.medium
-                                            ->refraction_spectrum;
-        const uint64_t n_to_idx =
-                intersection_layer->side_going_to.medium->refraction_spectrum;
-        double n_from =
-                tracer->scenery_color_materials->spectra.array[n_from_idx]
-                        .values[WAVELENGTH_BIN];
-        double n_to = tracer->scenery_color_materials->spectra.array[n_to_idx]
-                              .values[WAVELENGTH_BIN];
-
-        double reflection_weight = -1.0;
-        double refraction_weight = -1.0;
-        struct mli_Vec facing_surface_normal;
-        struct mli_ColorSpectrum reflection_component;
-        struct mli_ColorSpectrum refraction_component;
-        struct mli_ColorSpectrum out = mli_ColorSpectrum_init_zeros();
-        struct mli_Fresnel fresnel;
-
-        facing_surface_normal =
-                intersection->from_outside_to_inside
-                        ? intersection->surface_normal
-                        : mli_Vec_multiply(intersection->surface_normal, -1.0);
-
-        fresnel = mli_Fresnel_init(
-                ray.direction, facing_surface_normal, n_from, n_to);
-
-        reflection_weight = mli_Fresnel_reflection_propability(fresnel);
-        refraction_weight = 1.0 - reflection_weight;
-
-        assert(reflection_weight >= 0.0);
-        assert(reflection_weight <= 1.0);
-
-        assert(refraction_weight >= 0.0);
-        assert(refraction_weight <= 1.0);
-
-        if (path.weight * reflection_weight > 0.05) {
-                struct mli_Ray nray = mli_Ray_set(
-                        intersection->position,
-                        mli_Fresnel_reflection_direction(fresnel));
-
-                path.weight *= reflection_weight;
-                reflection_component =
-                        mli_Shader_trace_path_to_next_intersection(
-                                tracer, nray, path, prng);
-
-                reflection_component = mli_ColorSpectrum_multiply_scalar(
-                        reflection_component, reflection_weight);
-
-                out = mli_ColorSpectrum_add(out, reflection_component);
-        }
-
-        if (path.weight * refraction_weight > 0.05) {
-                struct mli_Ray nray = mli_Ray_set(
-                        intersection->position,
-                        mli_Fresnel_refraction_direction(fresnel));
-                path.weight *= refraction_weight;
-                refraction_component =
-                        mli_Shader_trace_path_to_next_intersection(
-                                tracer, nray, path, prng);
-
-                refraction_component = mli_ColorSpectrum_multiply_scalar(
-                        refraction_component, refraction_weight);
-
-                out = mli_ColorSpectrum_add(out, refraction_component);
-        }
-
-        return out;
-}
-
-/* shader_atmosphere */
-/* ----------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-
-struct mli_ColorSpectrum mli_raytracing_color_tone_of_sun(
-        const struct mli_shader_Config *config,
-        const struct mli_Vec support)
-{
-        struct mli_ColorSpectrum sun_spectrum = config->atmosphere.sun_spectrum;
-        double width_atmosphere = config->atmosphere.atmosphereRadius -
-                                  config->atmosphere.earthRadius;
-
-        if (config->atmosphere.altitude < width_atmosphere) {
-                struct mli_ColorSpectrum color_close_to_sun =
-                        mli_Atmosphere_query(
-                                &config->atmosphere,
-                                support,
-                                config->atmosphere.sunDirection);
-
-                double f = config->atmosphere.sunDirection.z;
-                uint64_t argmax = 0;
-                double vmax = 1.0;
-                MLI_MATH_ARRAY_ARGMAX(
-                        color_close_to_sun.values,
-                        MLI_COLORSPECTRUM_SIZE,
-                        argmax);
-                vmax = color_close_to_sun.values[argmax];
-                color_close_to_sun = mli_ColorSpectrum_multiply_scalar(
-                        color_close_to_sun, (1.0 / vmax));
-
-                return mli_ColorSpectrum_add(
-                        mli_ColorSpectrum_multiply_scalar(sun_spectrum, f),
-                        mli_ColorSpectrum_multiply_scalar(
-                                color_close_to_sun, (1.0 - f)));
-        } else {
-                return sun_spectrum;
-        }
-}
-
-struct mli_ColorSpectrum mli_raytracing_color_tone_of_diffuse_sky(
-        const struct mli_Shader *tracer,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        struct mli_Prng *prng)
-{
-        int i;
-        struct mli_ColorSpectrum sky = mli_ColorSpectrum_init_zeros();
-        struct mli_Ray obstruction_ray;
-        struct mli_Vec facing_surface_normal;
-        struct mli_Intersection isec;
-        int has_direct_view_to_sky = 0;
-        int num_samples = 5;
-
-        facing_surface_normal =
-                intersection->from_outside_to_inside
-                        ? intersection->surface_normal
-                        : mli_Vec_multiply(intersection->surface_normal, -1.0);
-
-        for (i = 0; i < num_samples; i++) {
-                struct mli_Vec rnd_dir = mli_Vec_random_direction_in_hemisphere(
-                        prng, facing_surface_normal);
-
-                obstruction_ray.support = intersection->position;
-                obstruction_ray.direction = rnd_dir;
-
-                has_direct_view_to_sky = !mli_raytracing_query_intersection(
-                        tracer->scenery, obstruction_ray, &isec);
-
-                if (has_direct_view_to_sky) {
-                        struct mli_ColorSpectrum sample = mli_Atmosphere_query(
-                                &tracer->config->atmosphere,
-                                intersection->position,
-                                rnd_dir);
-
-                        double theta = mli_Vec_angle_between(
-                                rnd_dir, facing_surface_normal);
-                        double lambert_factor = fabs(cos(theta));
-
-                        sky = mli_ColorSpectrum_add(
-                                sky,
-                                mli_ColorSpectrum_multiply_scalar(
-                                        sample, lambert_factor));
-                }
-        }
-
-        return mli_ColorSpectrum_multiply_scalar(
-                sky, 1.0 / (255.0 * num_samples));
-}
-
-/* shader_config */
-/* ------------- */
-
-/* Copyright 2018-2024 Sebastian Achim Mueller */
-
-struct mli_shader_Config mli_shader_Config_init(void)
-{
-        struct mli_shader_Config config;
-        mli_ColorSpectrum_set_radiance_of_black_body_W_per_m2_per_sr(
-                &config.ambient_radiance_W_per_m2_per_sr, 5000.0);
-
-        config.num_trails_global_light_source = 3;
-        config.have_atmosphere = 0;
-        config.atmosphere = mli_Atmosphere_init();
-        return config;
-}
-
-/* shader_config_json */
-/* ------------------ */
-
-/* Copyright 2018-2021 Sebastian Achim Mueller */
-
-int mli_shader_Config_from_json_token(
-        struct mli_shader_Config *tc,
-        const struct mli_Json *json,
-        const uint64_t tkn)
-{
-        uint64_t atmtkn;
-        uint64_t have_atmosphere;
-        chk(mli_Json_uint64_by_key(
-                json,
-                tkn,
-                &tc->num_trails_global_light_source,
-                "num_trails_global_light_source"));
-        chk_msg(tc->num_trails_global_light_source > 0,
-                "Expected num_trails_global_light_source > 0.");
-
-        chk(mli_Json_uint64_by_key(
-                json, tkn, &have_atmosphere, "have_atmosphere"));
-        tc->have_atmosphere = (int)have_atmosphere;
-
-        chk(mli_Json_token_by_key(json, tkn, "atmosphere", &atmtkn));
-        chk(mli_Atmosphere_from_json_token(&tc->atmosphere, json, atmtkn + 1));
-
-        return 1;
-chk_error:
-        return 0;
-}
-
 /* spectrum */
 /* -------- */
 
@@ -17988,7 +17988,6 @@ int mli_Spectrum_equal(
 chk_error:
         return 0;
 }
-
 
 int mli_Spectrum_to_io(const struct mli_Spectrum *self, struct mli_IO *f)
 {
@@ -18037,8 +18036,6 @@ int mli_Spectrum_print_to_io(const struct mli_Spectrum *self, struct mli_IO *f)
                 self->spectrum.y, self->spectrum.num_points, yamax);
 
         chk(mli_IO_text_write_cstr_format(f, "name: '%s', ", self->name.array));
-        chk(mli_IO_text_write_cstr_format(
-                f, "comment: '%s', ", self->info.comment.array));
         chk(mli_IO_text_write_cstr_format(
                 f, "num. points: %lu\n", self->spectrum.num_points));
         chk(mli_IO_text_write_cstr_format(
@@ -20781,7 +20778,7 @@ void mli_viewer_print_help(void)
 void mli_viewer_print_info_line(
         const struct mli_View view,
         const struct mli_viewer_Cursor cursor,
-        const struct mli_shader_Config tracer_config,
+        const struct mli_pathtracer_Config tracer_config,
         const double gamma)
 {
         printf("Help 'h', "
@@ -20851,7 +20848,7 @@ chk_error:
 }
 
 int mli_viewer_export_image(
-        const struct mli_Shader *tracer,
+        const struct mli_PathTracer *tracer,
         const struct mli_viewer_Config config,
         const struct mli_View view,
         struct mli_Prng *prng,
@@ -20910,8 +20907,9 @@ int mli_viewer_run_interactive_viewer(
         const struct mli_viewer_Config config)
 {
         struct mli_Prng prng = mli_Prng_init_MT19937(config.random_seed);
-        struct mli_shader_Config tracer_config = mli_shader_Config_init();
-        struct mli_Shader tracer = mli_Shader_init();
+        struct mli_pathtracer_Config tracer_config =
+                mli_pathtracer_Config_init();
+        struct mli_PathTracer tracer = mli_pathtracer_init();
         struct mli_ColorMaterials color_materials = mli_ColorMaterials_init();
         char path[1024];
         int key;

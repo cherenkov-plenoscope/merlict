@@ -141,12 +141,6 @@ cdef extern from "mli.h":
         double power
         double altitude
 
-    cdef struct mli_shader_Config:
-        stdint.uint64_t num_trails_global_light_source
-        int have_atmosphere
-        mliAtmosphere atmosphere
-        mli_ColorSpectrum ambient_radiance_W_per_m2_per_sr
-
     cdef int mli_Archive_push_back_cstr(
         mli_Archive *arc,
         const char *filename,

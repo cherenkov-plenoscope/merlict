@@ -620,11 +620,10 @@ int mli_IoMemory__write_cstr(struct mli_IoMemory *self, const char *cstr);
 /* json_jsmn */
 /* --------- */
 
-/*
- * MIT License
- *
- * Copyright (c) 2010 Serge Zaitsev
+/* Copyright (c) 2010 Serge Zaitsev
  *               2018-2020 Sebastian Achim Mueller
+ *
+ * MIT License
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -909,6 +908,23 @@ struct mli_object_Face mli_object_Face_set(
         const uint32_t c);
 #endif
 
+/* pathtracer_path */
+/* --------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_PATHTRACER_PATH_H_
+#define MLI_PATHTRACER_PATH_H_
+
+
+struct mli_pathtracer_Path {
+        double weight;
+        uint64_t num_interactions;
+};
+
+struct mli_pathtracer_Path mli_pathtracer_Path_init(void);
+
+#endif
+
 /* physics */
 /* ------- */
 
@@ -962,22 +978,7 @@ void mli_prng_MT19937_set_constants(struct mli_prng_MT19937 *mt);
 /* prng_pcg_variants_32bit_subset */
 /* ------------------------------ */
 
-/**
- *  2021 March 23, Sebastian Achim Mueller
- *
- *  Based on 'pcg_variants.h' written by Melissa O'Neill.
- *
- *  I only kept the version with the 64bit sequence state to generate
- *  32bit numbers.
- *  I dropped 'advance', and 'boundedrand'.
- *  I only kept the seeding and the generation.
- *  I split the original header-only into a source.c and a header.h.
- */
-
-/*
- * PCG Random Number Generation for C.
- *
- * Copyright 2014 Melissa O'Neill <oneill@pcg-random.org>
+/* Copyright 2014 Melissa O'Neill <oneill@pcg-random.org>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -995,6 +996,17 @@ void mli_prng_MT19937_set_constants(struct mli_prng_MT19937 *mt);
  * including its license and other licensing options, visit
  *
  *     http://www.pcg-random.org
+ */
+
+/*  2021 March 23, Sebastian Achim Mueller
+ *
+ *  Based on 'pcg_variants.h' written by Melissa O'Neill.
+ *
+ *  I only kept the version with the 64bit sequence state to generate
+ *  32bit numbers.
+ *  I dropped 'advance', and 'boundedrand'.
+ *  I only kept the seeding and the generation.
+ *  I split the original header-only into a source.c and a header.h.
  */
 
 #ifndef MLI_PRNG_PCG_VARIANTS_32BIT_SUBSET_H_INCLUDED
@@ -1458,7 +1470,7 @@ int mli_Vec_overlap_aabb(
 
 #define MLI_VERSION_MAYOR 2
 #define MLI_VERSION_MINOR 1
-#define MLI_VERSION_PATCH 0
+#define MLI_VERSION_PATCH 3
 
 void mli_version_logo_fprint(FILE *f);
 void mli_version_authors_and_affiliations_fprint(FILE *f);
@@ -2153,6 +2165,54 @@ MLI_VECTOR_DEFINITON(mli_object_FaceVector, struct mli_object_Face)
 #define mli_octree_OverlapVector_malloc mli_Uint32Vector_malloc
 #define mli_octree_OverlapVector_free mli_Uint32Vector_free
 #define mli_octree_OverlapVector_push_back mli_Uint32Vector_push_back
+
+#endif
+
+/* pinhole */
+/* ------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_CAMERA_PINHOLE_H_
+#define MLI_CAMERA_PINHOLE_H_
+
+
+struct mli_PathTracer;
+struct mli_Image;
+struct mli_Prng;
+
+struct mli_camera_PinHole {
+        struct mli_Vec optical_axis;
+        struct mli_Vec col_axis;
+        struct mli_Vec row_axis;
+        struct mli_Vec principal_point;
+        double distance_to_principal_point;
+        double row_over_column_pixel_ratio;
+};
+
+struct mli_camera_PinHole mli_camera_PinHole_set(
+        const double field_of_view,
+        const struct mli_Image *image,
+        const double row_over_column_pixel_ratio);
+
+void mli_camera_PinHole_render_image(
+        struct mli_camera_PinHole self,
+        const struct mli_HomTraComp camera2root_comp,
+        const struct mli_PathTracer *pathtracer,
+        struct mli_Image *image,
+        struct mli_Prng *prng);
+
+void mli_camera_PinHole_render_image_with_view(
+        const struct mli_View view,
+        const struct mli_PathTracer *pathtracer,
+        struct mli_Image *image,
+        const double row_over_column_pixel_ratio,
+        struct mli_Prng *prng);
+
+struct mli_Ray mli_camera_PinHole_ray_at_row_col(
+        const struct mli_camera_PinHole *self,
+        const struct mli_Image *image,
+        const uint32_t row,
+        const uint32_t col);
 
 #endif
 
@@ -3509,6 +3569,167 @@ MLI_ARRAY_DEFINITON(mliDynEventIoTelescope, struct mliEventIoTelescope)
 
 #endif
 
+/* aperture */
+/* -------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_CAMERA_APERTURE_H_
+#define MLI_CAMERA_APERTURE_H_
+
+
+struct mli_PathTracer;
+struct mli_Prng;
+
+/*
+principal-rays of the thin-lens
+===============================
+                                        | z
+                                        |
+        (A)                           --+-- object-distance
+          \                             |
+         | \\                           |
+            \\                          |
+         |   \\                         |
+              \ \                       |
+         |     \ \                      |
+                \ \                     |
+         |       \  \                   |
+                 \   \                  |
+         |        \   \                 |
+                   \    \               |
+         |          \    \              |
+                     \    \             |
+         |            \     \           |
+                       \     \          |
+         |             \      \         |
+                        \       \       |
+         |               \       \      |
+                          \       \     |
+         |                 \        \   |
+                            \        \  |
+         |                   \        \ |
+                             \         \|
+         |                    \       --+--  focal-length
+                               \        |\
+         |                      \       | \
+                                 \      |  \
+         |                        \     |   \
+                                  \     |     \
+         |                         \    |      \
+                                    \   |       \
+         |                           \  |         \
+                                      \ |          \
+         |                             \|           \      aperture-plane
+   -|----O------------------------------O------------O----------------------|-
+          \                             |\                                  |
+             \                          | \          |                aperture-
+                \                       |  \                           radius
+                   \                    |   \        |
+                      \                 |    \
+                         \              |     \      |
+                            \           |     \
+                               \        |      \     |
+                                  \     |       \
+                                     \  |        \   |
+                        focal-length  --+--       \
+                                        | \       \  |
+                                        |    \     \
+                                        |       \   \|
+    image-sensor-plane                  |          \\
+                ------------------------+-----------(P)----------  x/y
+                                        |\_ image-sensor-distance
+                                        |
+
+1)      Find point P on image-sensor-plane for (row, column).
+        With P.z = -image-sensor-distance.
+        Add random-scatter in pixel-bin.
+
+2)      Find point A on the object-plane.
+        With A.z = +object-distance
+
+3)      Draw random point W on aperture-plane within aperture-radius.
+
+4)      Trace ray(P - W) and assign to pixel (row, column).
+
+*/
+
+struct mli_Vec mli_camera_Aperture_pixel_center_on_image_sensor_plane(
+        const double image_sensor_width_x,
+        const double image_sensor_width_y,
+        const double image_sensor_distance,
+        const uint64_t num_pixel_x,
+        const uint64_t num_pixel_y,
+        const uint64_t pixel_x,
+        const uint64_t pixel_y);
+
+struct mli_Vec mli_camera_Aperture_pixel_support_on_image_sensor_plane(
+        const double image_sensor_width_x,
+        const double image_sensor_width_y,
+        const double image_sensor_distance,
+        const uint64_t num_pixel_x,
+        const uint64_t num_pixel_y,
+        const uint64_t pixel_x,
+        const uint64_t pixel_y,
+        struct mli_Prng *prng);
+
+struct mli_Vec mli_camera_Aperture_get_object_point(
+        const double focal_length,
+        const struct mli_Vec pixel_support);
+
+double mli_camera_Aperture_focal_length_given_field_of_view_and_sensor_width(
+        const double field_of_view,
+        const double image_sensor_width);
+
+struct mli_Vec mli_camera_Aperture_ray_support_on_aperture(
+        const double aperture_radius,
+        struct mli_Prng *prng);
+
+struct mli_Ray mli_camera_Aperture_get_ray_for_pixel(
+        const double focal_length,
+        const double aperture_radius,
+        const double image_sensor_distance,
+        const double image_sensor_width_x,
+        const double image_sensor_width_y,
+        const uint64_t num_pixel_x,
+        const uint64_t num_pixel_y,
+        const uint64_t pixel_x,
+        const uint64_t pixel_y,
+        struct mli_Prng *prng);
+
+struct mli_camera_Aperture {
+        double focal_length;
+        double aperture_radius;
+        double image_sensor_distance;
+        double image_sensor_width_x;
+        double image_sensor_width_y;
+};
+
+struct mli_camera_Aperture mli_camera_Aperture_init(void);
+
+int mli_camera_Aperture_render_image(
+        const struct mli_camera_Aperture self,
+        const struct mli_HomTraComp camera2root_comp,
+        const struct mli_PathTracer *pathtracer,
+        struct mli_Image *image,
+        struct mli_Prng *prng);
+
+void mli_camera_Aperture_aquire_pixels(
+        const struct mli_camera_Aperture self,
+        const struct mli_Image *image,
+        const struct mli_HomTraComp camera2root_comp,
+        const struct mli_PathTracer *pathtracer,
+        const struct mli_image_PixelVector *pixels_to_do,
+        struct mli_ColorVector *colors_to_do,
+        struct mli_Prng *prng);
+
+void mli_camera_Aperture_assign_pixel_colors_to_sum_and_exposure_image(
+        const struct mli_image_PixelVector *pixels,
+        const struct mli_ColorVector *colors,
+        struct mli_Image *sum_image,
+        struct mli_Image *exposure_image);
+
+#endif
+
 /* frame */
 /* ----- */
 
@@ -4060,8 +4281,7 @@ int mli_Surface_Transparent_valid_wrt_materials(
 /* tar */
 /* --- */
 
-/**
- * Copyright (c) 2017 rxi
+/* Copyright (c) 2017 rxi
  * Copyright (c) 2019 Sebastian A. Mueller
  *                    Max-Planck-Institute for nuclear-physics, Heidelberg
  *
@@ -4189,6 +4409,7 @@ int mli_Tar_write_finalize(struct mli_Tar *tar);
 /* tar_io */
 /* ------ */
 
+/* Copyright 2018-2024 Sebastian Achim Mueller */
 #ifndef MLITARIO_H_
 #define MLITARIO_H_
 
@@ -4524,7 +4745,6 @@ int mli_Func_from_csv(
 struct mli_FuncInfo {
         struct mli_String x;
         struct mli_String y;
-        struct mli_String comment;
 };
 
 struct mli_FuncInfo mli_FuncInfo_init(void);
@@ -5367,6 +5587,138 @@ int mli_OcTree_valid_wrt_links(
         const uint32_t num_links);
 #endif
 
+/* pathtracer */
+/* ---------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_PATHTRACER_H_
+#define MLI_PATHTRACER_H_
+
+
+struct mli_pathtracer_Config;
+struct mli_Scenery;
+struct mli_Prng;
+struct mli_IntersectionSurfaceNormal;
+struct mli_IntersectionLayer;
+
+struct mli_PathTracer {
+        const struct mli_Scenery *scenery;
+        const struct mli_ColorMaterials *scenery_color_materials;
+        const struct mli_pathtracer_Config *config;
+};
+
+struct mli_PathTracer mli_pathtracer_init(void);
+
+double mli_pathtracer_estimate_sun_obstruction_weight(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Vec position,
+        struct mli_Prng *prng);
+
+double mli_pathtracer_estimate_sun_visibility_weight(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Vec position,
+        struct mli_Prng *prng);
+
+struct mli_Color mli_pathtracer_trace_ray(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray,
+        struct mli_Prng *prng);
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_background(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray);
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_background_atmosphere(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray);
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_background_whitebox(
+        const struct mli_PathTracer *tracer);
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_sun(
+        const struct mli_PathTracer *tracer,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_Prng *prng);
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_sun_atmosphere(
+        const struct mli_PathTracer *tracer,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_Prng *prng);
+
+struct mli_ColorSpectrum mli_pathtracer_trace_ambient_sun_whitebox(
+        const struct mli_PathTracer *tracer,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_Prng *prng);
+
+struct mli_ColorSpectrum mli_pathtracer_trace_path_to_next_intersection(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray,
+        struct mli_pathtracer_Path path,
+        struct mli_Prng *prng);
+
+struct mli_ColorSpectrum mli_pathtracer_trace_next_intersection(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_pathtracer_Path path,
+        struct mli_Prng *prng);
+
+struct mli_ColorSpectrum mli_pathtracer_trace_intersection_cooktorrance(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        const struct mli_IntersectionLayer *intersection_layer,
+        struct mli_pathtracer_Path path,
+        struct mli_Prng *prng);
+
+struct mli_ColorSpectrum mli_pathtracer_trace_intersection_transparent(
+        const struct mli_PathTracer *tracer,
+        const struct mli_Ray ray,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        const struct mli_IntersectionLayer *intersection_layer,
+        struct mli_pathtracer_Path path,
+        struct mli_Prng *prng);
+
+#endif
+
+/* pathtracer_config */
+/* ----------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_PATHTRACER_CONFIG_H_
+#define MLI_PATHTRACER_CONFIG_H_
+
+
+struct mli_Scenery;
+struct mli_Prng;
+
+struct mli_pathtracer_Config {
+        uint64_t num_trails_global_light_source;
+
+        int have_atmosphere;
+        struct mli_Atmosphere atmosphere;
+
+        struct mli_ColorSpectrum ambient_radiance_W_per_m2_per_sr;
+};
+
+struct mli_pathtracer_Config mli_pathtracer_Config_init(void);
+
+#endif
+
+/* pathtracer_config_json */
+/* ---------------------- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_PATHTRACER_CONFIG_JSON_H_
+#define MLI_PATHTRACER_CONFIG_JSON_H_
+
+
+int mli_pathtracer_Config_from_json_token(
+        struct mli_pathtracer_Config *tc,
+        const struct mli_Json *json,
+        const uint64_t tkn);
+#endif
+
 /* ray_octree_traversal */
 /* -------------------- */
 
@@ -5409,30 +5761,6 @@ int mli_raytracing_ray_octree_traversal_next_octree_node(
 int mli_raytracing_ray_octree_traversal_first_octree_node(
         const struct mli_Vec t0,
         const struct mli_Vec tm);
-
-#endif
-
-/* shader_config */
-/* ------------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_SHADER_CONFIG_H_
-#define MLI_SHADER_CONFIG_H_
-
-
-struct mli_Scenery;
-struct mli_Prng;
-
-struct mli_shader_Config {
-        uint64_t num_trails_global_light_source;
-
-        int have_atmosphere;
-        struct mli_Atmosphere atmosphere;
-
-        struct mli_ColorSpectrum ambient_radiance_W_per_m2_per_sr;
-};
-
-struct mli_shader_Config mli_shader_Config_init(void);
 
 #endif
 
@@ -5648,146 +5976,6 @@ int mli_Scenery_malloc_from_Archive(
 int mli_Scenery_valid(const struct mli_Scenery *self);
 #endif
 
-/* shader */
-/* ------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_SHADER_H_
-#define MLI_SHADER_H_
-
-
-struct mli_Scenery;
-struct mli_Prng;
-struct mli_IntersectionSurfaceNormal;
-struct mli_IntersectionLayer;
-
-struct mli_Shader {
-        const struct mli_Scenery *scenery;
-        const struct mli_ColorMaterials *scenery_color_materials;
-        const struct mli_shader_Config *config;
-};
-
-struct mli_ShaderPath {
-        double weight;
-        uint64_t num_interactions;
-};
-
-struct mli_ShaderPath mli_ShaderPath_init(void);
-
-struct mli_Shader mli_Shader_init(void);
-
-double mli_Shader_estimate_sun_obstruction_weight(
-        const struct mli_Shader *tracer,
-        const struct mli_Vec position,
-        struct mli_Prng *prng);
-
-double mli_Shader_estimate_sun_visibility_weight(
-        const struct mli_Shader *tracer,
-        const struct mli_Vec position,
-        struct mli_Prng *prng);
-
-struct mli_Color mli_Shader_trace_ray(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray,
-        struct mli_Prng *prng);
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_background(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray);
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_background_atmosphere(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray);
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_background_whitebox(
-        const struct mli_Shader *tracer);
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_sun(
-        const struct mli_Shader *tracer,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        struct mli_Prng *prng);
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_sun_atmosphere(
-        const struct mli_Shader *tracer,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        struct mli_Prng *prng);
-
-struct mli_ColorSpectrum mli_Shader_trace_ambient_sun_whitebox(
-        const struct mli_Shader *tracer,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        struct mli_Prng *prng);
-
-struct mli_ColorSpectrum mli_Shader_trace_path_to_next_intersection(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray,
-        struct mli_ShaderPath path,
-        struct mli_Prng *prng);
-
-struct mli_ColorSpectrum mli_Shader_trace_next_intersection(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        struct mli_ShaderPath path,
-        struct mli_Prng *prng);
-
-struct mli_ColorSpectrum mli_Shader_trace_intersection_cooktorrance(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        const struct mli_IntersectionLayer *intersection_layer,
-        struct mli_ShaderPath path,
-        struct mli_Prng *prng);
-
-struct mli_ColorSpectrum mli_Shader_trace_intersection_transparent(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        const struct mli_IntersectionLayer *intersection_layer,
-        struct mli_ShaderPath path,
-        struct mli_Prng *prng);
-
-#endif
-
-/* shader_atmosphere */
-/* ----------------- */
-
-/* Copyright 2018-2023 Sebastian Achim Mueller */
-#ifndef MLI_SHADER_ATMOSPHERE_H_
-#define MLI_SHADER_ATMOSPHERE_H_
-
-
-struct mli_ColorSpectrum mli_raytracing_color_tone_of_sun(
-        const struct mli_shader_Config *config,
-        const struct mli_Vec support);
-struct mli_ColorSpectrum mli_raytracing_color_tone_of_diffuse_sky(
-        const struct mli_Shader *tracer,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        struct mli_Prng *prng);
-struct mli_ColorSpectrum mli_raytracing_to_intersection_atmosphere(
-        const struct mli_Shader *tracer,
-        const struct mli_IntersectionSurfaceNormal *intersection,
-        struct mli_Prng *prng);
-struct mli_ColorSpectrum mli_raytracing_with_atmosphere(
-        const struct mli_Shader *tracer,
-        const struct mli_Ray ray,
-        struct mli_Prng *prng);
-
-#endif
-
-/* shader_config_json */
-/* ------------------ */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_SHADER_CONFIG_JSON_H_
-#define MLI_SHADER_CONFIG_JSON_H_
-
-
-int mli_shader_Config_from_json_token(
-        struct mli_shader_Config *tc,
-        const struct mli_Json *json,
-        const uint64_t tkn);
-#endif
-
 /* viewer */
 /* ------ */
 
@@ -5806,13 +5994,13 @@ void mli_viewer_print_help(void);
 void mli_viewer_print_info_line(
         const struct mli_View view,
         const struct mli_viewer_Cursor cursor,
-        const struct mli_shader_Config tracer_config,
+        const struct mli_pathtracer_Config tracer_config,
         const double gamma);
 
 void mli_viewer_timestamp_now_19chars(char *buffer);
 
 int mli_viewer_export_image(
-        const struct mli_Shader *tracer,
+        const struct mli_PathTracer *tracer,
         const struct mli_viewer_Config config,
         const struct mli_View view,
         struct mli_Prng *prng,
@@ -5826,164 +6014,6 @@ int mli_viewer_run_interactive_viewer(
 int mli_viewer_run_interactive_viewer_try_non_canonical_stdin(
         const struct mli_Scenery *scenery,
         const struct mli_viewer_Config config);
-#endif
-
-/* aperture */
-/* -------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_CAMERA_APERTURE_H_
-#define MLI_CAMERA_APERTURE_H_
-
-
-/*
-principal-rays of the thin-lens
-===============================
-                                        | z
-                                        |
-        (A)                           --+-- object-distance
-          \                             |
-         | \\                           |
-            \\                          |
-         |   \\                         |
-              \ \                       |
-         |     \ \                      |
-                \ \                     |
-         |       \  \                   |
-                 \   \                  |
-         |        \   \                 |
-                   \    \               |
-         |          \    \              |
-                     \    \             |
-         |            \     \           |
-                       \     \          |
-         |             \      \         |
-                        \       \       |
-         |               \       \      |
-                          \       \     |
-         |                 \        \   |
-                            \        \  |
-         |                   \        \ |
-                             \         \|
-         |                    \       --+--  focal-length
-                               \        |\
-         |                      \       | \
-                                 \      |  \
-         |                        \     |   \
-                                  \     |     \
-         |                         \    |      \
-                                    \   |       \
-         |                           \  |         \
-                                      \ |          \
-         |                             \|           \      aperture-plane
-   -|----O------------------------------O------------O----------------------|-
-          \                             |\                                  |
-             \                          | \          |                aperture-
-                \                       |  \                           radius
-                   \                    |   \        |
-                      \                 |    \
-                         \              |     \      |
-                            \           |     \
-                               \        |      \     |
-                                  \     |       \
-                                     \  |        \   |
-                        focal-length  --+--       \
-                                        | \       \  |
-                                        |    \     \
-                                        |       \   \|
-    image-sensor-plane                  |          \\
-                ------------------------+-----------(P)----------  x/y
-                                        |\_ image-sensor-distance
-                                        |
-
-1)      Find point P on image-sensor-plane for (row, column).
-        With P.z = -image-sensor-distance.
-        Add random-scatter in pixel-bin.
-
-2)      Find point A on the object-plane.
-        With A.z = +object-distance
-
-3)      Draw random point W on aperture-plane within aperture-radius.
-
-4)      Trace ray(P - W) and assign to pixel (row, column).
-
-*/
-
-struct mli_Vec mli_camera_Aperture_pixel_center_on_image_sensor_plane(
-        const double image_sensor_width_x,
-        const double image_sensor_width_y,
-        const double image_sensor_distance,
-        const uint64_t num_pixel_x,
-        const uint64_t num_pixel_y,
-        const uint64_t pixel_x,
-        const uint64_t pixel_y);
-
-struct mli_Vec mli_camera_Aperture_pixel_support_on_image_sensor_plane(
-        const double image_sensor_width_x,
-        const double image_sensor_width_y,
-        const double image_sensor_distance,
-        const uint64_t num_pixel_x,
-        const uint64_t num_pixel_y,
-        const uint64_t pixel_x,
-        const uint64_t pixel_y,
-        struct mli_Prng *prng);
-
-struct mli_Vec mli_camera_Aperture_get_object_point(
-        const double focal_length,
-        const struct mli_Vec pixel_support);
-
-double mli_camera_Aperture_focal_length_given_field_of_view_and_sensor_width(
-        const double field_of_view,
-        const double image_sensor_width);
-
-struct mli_Vec mli_camera_Aperture_ray_support_on_aperture(
-        const double aperture_radius,
-        struct mli_Prng *prng);
-
-struct mli_Ray mli_camera_Aperture_get_ray_for_pixel(
-        const double focal_length,
-        const double aperture_radius,
-        const double image_sensor_distance,
-        const double image_sensor_width_x,
-        const double image_sensor_width_y,
-        const uint64_t num_pixel_x,
-        const uint64_t num_pixel_y,
-        const uint64_t pixel_x,
-        const uint64_t pixel_y,
-        struct mli_Prng *prng);
-
-struct mli_camera_Aperture {
-        double focal_length;
-        double aperture_radius;
-        double image_sensor_distance;
-        double image_sensor_width_x;
-        double image_sensor_width_y;
-};
-
-struct mli_camera_Aperture mli_camera_Aperture_init(void);
-
-int mli_camera_Aperture_render_image(
-        const struct mli_camera_Aperture self,
-        const struct mli_HomTraComp camera2root_comp,
-        const struct mli_Shader *tracer,
-        struct mli_Image *image,
-        struct mli_Prng *prng);
-
-void mli_camera_Aperture_aquire_pixels(
-        const struct mli_camera_Aperture self,
-        const struct mli_Image *image,
-        const struct mli_HomTraComp camera2root_comp,
-        const struct mli_Shader *tracer,
-        const struct mli_image_PixelVector *pixels_to_do,
-        struct mli_ColorVector *colors_to_do,
-        struct mli_Prng *prng);
-
-void mli_camera_Aperture_assign_pixel_colors_to_sum_and_exposure_image(
-        const struct mli_image_PixelVector *pixels,
-        const struct mli_ColorVector *colors,
-        struct mli_Image *sum_image,
-        struct mli_Image *exposure_image);
-
 #endif
 
 /* intersection_and_scenery */
@@ -6027,6 +6057,29 @@ const struct mli_Func *mli_raytracing_get_refractive_index_coming_from(
 const struct mli_Func *mli_raytracing_get_refractive_index_going_to(
         const struct mli_Scenery *scenery,
         const struct mli_IntersectionSurfaceNormal *isec);
+
+#endif
+
+/* pathtracer_atmosphere */
+/* --------------------- */
+
+/* Copyright 2018-2023 Sebastian Achim Mueller */
+#ifndef MLI_PATHTRACER_ATMOSPHERE_H_
+#define MLI_PATHTRACER_ATMOSPHERE_H_
+
+
+struct mli_Prng;
+struct mli_PathTracer;
+struct mli_pathtracer_Config;
+struct mli_IntersectionSurfaceNormal;
+
+struct mli_ColorSpectrum mli_raytracing_color_tone_of_sun(
+        const struct mli_pathtracer_Config *config,
+        const struct mli_Vec support);
+struct mli_ColorSpectrum mli_raytracing_color_tone_of_diffuse_sky(
+        const struct mli_PathTracer *tracer,
+        const struct mli_IntersectionSurfaceNormal *intersection,
+        struct mli_Prng *prng);
 
 #endif
 
@@ -6104,50 +6157,6 @@ struct mli_PhotonInteraction mliPhotonInteraction_from_Intersection(
         const struct mli_Scenery *scenery,
         const struct mli_IntersectionSurfaceNormal *isec);
 int mli_propagate_photon_env(struct mli_PhotonPropagation *env);
-#endif
-
-/* pinhole */
-/* ------- */
-
-/* Copyright 2018-2020 Sebastian Achim Mueller */
-#ifndef MLI_CAMERA_PINHOLE_H_
-#define MLI_CAMERA_PINHOLE_H_
-
-
-struct mli_camera_PinHole {
-        struct mli_Vec optical_axis;
-        struct mli_Vec col_axis;
-        struct mli_Vec row_axis;
-        struct mli_Vec principal_point;
-        double distance_to_principal_point;
-        double row_over_column_pixel_ratio;
-};
-
-struct mli_camera_PinHole mli_camera_PinHole_set(
-        const double field_of_view,
-        const struct mli_Image *image,
-        const double row_over_column_pixel_ratio);
-
-void mli_camera_PinHole_render_image(
-        struct mli_camera_PinHole self,
-        const struct mli_HomTraComp camera2root_comp,
-        const struct mli_Shader *shader,
-        struct mli_Image *image,
-        struct mli_Prng *prng);
-
-void mli_camera_PinHole_render_image_with_view(
-        const struct mli_View view,
-        const struct mli_Shader *shader,
-        struct mli_Image *image,
-        const double row_over_column_pixel_ratio,
-        struct mli_Prng *prng);
-
-struct mli_Ray mli_camera_PinHole_ray_at_row_col(
-        const struct mli_camera_PinHole *self,
-        const struct mli_Image *image,
-        const uint32_t row,
-        const uint32_t col);
-
 #endif
 
 /* ray_scenery_query */
