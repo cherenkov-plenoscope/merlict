@@ -31,81 +31,46 @@ def sceneryPy_to_sceneryStr(sceneryPy, indent=4, relations_indent=0):
     sceneryStr = []
     sceneryStr.append(("README.md", sceneryPy["readme"]))
 
-    for okey in sceneryPy["geometry"]["objects"]:
-        filepath = join("geometry", "objects", "{:s}.obj".format(okey))
-        payload = tmi.obj.dumps(sceneryPy["geometry"]["objects"][okey])
-        sceneryStr.append((filepath, payload))
+    for key in sceneryPy["geometry"]["objects"]:
+        _path = join("geometry", "objects", f"{key:s}.obj")
+        _payload = tmi.obj.dumps(sceneryPy["geometry"]["objects"][key])
+        sceneryStr.append((_path, _payload))
 
-    filepath = join("geometry", "relations.json")
-    payload = jsonp.dumps(
+    _path = join("geometry", "relations.json")
+    _payload = jsonp.dumps(
         sceneryPy["geometry"]["relations"], indent=relations_indent
     )
-    sceneryStr.append((filepath, payload))
+    sceneryStr.append((_path, _payload))
 
-    for spectra_key in sceneryPy["materials"]["spectra"]:
-        spectra_dir = join("materials", "spectra", f"{spectra_key:s}")
-        spectrum = sceneryPy["materials"]["spectra"][spectra_key]
-        payload = function_csv.dumps(
-            func=spectrum["spectrum"],
-            header=("wavelength/m", "refraction/1"),
+    for key in sceneryPy["materials"]["spectra"]:
+        _path = join("materials", "spectra", f"{key:s}.csv")
+        _payload = function_csv.dumps(**sceneryPy["materials"]["spectra"][key])
+        sceneryStr.append((_path, _payload))
+
+    for key in sceneryPy["materials"]["media"]:
+        _path = join("materials", "media", f"{key:s}.json")
+        _payload = jsonp.dumps(
+            sceneryPy["materials"]["media"][key], indent=indent
         )
-        sceneryStr.append((join(media_dir, "refraction.csv"), payload))
+        sceneryStr.append((_path, _payload))
 
-    for media_key in sceneryPy["materials"]["media"]:
-        media_dir = join("materials", "media", f"{media_key:s}")
-
-        # refraction
-        payload = function_csv.dumps(
-            func=sceneryPy["materials"]["media"][media_key]["refraction"],
-            header=("wavelength/m", "refraction/1"),
+    for key in sceneryPy["materials"]["surfaces"]:
+        _path = join("materials", "surfaces", f"{key:s}.json")
+        _payload = jsonp.dumps(
+            sceneryPy["materials"]["surfaces"][key], indent=indent
         )
-        sceneryStr.append((join(media_dir, "refraction.csv"), payload))
+        sceneryStr.append((_path, _payload))
 
-        # absorbtion
-        payload = function_csv.dumps(
-            func=sceneryPy["materials"]["media"][media_key]["absorbtion"],
-            header=("wavelength/m", "absorbtion/m^{-1}"),
+    for key in sceneryPy["materials"]["boundary_layers"]:
+        _path = join("materials", "boundary_layers", f"{key:s}.json")
+        _payload = jsonp.dumps(
+            sceneryPy["materials"]["boundary_layers"][key], indent=indent
         )
-        sceneryStr.append((join(media_dir, "absorbtion.csv"), payload))
+        sceneryStr.append((_path, _payload))
 
-    for surface_key in sceneryPy["materials"]["surfaces"]:
-        surface_dir = join("materials", "surfaces", f"{surface_key:s}")
-
-        # specular_reflection
-        payload = function_csv.dumps(
-            func=sceneryPy["materials"]["surfaces"][surface_key][
-                "specular_reflection"
-            ],
-            header=("wavelength/m", "reflection/1"),
-        )
-        sceneryStr.append(
-            (join(surface_dir, "specular_reflection.csv"), payload)
-        )
-
-        # diffuse_reflection
-        payload = function_csv.dumps(
-            func=sceneryPy["materials"]["surfaces"][surface_key][
-                "diffuse_reflection"
-            ],
-            header=("wavelength/m", "reflection/1"),
-        )
-        sceneryStr.append(
-            (join(surface_dir, "diffuse_reflection.csv"), payload)
-        )
-
-        # material
-        payload = sceneryPy["materials"]["surfaces"][surface_key]["material"]
-        sceneryStr.append((join(surface_dir, "material.txt"), payload))
-
-    filepath = join("materials", "boundary_layers.json")
-    payload = jsonp.dumps(
-        sceneryPy["materials"]["boundary_layers"], indent=relations_indent
-    )
-    sceneryStr.append((filepath, payload))
-
-    filepath = join("materials", "default_medium.txt")
-    payload = str(sceneryPy["materials"]["default_medium"])
-    sceneryStr.append((filepath, payload))
+    _path = join("materials", "default_medium.txt")
+    _payload = str(sceneryPy["materials"]["default_medium"])
+    sceneryStr.append((_path, _payload))
 
     return sceneryStr
 
@@ -115,29 +80,46 @@ def sceneryStr_to_sceneryPy(sceneryStr):
     sceneryPy["geometry"] = {}
     sceneryPy["geometry"]["objects"] = {}
     sceneryPy["materials"] = {}
+    sceneryPy["materials"]["default_medium"] = None
+    sceneryPy["materials"]["spectra"] = {}
     sceneryPy["materials"]["media"] = {}
     sceneryPy["materials"]["surfaces"] = {}
+    sceneryPy["materials"]["boundary_layers"] = {}
     join = posixpath.join
 
     for item in sceneryStr:
-        filepath, payload = item
-        if "README" in filepath:
-            sceneryPy["readme"] = payload
-        elif join("geometry", "objects") in filepath and ".obj" in filepath:
-            okey = _posixpath_basename_without_extension(filepath)
-            sceneryPy["geometry"]["objects"][okey] = tmi.obj.loads(payload)
-        elif join("geometry", "relations.json") == filepath:
-            sceneryPy["geometry"]["relations"] = jsonp.loads(payload)
-        elif join("materials", "media") in filepath and ".json" in filepath:
-            mkey = _posixpath_basename_without_extension(filepath)
-            sceneryPy["materials"]["media"][mkey] = jsonp.loads(payload)
-        elif join("materials", "surfaces") in filepath and ".json" in filepath:
-            mkey = _posixpath_basename_without_extension(filepath)
-            sceneryPy["materials"]["surfaces"][mkey] = jsonp.loads(payload)
-        elif join("materials", "default_medium.txt") == filepath:
-            sceneryPy["materials"]["default_medium"] = str(payload)
-        elif join("materials", "boundary_layers.json") == filepath:
-            sceneryPy["materials"]["boundary_layers"] = jsonp.loads(payload)
+        _path, _load = item
+        if "README" in _path:
+            sceneryPy["readme"] = _load
+
+        elif join("geometry", "objects") in _path and ".obj" in _path:
+            okey = _posixpath_basename_without_extension(_path)
+            sceneryPy["geometry"]["objects"][okey] = tmi.obj.loads(_load)
+
+        elif join("geometry", "relations.json") == _path:
+            sceneryPy["geometry"]["relations"] = jsonp.loads(_load)
+
+        elif join("materials", "spectra") in _path and ".csv" in _path:
+            key = _posixpath_basename_without_extension(_path)
+            sceneryPy["materials"]["spectra"][key] = function_csv.loads(_load)
+
+        elif join("materials", "media") in _path and ".json" in _path:
+            key = _posixpath_basename_without_extension(_path)
+            sceneryPy["materials"]["media"][key] = jsonp.loads(_load)
+
+        elif join("materials", "surfaces") in _path and ".json" in _path:
+            key = _posixpath_basename_without_extension(_path)
+            sceneryPy["materials"]["surfaces"][key] = jsonp.loads(_load)
+
+        elif (
+            join("materials", "boundary_layers") in _path and ".json" in _path
+        ):
+            key = _posixpath_basename_without_extension(_path)
+            sceneryPy["materials"]["boundary_layers"][key] = jsonp.loads(_load)
+
+        elif join("materials", "default_medium.txt") == _path:
+            sceneryPy["materials"]["default_medium"] = str(_load)
+
     return sceneryPy
 
 

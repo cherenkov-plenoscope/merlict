@@ -2,48 +2,43 @@ import numpy as np
 import io
 
 
-def dumps(func, header):
+def dumps(x, y, x_label, y_label):
     # RFC 4180
-    func = np.asarray(func)
-    assert func.shape[1] == 2
-
+    assert len(x) == len(
+        y
+    ), f"len(x) {len(x):d} == {len(y):d} x:{x_label:s}, y:{y_label:s}."
     out = io.StringIO()
-    if header is not None:
-        assert len(header) == 2, "Expected header string for x and y."
-        for head in header:
-            assert "\n" not in head, "Expected header to be a single line."
-        out.write(f"{header[0]:s},{header[1]:s}\n")
+    assert "\n" not in x_label, "Expected x_label to be a single line."
+    assert "\n" not in y_label, "Expected y_label to be a single line."
+    out.write(f"{x_label:s},{y_label:s}\n")
 
-    for i in range(func.shape[0]):
-        x = func[i, 0]
-        y = func[i, 1]
-        line = f"{x:e},{y:e}\n"
+    for i in range(len(x)):
+        line = f"{x[i]:e},{y[i]:e}\n"
         out.write(line)
     out.seek(0)
     return out.read()
 
 
-def loads(text, first_line_is_haeder=False):
+def loads(text):
     # RFC 4180
-    header = None
-    func = []
-    found_numbers = False
+    x_label = ""
+    y_label = ""
+    x = []
+    y = []
+    is_header = True
     for line in text.splitlines():
         if len(line) == 0:
             break
         _x, _y = line.split(",")
-        if first_line_is_haeder and header is None:
-            header = (_x, _y)
+        if is_header:
+            x_label = _x
+            y_label = _y
+            is_header = False
         else:
-            found_numbers = True
-            func.append([float(_x), float(_y)])
+            x.append(float(_x))
+            y.append(float(_y))
 
-    if found_numbers:
-        func = np.asarray(func)
-    else:
-        func = np.zeros(shape=(0, 2), dtype=float)
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
 
-    if header is None:
-        return func
-    else:
-        return func, header
+    return x, y, x_label, y_label

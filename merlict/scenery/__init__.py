@@ -4,15 +4,10 @@ import os
 import numpy as np
 
 
-def init(default_medium="vacuum"):
+def init():
     """
     Returns a minimal sceneryPy without any objects in it.
 
-    Parameters
-    ----------
-    default_medium : str
-        The key of a medium in merlict's own library of media to be used for
-        the default medium in between surfaces.
     """
     sceneryPy = {
         "readme": _default_readme(),
@@ -21,16 +16,14 @@ def init(default_medium="vacuum"):
             "media": {},
             "surfaces": {},
             "boundary_layers": {},
-            "default_medium": default_medium,
+            "default_medium": None,
         },
         "geometry": {
             "objects": {},
             "relations": {"children": []},
         },
     }
-    sceneryPy["materials"]["media"][default_medium] = materials.media.init(
-        key=default_medium
-    )
+
     return sceneryPy
 
 
