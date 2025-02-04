@@ -31,8 +31,8 @@ def loads(text):
             break
         _x, _y = line.split(",")
         if is_header:
-            x_label = _x
-            y_label = _y
+            x_label = str.strip(_x)
+            y_label = str.strip(_y)
             is_header = False
         else:
             x.append(float(_x))
