@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from ... import utils
 from ...scenery.string_format import function_csv
 

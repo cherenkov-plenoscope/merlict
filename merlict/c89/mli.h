@@ -1469,8 +1469,8 @@ int mli_Vec_overlap_aabb(
 
 
 #define MLI_VERSION_MAYOR 2
-#define MLI_VERSION_MINOR 1
-#define MLI_VERSION_PATCH 3
+#define MLI_VERSION_MINOR 2
+#define MLI_VERSION_PATCH 0
 
 void mli_version_logo_fprint(FILE *f);
 void mli_version_authors_and_affiliations_fprint(FILE *f);
@@ -3135,7 +3135,7 @@ struct mli_Map;
 struct mli_Medium {
         struct mli_String name;
         uint64_t refraction_spectrum;
-        uint64_t absorbtion_spectrum;
+        uint64_t absorption_spectrum;
 };
 
 struct mli_Medium mli_Medium_init(void);
@@ -4983,8 +4983,8 @@ int mli_Materials_valid_boundary_layers(const struct mli_Materials *self);
 
 
 #define MLI_PHOTON_CREATION 101u
-#define MLI_PHOTON_ABSORBTION 102u
-#define MLI_PHOTON_ABSORBTION_MEDIUM 103u
+#define MLI_PHOTON_ABSORPTION 102u
+#define MLI_PHOTON_ABSORPTION_MEDIUM 103u
 #define MLI_PHOTON_FRESNEL_REFLECTION 104u
 #define MLI_PHOTON_REFRACTION 105u
 #define MLI_PHOTON_SPECULAR_REFLECTION 106u
@@ -6129,11 +6129,11 @@ int mli_propagate_photon(
         const uint64_t max_interactions);
 int mli_propagate_photon_work_on_causal_intersection(
         struct mli_PhotonPropagation *env);
-int mli_propagate_photon_distance_until_absorbtion(
-        const struct mli_Func *absorbtion_in_medium_passing_through,
+int mli_propagate_photon_distance_until_absorption(
+        const struct mli_Func *absorption_in_medium_passing_through,
         const double wavelength,
         struct mli_Prng *prng,
-        double *distance_until_absorbtion);
+        double *distance_until_absorption);
 int mli_propagate_photon_interact_with_object(
         struct mli_PhotonPropagation *env,
         const struct mli_IntersectionSurfaceNormal *isec);

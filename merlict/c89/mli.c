@@ -11033,7 +11033,7 @@ int mli_Materials_info_fprint(FILE *f, const struct mli_Materials *self)
         fprintf(f, "%3s ", "#");
         fprintf(f, "%24s ", "name");
         fprintf(f, "%12s ", "refraction");
-        fprintf(f, "%12s ", "absorbtion");
+        fprintf(f, "%12s ", "absorption");
         fprintf(f, "%12s ", "default");
         fprintf(f, "\n");
         fprintf(f, "    ");
@@ -11047,7 +11047,7 @@ int mli_Materials_info_fprint(FILE *f, const struct mli_Materials *self)
                 fprintf(f, "% 3d ", i);
                 fprintf(f, "%24s ", medium->name.array);
                 fprintf(f, "%12lu ", medium->refraction_spectrum);
-                fprintf(f, "%12lu ", medium->absorbtion_spectrum);
+                fprintf(f, "%12lu ", medium->absorption_spectrum);
 
                 if (i == self->default_medium) {
                         fprintf(f, "%12s", "True");
@@ -11998,7 +11998,7 @@ struct mli_Medium mli_Medium_init(void)
         struct mli_Medium out;
         out.name = mli_String_init();
         out.refraction_spectrum = 0;
-        out.absorbtion_spectrum = 0;
+        out.absorption_spectrum = 0;
         return out;
 }
 
@@ -12016,8 +12016,8 @@ int mli_Medium_valid_wrt_materials(
 
         chk_msg(self->refraction_spectrum < materials->spectra.size,
                 "refraction_spectrum index is not in materials.");
-        chk_msg(self->absorbtion_spectrum < materials->spectra.size,
-                "absorbtion_spectrum index is not in materials.");
+        chk_msg(self->absorption_spectrum < materials->spectra.size,
+                "absorption_spectrum index is not in materials.");
 
         return 1;
 chk_error:
@@ -12030,8 +12030,8 @@ int mli_Medium_equal(const struct mli_Medium *a, const struct mli_Medium *b)
                 "Different names of medium models.");
         chk_msg(a->refraction_spectrum == b->refraction_spectrum,
                 "Different refraction_spectrum.");
-        chk_msg(a->absorbtion_spectrum == b->absorbtion_spectrum,
-                "Different absorbtion_spectrum.");
+        chk_msg(a->absorption_spectrum == b->absorption_spectrum,
+                "Different absorption_spectrum.");
 
         return 1;
 chk_error:
@@ -12047,7 +12047,7 @@ int mli_Medium_to_io(const struct mli_Medium *self, struct mli_IO *f)
         chk_msg(mli_String_to_io(&self->name, f),
                 "Can't write medium.name to io.");
         chk_IO_write(&self->refraction_spectrum, sizeof(int64_t), 1u, f);
-        chk_IO_write(&self->absorbtion_spectrum, sizeof(int64_t), 1u, f);
+        chk_IO_write(&self->absorption_spectrum, sizeof(int64_t), 1u, f);
 
         return 1;
 chk_error:
@@ -12064,7 +12064,7 @@ int mli_Medium_from_io(struct mli_Medium *self, struct mli_IO *f)
         chk_msg(mli_String_from_io(&self->name, f),
                 "Can't read medium.name from io.");
         chk_IO_read(&self->refraction_spectrum, sizeof(int64_t), 1u, f);
-        chk_IO_read(&self->absorbtion_spectrum, sizeof(int64_t), 1u, f);
+        chk_IO_read(&self->absorption_spectrum, sizeof(int64_t), 1u, f);
 
         return 1;
 chk_error:
@@ -12097,12 +12097,12 @@ int mli_Medium_from_json_string_and_name(
                 "Expected 'refraction_spectrum' to be in spectra_names.");
 
         walk = mli_JsonWalk_set(&json);
-        chk_msg(mli_JsonWalk_to_key(&walk, "absorbtion_spectrum"),
-                "Expected field 'absorbtion_spectrum' in medium json string.");
+        chk_msg(mli_JsonWalk_to_key(&walk, "absorption_spectrum"),
+                "Expected field 'absorption_spectrum' in medium json string.");
         chk_msg(mli_JsonWalk_get_string(&walk, &key),
-                "Expected 'absorbtion_spectrum' to hold a string.");
-        chk_msg(mli_Map_get(spectra_names, &key, &self->absorbtion_spectrum),
-                "Expected 'absorbtion_spectrum' to be in spectra_names.");
+                "Expected 'absorption_spectrum' to hold a string.");
+        chk_msg(mli_Map_get(spectra_names, &key, &self->absorption_spectrum),
+                "Expected 'absorption_spectrum' to be in spectra_names.");
 
         mli_String_free(&key);
         mli_Json_free(&json);
@@ -15143,11 +15143,11 @@ int mli_photon_interaction_type_to_string(const int32_t type, char *s)
         case MLI_PHOTON_CREATION:
                 sprintf(s, "creation");
                 break;
-        case MLI_PHOTON_ABSORBTION:
-                sprintf(s, "absorbtion");
+        case MLI_PHOTON_ABSORPTION:
+                sprintf(s, "absorption");
                 break;
-        case MLI_PHOTON_ABSORBTION_MEDIUM:
-                sprintf(s, "absorbtion in medium");
+        case MLI_PHOTON_ABSORPTION_MEDIUM:
+                sprintf(s, "absorption in medium");
                 break;
         case MLI_PHOTON_FRESNEL_REFLECTION:
                 sprintf(s, "Fresnel reflection");
@@ -15360,7 +15360,7 @@ int mli_propagate_photon_cooktorrance(
 
         rnd = mli_Prng_uniform(env->prng);
         /*
-                                                      absorbtion
+                                                      absorption
                   diffuse      specular        (1.0 - diffuse - specular)
                   __/\____  _____/\__________  ___________/\____________
                  /        \/                 \/                         \
@@ -15402,7 +15402,7 @@ int mli_propagate_photon_cooktorrance(
                 chk(mli_PhotonInteractionVector_push_back(
                         env->history,
                         mliPhotonInteraction_from_Intersection(
-                                MLI_PHOTON_ABSORBTION, env->scenery, isec)));
+                                MLI_PHOTON_ABSORPTION, env->scenery, isec)));
         }
         return 1;
 chk_error:
@@ -15438,19 +15438,20 @@ int mli_propagate_photon_probability_passing_medium_coming_from(
         const struct mli_Medium *medium_coming_from =
                 &scenery->materials.media.array[side_coming_from.medium];
 
-        const struct mli_Func *absorbtion_spectrum =
+        const struct mli_Func *absorption_spectrum =
                 &scenery->materials.spectra
-                         .array[medium_coming_from->absorbtion_spectrum]
+                         .array[medium_coming_from->absorption_spectrum]
                          .spectrum;
-        double one_over_e_way;
+        double absorption_coefficient;
 
         chk_msg(mli_Func_evaluate(
-                        absorbtion_spectrum,
+                        absorption_spectrum,
                         photon->wavelength,
-                        &one_over_e_way),
+                        &absorption_coefficient),
                 "Photon's wavelength is out of range to "
-                "evaluate absorbtion in medium coming from");
-        (*probability_passing) = exp(-isec->distance_of_ray / one_over_e_way);
+                "evaluate absorption in medium coming from");
+        (*probability_passing) =
+                exp(-isec->distance_of_ray * absorption_coefficient);
 
         return 1;
 chk_error:
@@ -15539,20 +15540,20 @@ chk_error:
         return 0;
 }
 
-int mli_propagate_photon_distance_until_absorbtion(
-        const struct mli_Func *absorbtion_in_medium_passing_through,
+int mli_propagate_photon_distance_until_absorption(
+        const struct mli_Func *absorption_in_medium_passing_through,
         const double wavelength,
         struct mli_Prng *prng,
-        double *distance_until_absorbtion)
+        double *distance_until_absorption)
 {
-        double one_over_e_way;
+        double absorption_coefficient;
         chk_msg(mli_Func_evaluate(
-                        absorbtion_in_medium_passing_through,
+                        absorption_in_medium_passing_through,
                         wavelength,
-                        &one_over_e_way),
-                "Failed to eval. absorbtion for wavelength.");
-        (*distance_until_absorbtion) =
-                mli_Prng_expovariate(prng, 1. / one_over_e_way);
+                        &absorption_coefficient),
+                "Failed to eval. absorption for wavelength.");
+        (*distance_until_absorption) =
+                mli_Prng_expovariate(prng, absorption_coefficient);
         return 1;
 chk_error:
         return 0;
@@ -15562,9 +15563,9 @@ int mli_propagate_photon_work_on_causal_intersection(
         struct mli_PhotonPropagation *env)
 {
         int ray_does_intersect_surface = 0;
-        double distance_until_absorbtion = 0.0;
+        double distance_until_absorption = 0.0;
         struct mli_IntersectionSurfaceNormal next_intersection;
-        struct mli_Func *absorbtion_in_medium_passing_through;
+        struct mli_Func *absorption_in_medium_passing_through;
         struct mli_Medium *medium_passing_through;
         struct mli_PhotonInteraction phia;
 
@@ -15579,20 +15580,20 @@ int mli_propagate_photon_work_on_causal_intersection(
                 layer = mli_raytracing_get_intersection_layer(
                         env->scenery, &next_intersection);
 
-                absorbtion_in_medium_passing_through =
+                absorption_in_medium_passing_through =
                         &env->scenery->materials.spectra
                                  .array[layer.side_coming_from.medium
-                                                ->absorbtion_spectrum]
+                                                ->absorption_spectrum]
                                  .spectrum;
 
-                chk(mli_propagate_photon_distance_until_absorbtion(
-                        absorbtion_in_medium_passing_through,
+                chk(mli_propagate_photon_distance_until_absorption(
+                        absorption_in_medium_passing_through,
                         env->photon->wavelength,
                         env->prng,
-                        &distance_until_absorbtion));
+                        &distance_until_absorption));
 
                 photon_is_absorbed_before_reaching_surface =
-                        distance_until_absorbtion <
+                        distance_until_absorption <
                         next_intersection.distance_of_ray;
 
                 if (env->history->size == 0) {
@@ -15615,13 +15616,13 @@ int mli_propagate_photon_work_on_causal_intersection(
                 }
 
                 if (photon_is_absorbed_before_reaching_surface) {
-                        /* absorbtion in medium */
-                        phia.type = MLI_PHOTON_ABSORBTION_MEDIUM;
+                        /* absorption in medium */
+                        phia.type = MLI_PHOTON_ABSORPTION_MEDIUM;
                         phia.position = mli_Ray_at(
-                                &env->photon->ray, distance_until_absorbtion);
+                                &env->photon->ray, distance_until_absorption);
                         ;
                         phia.position_local = phia.position;
-                        phia.distance_of_ray = distance_until_absorbtion;
+                        phia.distance_of_ray = distance_until_absorption;
                         phia.on_geometry_surface = 0;
                         phia.geometry_id = mli_GeometryId_init();
                         phia.from_outside_to_inside = 1;
@@ -15645,17 +15646,17 @@ int mli_propagate_photon_work_on_causal_intersection(
 
                 medium_passing_through =
                         &env->scenery->materials.media.array[default_medium];
-                absorbtion_in_medium_passing_through =
+                absorption_in_medium_passing_through =
                         &env->scenery->materials.spectra
                                  .array[medium_passing_through
-                                                ->absorbtion_spectrum]
+                                                ->absorption_spectrum]
                                  .spectrum;
 
-                chk(mli_propagate_photon_distance_until_absorbtion(
-                        absorbtion_in_medium_passing_through,
+                chk(mli_propagate_photon_distance_until_absorption(
+                        absorption_in_medium_passing_through,
                         env->photon->wavelength,
                         env->prng,
-                        &distance_until_absorbtion));
+                        &distance_until_absorption));
 
                 if (env->history->size == 0) {
                         /* creation */
@@ -15674,12 +15675,12 @@ int mli_propagate_photon_work_on_causal_intersection(
                                 env->history, phia));
                 }
 
-                /* absorbtion in medium */
-                phia.type = MLI_PHOTON_ABSORBTION_MEDIUM;
+                /* absorption in medium */
+                phia.type = MLI_PHOTON_ABSORPTION_MEDIUM;
                 phia.position = mli_Ray_at(
-                        &env->photon->ray, distance_until_absorbtion);
+                        &env->photon->ray, distance_until_absorption);
                 phia.position_local = phia.position;
-                phia.distance_of_ray = distance_until_absorbtion;
+                phia.distance_of_ray = distance_until_absorption;
                 phia.on_geometry_surface = 0;
                 phia.geometry_id = mli_GeometryId_init();
                 phia.from_outside_to_inside = 1;
@@ -17683,7 +17684,7 @@ int mli_Scenery_malloc_minimal_from_wavefront(
         spec += 1;
 
         spectrum = &self->materials.spectra.array[spec];
-        chk(mli_String_from_cstr(&spectrum->name, "vacuum_absorbtion"));
+        chk(mli_String_from_cstr(&spectrum->name, "vacuum_absorption"));
         chk(mli_Func_malloc_constant(
                 &spectrum->spectrum, 200e-9, 1200e-9, 0.0));
         spec += 1;
@@ -17692,7 +17693,7 @@ int mli_Scenery_malloc_minimal_from_wavefront(
         mli_Medium_free(medium);
         chk(mli_String_from_cstr(&medium->name, "vacuum"));
         medium->refraction_spectrum = 0;
-        medium->absorbtion_spectrum = 1;
+        medium->absorption_spectrum = 1;
 
         for (i = 0u; i < total_num_boundary_layers; i++) {
                 spectrum = &self->materials.spectra.array[spec];
