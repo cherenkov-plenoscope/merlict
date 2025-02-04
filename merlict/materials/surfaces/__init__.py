@@ -3,13 +3,13 @@ import json_numpy
 from ... import utils
 
 
-def get_resources_dir():
+def get_resources_path():
     return utils.resources.path("materials", "surfaces", "resources")
 
 
 def list_resources():
     return utils.resources.list(
-        path=get_resources_dir(),
+        path=get_resources_path(),
         glob_filename_pattern="*.json",
         only_basename=True,
         splitext=True,
@@ -30,7 +30,7 @@ def init(key="perfect_absorber"):
     """
     RGB = "/" in key
     basic_key = os.path.dirname(key) if RGB else key
-    path = os.path.join(get_resources_dir(), basic_key + ".json")
+    path = os.path.join(get_resources_path(), basic_key + ".json")
 
     try:
         with open(path, "rt") as f:
