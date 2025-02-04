@@ -1,6 +1,7 @@
 import os
-import json_numpy
+import json
 from ... import utils
+from .. import spectra
 
 
 def get_resources_path():
@@ -16,25 +17,13 @@ def list_resources():
     )
 
 
-def init(key="vacuum"):
-    """
-    Returns the medium's properties from merlict's own library-resources.
-
-    Parameters
-    ----------
-    key : str, optional
-        The key of the medium in merlict's own library. Default is `vacuum`.
-    """
+def add_to_materials_from_resources(materials, key):
     path = os.path.join(get_resources_path(), key + ".json")
-    try:
-        with open(path, "rt") as f:
-            c = json_numpy.loads(f.read())
-    except FileNotFoundError as e:
-        print(
-            "Unknown medium {:s}. Known media are: {:s}".format(
-                key, str(list_resources())
-            )
-        )
-        raise e
-
-    return c
+    with open(path, "rt") as f:
+        medium = json.loads(f.read())
+    speckeys = [medium["refraction_spectrum"], medium["absorption_spectrum"]]
+    for spckey in speckeys:
+        if spckey not in materials["spectra"]:
+            spc = spectra.init_from_resources(key=spckey)
+            materials["spectra"][spckey] = spc
+    materials["media"][key] = medium

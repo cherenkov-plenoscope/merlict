@@ -3,7 +3,7 @@ from ... import utils
 from ...scenery.string_format import function_csv
 
 
-def spectrum_from_resources(key):
+def init_from_resources(key):
     path = os.path.join(get_resources_path(), key + ".csv")
 
     with open(path, "rt") as f:
