@@ -28,6 +28,12 @@ def list_resources():
     )
 
 
+def evaluate(spectrum, wavelength):
+    assert wavelength >= min(spectrum["x"])
+    assert wavelength <= max(spectrum["x"])
+    return np.interp(x=wavelength, xp=spectrum["x"], fp=spectrum["y"])
+
+
 def assert_spectrum_is_valid(spectrum, ymin=None, ymax=None):
     assert len(spectrum["x"]) >= 2, f"len(x) is {len(spectrum['x']):d}."
     assert len(spectrum["x"]) == len(spectrum["y"])
