@@ -5,14 +5,14 @@ import numpy as np
 
 
 def visible_wavelength_range():
-    return [380e-9, 780e-9]
+    return [400e-9, 700e-9]
 
 
-def visable_wavelengths(num_steps_in_visable_range=41):
+def visible_wavelengths(num_steps_in_visible_range=31):
     w = [200e-9]
     vstart, vstop = visible_wavelength_range()
-    visable = np.linspace(vstart, vstop, num_steps_in_visable_range)
-    w += visable.tolist()
+    visible = np.linspace(vstart, vstop, num_steps_in_visible_range)
+    w += visible.tolist()
     w += [1200e-9]
     return w
 
@@ -31,7 +31,7 @@ class Cie1931:
 
     def __init__(self, wavelengths=None):
         if wavelengths is None:
-            self.wavelengths = visable_wavelengths()
+            self.wavelengths = visible_wavelengths()
         else:
             self.wavelengths = wavelengths
 
@@ -56,21 +56,21 @@ class Cie1931:
         self.b_sum = np.sum(self.b)
 
         wvl_start, wvl_stop = visible_wavelength_range()
-        self.visable_wavelength_start = wvl_start
-        self.visable_wavelength_stop = wvl_stop
+        self.visible_wavelength_start = wvl_start
+        self.visible_wavelength_stop = wvl_stop
 
-    def wavelength_is_visable(self, wavelength):
+    def wavelength_is_visible(self, wavelength):
         return (
-            wavelength > self.visable_wavelength_start
-            and wavelength < self.visable_wavelength_stop
+            wavelength > self.visible_wavelength_start
+            and wavelength < self.visible_wavelength_stop
         )
 
-    def _white_spectrum_visable_ones_invisable_zeros(self):
+    def _white_spectrum_visible_ones_invisible_zeros(self):
         wvl_start, wvl_stop = visible_wavelength_range()
         spectrum = np.ones(len(self.wavelengths))
         for w in range(len(self.wavelengths)):
             wvl = self.wavelengths[w]
-            if not self.wavelength_is_visable(wvl):
+            if not self.wavelength_is_visible(wvl):
                 spectrum[w] = 0.0
         return spectrum
 
@@ -120,7 +120,7 @@ class Cie1931:
 
         val /= np.mean(val)
 
-        spectrum = self._white_spectrum_visable_ones_invisable_zeros()
+        spectrum = self._white_spectrum_visible_ones_invisible_zeros()
 
         wvl_start, wvl_stop = visible_wavelength_range()
 
@@ -135,7 +135,7 @@ class Cie1931:
 
             for w in range(len(self.wavelengths)):
                 wvl = self.wavelengths[w]
-                if not self.wavelength_is_visable(wvl):
+                if not self.wavelength_is_visible(wvl):
                     continue
 
                 _spectrum = spectrum.copy()
