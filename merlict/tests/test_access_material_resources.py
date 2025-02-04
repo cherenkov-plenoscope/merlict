@@ -22,4 +22,4 @@ def test_read_material_surfaces():
 def test_read_material_media():
     medi = merlict.materials.media.init(key="water_T293K")
     assert "refraction" in medi
-    assert "absorbtion" in medi
+    assert "absorption" in medi
