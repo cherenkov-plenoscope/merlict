@@ -12,4 +12,4 @@ def is_monotonically_increasing(x):
 
 
 def is_free_of_nan(x):
-    return bool(np.any(np.isnan(x)))
+    return not bool(np.any(np.isnan(x)))

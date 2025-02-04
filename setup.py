@@ -56,6 +56,9 @@ setuptools.setup(
         "merlict": [
             os.path.join("tests", "resources", "*"),
         ],
+        "merlict.materials.spectra": [
+            os.path.join("resources", "*"),
+        ],
         "merlict.materials.media": [
             os.path.join("resources", "*"),
         ],
