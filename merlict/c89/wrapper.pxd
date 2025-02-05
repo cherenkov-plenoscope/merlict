@@ -161,3 +161,33 @@ cdef extern from "mli.h":
         const mli_Ray *rays,
         mli_IntersectionSurfaceNormal *isecs,
         stdint.int64_t *is_valid_isecs)
+
+    # IO
+    # --
+    cdef struct mli_IoFile:
+        pass
+
+    cdef struct mli_IoMemory:
+        unsigned char *cstr
+        stdint.uint64_t capacity
+        stdint.uint64_t size
+        stdint.uint64_t pos
+
+    cdef union mli_IoType:
+        mli_IoFile file
+        mli_IoMemory memory
+
+    cdef struct mli_IO:
+        int type
+        mli_IoType data
+
+    cdef mli_IO mli_IO_init()
+    cdef int mli_IO_open_memory(mli_IO *self)
+    cdef int mli_IO_close(mli_IO *self)
+
+    cdef int mli_IoMemory__malloc_capacity(
+        mli_IoMemory *self,
+        const stdint.uint64_t capacity)
+
+    cdef int mli_Scenery_to_io(const mli_Scenery *self, mli_IO *f)
+    cdef int mli_Scenery_from_io(mli_Scenery *self, mli_IO *f)

@@ -4,6 +4,8 @@ cimport numpy as cnumpy
 cnumpy.import_array()
 
 from libc cimport stdint
+from libc cimport stdlib
+from libc cimport string
 
 import termios
 import sys
@@ -119,6 +121,14 @@ cdef _mli_Archive_push_back_path_and_payload(
     )
     assert rc != 0
     return
+
+
+cdef bytes _make_sure_bytes(b):
+    if type(b) is bytes:
+        # Fast path for most common case(s).
+        return <bytes>b
+    else:
+        raise TypeError("Input must be bytes.")
 
 
 cdef class Merlict:
@@ -315,6 +325,76 @@ cdef class Merlict:
         cdef char* _cpath = _py_path
         rc = mli_Scenery_write_to_path(&self.scenery, _cpath)
         assert rc != 0
+
+    def dumps(self):
+        """
+        Returns a binary dump of the merlict scenery (the c89 binary dump).
+        This can be loaded again with loads(dump).
+
+        Do not use merlict_c89 binary dumps to share sceneries with others
+        as you would also never share pickle.dumps with others.
+        Only use your own merlict_c89 dumps.
+        """
+        cdef int rc
+        cdef mli_IO buff = mli_IO_init()
+        cdef bytes pyout
+
+        try:
+            rc = mli_IO_open_memory(&buff)
+            assert rc != 0, "Failed to open buffer."
+            assert buff.type == 20
+            assert buff.data.memory.size == 0
+
+            rc = mli_Scenery_to_io(&self.scenery, &buff)
+            assert rc != 0, "Failed to serialize scenery to buffer."
+
+            pyout = buff.data.memory.cstr[:buff.data.memory.size]
+
+        finally:
+            rc = mli_IO_close(&buff)
+            assert rc != 0, "Failed to close buffer."
+
+        return pyout
+
+    def loads(self, dump):
+        """
+        Loads a merlict_c89 binary dump of the scenery.
+        The binary dump can be dumped using dumps().
+
+        Do not use merlict_c89 binary dumps to share sceneries with others
+        as you would also never share pickle.dumps with others.
+        Only use your own merlict_c89 dumps.
+        """
+        cdef bytes _dump = _make_sure_bytes(dump)
+        cdef int rc
+        cdef mli_IO buff = mli_IO_init()
+        cdef stdint.uint64_t size = len(_dump)
+
+        try:
+            rc = mli_IO_open_memory(&buff)
+            assert rc != 0, "Failed to open buffer."
+            assert buff.type == 20
+            assert buff.data.memory.size == 0
+
+            rc = mli_IoMemory__malloc_capacity(&buff.data.memory, size)
+            assert rc != 0, "Failed to malloc buffer from dump."
+
+            assert buff.data.memory.capacity == size
+            assert buff.data.memory.pos == 0
+            buff.data.memory.size = size
+
+            for i in range(size):
+                buff.data.memory.cstr[i] = _dump[i]
+
+            # The copy operations below fail. No idea what is going on there.
+            # string.memcpy(buff.data.memory.cstr, &_dump[0], size)
+            # buff.data.memory.cstr[0:size] = _dump[0:size]
+
+            rc = mli_Scenery_from_io(&self.scenery, &buff)
+            assert rc != 0, "Failed to load scenery from buffer."
+        finally:
+            rc = mli_IO_close(&buff)
+            assert rc != 0, "Failed to close buffer."
 
     def init_from_sceneryStr(self, sceneryStr):
         cdef int rc
