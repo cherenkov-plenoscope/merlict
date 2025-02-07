@@ -23,6 +23,7 @@ struct mli_viewer_Config mli_viewer_Config_default(void)
         cfg.export_num_rows = 720u;
 
         cfg.step_length = 1.0;
+        cfg.gain = 0.1;
         cfg.gamma = 1.0;
 
         cfg.view.position.x = 0.;
@@ -296,9 +297,9 @@ int mliEventIo_read_telescope_offsets(
         mli_FloatArray_free(&yoff);
         mli_FloatArray_free(&weight);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 struct mliEventIoBunchHeader {
@@ -363,9 +364,9 @@ int mliEventIo_read_photon_bunches(
                 }
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 struct mliEventIoEvent mliEventIoEvent_init(void)
@@ -478,9 +479,9 @@ int mliEventIoEvent_malloc_from_run(
         /* ---- */
         chk(mliEventIoRun_next_block(run, MLI_EVENTIO_TOP_LEVEL));
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* EventIo_Header */
@@ -626,7 +627,7 @@ int mliEventIoHeader_read(struct mliEventIoHeader *header, FILE *f, int level)
 
         return length_read;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mliEventIoHeader_fprint(const struct mliEventIoHeader head, FILE *f)
@@ -664,9 +665,9 @@ int mliEventIoRun_read_273float32_block(FILE *f, float *block)
         chk_fread(&block_size, sizeof(int32_t), 1, f);
         chk_msg(block_size == 273, "Expected block-size to be 273.");
         chk_fread(block, sizeof(float), (uint64_t)block_size, f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /*
@@ -694,9 +695,9 @@ int mliEventIoRun_read_input_card(
                 "Expected at least 8bytes payload.");
         input_card_length = length - sizeof(_unknown);
         chk_fread(input_card->array, sizeof(char), input_card_length, f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventIoRun_read_telescope_positions(
@@ -720,18 +721,18 @@ int mliEventIoRun_read_telescope_positions(
                 sizeof(struct mliEventIoTelescopePosition),
                 (uint64_t)ntel,
                 f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventIoRun_next_block(struct mliEventIoRun *run, const int level)
 {
         chk_msg(mliEventIoHeader_read(&run->next_block, run->f, level),
                 "Failed to read EventIo-block-header.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventIoRun_begin(struct mliEventIoRun *run, FILE *stream)
@@ -771,9 +772,9 @@ int mliEventIoRun_begin(struct mliEventIoRun *run, FILE *stream)
         /* ---- */
         chk(mliEventIoRun_next_block(run, MLI_EVENTIO_TOP_LEVEL));
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventIoRun_has_still_events_left(struct mliEventIoRun *run)
@@ -869,9 +870,9 @@ int mliEventTapeWriter_finalize(struct mliEventTapeWriter *tio)
         }
         mli_FloatVector_free(&tio->buffer);
         (*tio) = mliEventTapeWriter_init();
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventTapeWriter_begin(
@@ -884,9 +885,9 @@ int mliEventTapeWriter_begin(
         chk_msg(mli_Tar_write_begin(&tio->tar, stream), "Can't begin tar.");
         chk_msg(mli_FloatVector_malloc(&tio->buffer, 8 * num_bunches_buffer),
                 "Can't malloc cherenkov-bunch-buffer.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventTapeWriter_write_corsika_header(
@@ -908,9 +909,9 @@ int mliEventTapeWriter_write_corsika_header(
         if (tio->flush_tar_stream_after_each_file) {
                 mli_IO_flush(tio->tar.stream);
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventTapeWriter_write_runh(
@@ -923,9 +924,9 @@ int mliEventTapeWriter_write_runh(
         sprintf(path, "%09d/RUNH.float32", tio->run_number);
         chk_msg(mliEventTapeWriter_write_corsika_header(tio, path, runh),
                 "Can't write 'RUNH.float32' to event-tape.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventTapeWriter_write_evth(
@@ -954,9 +955,9 @@ int mliEventTapeWriter_write_evth(
                 tio->event_number);
         chk_msg(mliEventTapeWriter_write_corsika_header(tio, path, evth),
                 "Can't write 'EVTH.float32' to event-tape.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventTapeWriter_flush_cherenkov_bunch_block(
@@ -984,9 +985,9 @@ int mliEventTapeWriter_flush_cherenkov_bunch_block(
         }
         tio->buffer.size = 0;
         tio->cherenkov_bunch_block_number += 1;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventTapeWriter_write_cherenkov_bunch(
@@ -1002,9 +1003,9 @@ int mliEventTapeWriter_write_cherenkov_bunch(
                 tio->buffer.array[tio->buffer.size] = bunch[i];
                 tio->buffer.size += 1;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* reader */
@@ -1031,9 +1032,9 @@ int mliEventTapeReader_finalize(struct mliEventTapeReader *tio)
                         "Can't finalize reading tar.");
         }
         (*tio) = mliEventTapeReader_init();
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventTapeReader_begin(
@@ -1044,9 +1045,9 @@ int mliEventTapeReader_begin(
                 "Can't close and free previous tar-io-reader.");
         chk_msg(mli_Tar_read_begin(&tio->tar, stream), "Can't begin tar.");
         tio->has_tarh = mli_Tar_read_header(&tio->tar, &tio->tarh);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventTapeReader_read_runh(struct mliEventTapeReader *tio, float *runh)
@@ -1073,9 +1074,9 @@ int mliEventTapeReader_read_runh(struct mliEventTapeReader *tio, float *runh)
                 "Expected run_number in RUNH's path "
                 "to match run_number in RUNH.");
         tio->has_tarh = mli_Tar_read_header(&tio->tar, &tio->tarh);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventTapeReader_read_evth(struct mliEventTapeReader *tio, float *evth)
@@ -1089,10 +1090,10 @@ int mliEventTapeReader_read_evth(struct mliEventTapeReader *tio, float *evth)
         char match[MLI_TAR_NAME_LENGTH] = "ddddddddd/ddddddddd/EVTH.float32";
 
         if (!tio->has_tarh) {
-                return 0;
+                return CHK_FAIL;
         }
         if (!mli_cstr_match_templeate(tio->tarh.name, match, 'd')) {
-                return 0;
+                return CHK_FAIL;
         }
         chk_msg(mli_cstr_nto_uint64(
                         &path_event_number,
@@ -1135,9 +1136,9 @@ int mliEventTapeReader_read_evth(struct mliEventTapeReader *tio, float *evth)
         tio->block_at = 0;
         tio->has_still_bunches_in_event = 1;
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventTapeReader_tarh_might_be_valid_cherenkov_block(
@@ -1185,9 +1186,9 @@ int mliEventTapeReader_tarh_is_valid_cherenkov_block(
         chk_msg(path_block_number == tio->cherenkov_bunch_block_number,
                 "Expected different cherenkov-bunch-block-number in "
                 "cherenkov-block-path.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 int mliEventTapeReader_read_cherenkov_bunch(
@@ -1195,19 +1196,19 @@ int mliEventTapeReader_read_cherenkov_bunch(
         float *bunch)
 {
         if (tio->has_still_bunches_in_event == 0) {
-                return 0;
+                return CHK_FAIL;
         }
         if (tio->block_at == tio->block_size) {
                 tio->cherenkov_bunch_block_number += 1;
                 tio->has_tarh = mli_Tar_read_header(&tio->tar, &tio->tarh);
                 if (!tio->has_tarh) {
                         tio->has_still_bunches_in_event = 0;
-                        return 0;
+                        return CHK_FAIL;
                 }
                 if (!mliEventTapeReader_tarh_might_be_valid_cherenkov_block(
                             tio)) {
                         tio->has_still_bunches_in_event = 0;
-                        return 0;
+                        return CHK_FAIL;
                 }
                 chk_msg(mliEventTapeReader_tarh_is_valid_cherenkov_block(tio),
                         "Cherenkov-bunch-block's tar-header doesn't match.");
@@ -1224,9 +1225,9 @@ int mliEventTapeReader_read_cherenkov_bunch(
                 "Failed to read cherenkov_bunch.");
 
         tio->block_at += 1;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* EventTape_testing */
@@ -1282,37 +1283,37 @@ int mliEventTape_testing_bunches_are_equal(float *b1, float *b2)
 {
         if (b1[0] != b2[0]) {
                 fprintf(stderr, "Bunch missmatch x_cm.\n");
-                return 0;
+                return MLI_FALSE;
         }
         if (b1[1] != b2[1]) {
                 fprintf(stderr, "Bunch missmatch y_cm.\n");
-                return 0;
+                return MLI_FALSE;
         }
         if (b1[2] != b2[2]) {
                 fprintf(stderr, "Bunch missmatch ux.\n");
-                return 0;
+                return MLI_FALSE;
         }
         if (b1[3] != b2[3]) {
                 fprintf(stderr, "Bunch missmatch vy.\n");
-                return 0;
+                return MLI_FALSE;
         }
         if (b1[4] != b2[4]) {
                 fprintf(stderr, "Bunch missmatch time_ns.\n");
-                return 0;
+                return MLI_FALSE;
         }
         if (b1[5] != b2[5]) {
                 fprintf(stderr, "Bunch missmatch z_emission_cm.\n");
-                return 0;
+                return MLI_FALSE;
         }
         if (b1[6] != b2[6]) {
                 fprintf(stderr, "Bunch missmatch weight_photons.\n");
-                return 0;
+                return MLI_FALSE;
         }
         if (b1[7] != b2[7]) {
                 fprintf(stderr, "Bunch missmatch wavelength_nm.\n");
-                return 0;
+                return MLI_FALSE;
         }
-        return 1;
+        return MLI_TRUE;
 }
 
 int mliEventTape_testing_corsika_headers_are_equal(
@@ -1323,10 +1324,10 @@ int mliEventTape_testing_corsika_headers_are_equal(
         for (i = 0; i < 273; i++) {
                 if (h1[i] != h2[i]) {
                         fprintf(stderr, "Corsika-header missmatch at %d.\n", i);
-                        return 0;
+                        return MLI_FALSE;
                 }
         }
-        return 1;
+        return MLI_TRUE;
 }
 
 int mliEventTape_testing_write_and_read(
@@ -1353,7 +1354,7 @@ int mliEventTape_testing_write_and_read(
 
         /* write RUN */
         /* ========= */
-        chk(mli_IO__open_file_cstr(&ostream, path, "w"));
+        chk(mli_IO_open_file_cstr(&ostream, path, "w"));
         chk_msg(mliEventTapeWriter_begin(&taro, &ostream, buffer_size),
                 "Can't begin writer.");
         /* set RUNH */
@@ -1382,7 +1383,7 @@ int mliEventTape_testing_write_and_read(
         /* ======== */
         mli_Prng_reinit(&prng, random_seed);
 
-        chk(mli_IO__open_file_cstr(&istream, path, "r"));
+        chk(mli_IO_open_file_cstr(&istream, path, "r"));
         chk_msg(mliEventTapeReader_begin(&tari, &istream),
                 "Can't begin reader.");
 
@@ -1428,9 +1429,9 @@ int mliEventTape_testing_write_and_read(
 
         chk_msg(mliEventTapeReader_finalize(&tari), "Can't finalize reader.");
         mli_IO_close(&istream);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* Histogram2d */
@@ -1465,20 +1466,20 @@ void mli_corsika_Histogram2d_free(struct mli_corsika_Histogram2d *hist)
         mli_AvlDict_free(&hist->dict);
 }
 
-int mli_corsika_Histogram2d_malloc(
+chk_rc mli_corsika_Histogram2d_malloc(
         struct mli_corsika_Histogram2d *hist,
         const uint64_t capacity)
 {
         return mli_AvlDict_malloc(&hist->dict, capacity);
 }
 
-int mli_corsika_Histogram2d_assign(
+chk_rc mli_corsika_Histogram2d_assign(
         struct mli_corsika_Histogram2d *hist,
         const int32_t x,
         const int32_t y,
         const double weight)
 {
-        int has;
+        chk_rc has;
         union i4i4_to_i8 key;
         int64_t ival = 0;
         key.i4i4.x = x;
@@ -1501,12 +1502,12 @@ uint64_t mli_corsika_Histogram2d_len(const struct mli_corsika_Histogram2d *hist)
         return hist->dict.len;
 }
 
-int mli_corsika_Histogram2d_flatten__(
+chk_rc mli_corsika_Histogram2d_flatten__(
         const struct mli_AvlNode *node,
         struct mliDynCorsikaHistogram2dBin *f)
 {
         if (node == NULL) {
-                return 1;
+                return CHK_SUCCESS;
         } else {
                 union i4i4_to_i8 key;
                 struct mli_corsika_Histogram2dBin bin;
@@ -1531,14 +1532,14 @@ int mli_corsika_Histogram2d_flatten__(
                         chk_msg(mli_corsika_Histogram2d_flatten__(right, f),
                                 "Failed right");
                 }
-                return 1;
+                return CHK_SUCCESS;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_corsika_Histogram2d_flatten(
+chk_rc mli_corsika_Histogram2d_flatten(
         const struct mli_corsika_Histogram2d *hist,
         struct mliDynCorsikaHistogram2dBin *f)
 {
@@ -1546,9 +1547,9 @@ int mli_corsika_Histogram2d_flatten(
                         (const struct mli_AvlNode *)hist->dict.tree.root, f),
                 "Failed to write dict.");
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_corsika_Histogram2d_reset(struct mli_corsika_Histogram2d *hist)
@@ -1591,7 +1592,7 @@ struct mli_Vec mli_AABB_center(const struct mli_AABB a)
         return mli_Vec_multiply(sum, .5);
 }
 
-int mli_AABB_valid(const struct mli_AABB a)
+mli_bool mli_AABB_valid(const struct mli_AABB a)
 {
         chk_msg(!MLI_MATH_IS_NAN(a.lower.x), "aabb.lower.x is 'nan'.");
         chk_msg(!MLI_MATH_IS_NAN(a.lower.y), "aabb.lower.y is 'nan'.");
@@ -1604,23 +1605,25 @@ int mli_AABB_valid(const struct mli_AABB a)
         chk_msg(a.lower.x <= a.upper.x, "Expected lower.x <= upper.x");
         chk_msg(a.lower.y <= a.upper.y, "Expected lower.y <= upper.y");
         chk_msg(a.lower.z <= a.upper.z, "Expected lower.z <= upper.z");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_AABB_equal(const struct mli_AABB a, const struct mli_AABB b)
+mli_bool mli_AABB_equal(const struct mli_AABB a, const struct mli_AABB b)
 {
         chk_msg(mli_Vec_equal(a.lower, b.lower),
                 "Expected 'lower'-corner to be equal.");
         chk_msg(mli_Vec_equal(a.upper, b.upper),
                 "Expected 'upper'-corner to be equal.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_AABB_is_overlapping(const struct mli_AABB a, const struct mli_AABB b)
+mli_bool mli_AABB_is_overlapping(
+        const struct mli_AABB a,
+        const struct mli_AABB b)
 {
         const int over_x = (a.upper.x >= b.lower.x) && (b.upper.x >= a.lower.x);
         const int over_y = (a.upper.y >= b.lower.y) && (b.upper.y >= a.lower.y);
@@ -1628,17 +1631,17 @@ int mli_AABB_is_overlapping(const struct mli_AABB a, const struct mli_AABB b)
         return (over_x && over_y) && over_z;
 }
 
-int mli_AABB_is_point_inside(
+mli_bool mli_AABB_is_point_inside(
         const struct mli_AABB a,
         const struct mli_Vec point)
 {
         if (a.lower.x > point.x || a.upper.x <= point.x)
-                return 0;
+                return MLI_FALSE;
         if (a.lower.y > point.y || a.upper.y <= point.y)
-                return 0;
+                return MLI_FALSE;
         if (a.lower.z > point.z || a.upper.z <= point.z)
-                return 0;
-        return 1;
+                return MLI_FALSE;
+        return MLI_TRUE;
 }
 
 /* accelerator */
@@ -1676,7 +1679,7 @@ void mli_Accelerator_free(struct mli_Accelerator *self)
         (*self) = mli_Accelerator_init();
 }
 
-int mli_Accelerator_malloc(
+chk_rc mli_Accelerator_malloc(
         struct mli_Accelerator *self,
         const uint32_t num_objects,
         const uint32_t num_robjects)
@@ -1698,12 +1701,12 @@ int mli_Accelerator_malloc(
                         mli_Vec_init(0.0, 0.0, 0.0));
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Accelerator_set_robject_aabbs(
+chk_rc mli_Accelerator_set_robject_aabbs(
         struct mli_Accelerator *self,
         const struct mli_Geometry *geometry)
 {
@@ -1718,12 +1721,12 @@ int mli_Accelerator_set_robject_aabbs(
                         mli_HomTraComp_from_compact(
                                 geometry->robject2root[rob]));
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Accelerator_set_object_octrees(
+chk_rc mli_Accelerator_set_object_octrees(
         struct mli_Accelerator *self,
         const struct mli_Geometry *geometry)
 {
@@ -1738,12 +1741,12 @@ int mli_Accelerator_set_object_octrees(
                         "Failed to setup mli_OcTree for object-wavefront.");
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Accelerator_malloc_from_Geometry(
+chk_rc mli_Accelerator_malloc_from_Geometry(
         struct mli_Accelerator *self,
         const struct mli_Geometry *geometry)
 {
@@ -1769,9 +1772,9 @@ int mli_Accelerator_malloc_from_Geometry(
                         &self->scenery_octree, &accgeo, outermost_aabb),
                 "Failed to set up octree across all robjects in geometry.");
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_Accelerator_info_fprint(FILE *f, const struct mli_Accelerator *self)
@@ -1839,7 +1842,7 @@ struct mli_AABB mli_Accelerator_outermost_aabb(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Accelerator_equal(
+mli_bool mli_Accelerator_equal(
         const struct mli_Accelerator *a,
         const struct mli_Accelerator *b)
 {
@@ -1863,9 +1866,9 @@ int mli_Accelerator_equal(
         chk_msg(mli_OcTree_equal(&a->scenery_octree, &b->scenery_octree),
                 "Expected scenery_octree to be equal.");
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* accelerator_serialize */
@@ -1873,7 +1876,9 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Accelerator_to_io(const struct mli_Accelerator *self, struct mli_IO *f)
+chk_rc mli_Accelerator_to_io(
+        const struct mli_Accelerator *self,
+        struct mli_IO *f)
 {
         uint64_t i = 0;
 
@@ -1896,12 +1901,12 @@ int mli_Accelerator_to_io(const struct mli_Accelerator *self, struct mli_IO *f)
                 f);
         chk(mli_OcTree_to_io(&self->scenery_octree, f));
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Accelerator_from_io(struct mli_Accelerator *self, struct mli_IO *f)
+chk_rc mli_Accelerator_from_io(struct mli_Accelerator *self, struct mli_IO *f)
 {
         uint64_t i = 0u;
         struct mli_MagicId magic;
@@ -1933,9 +1938,9 @@ int mli_Accelerator_from_io(struct mli_Accelerator *self, struct mli_IO *f)
 
         chk_mem(mli_OcTree_from_io(&self->scenery_octree, f));
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* accelerator_valid */
@@ -1943,7 +1948,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Accelerator_valid(const struct mli_Accelerator *self)
+mli_bool mli_Accelerator_valid(const struct mli_Accelerator *self)
 {
         uint32_t i = 0u;
         for (i = 0u; i < self->num_objects; i++) {
@@ -1956,12 +1961,12 @@ int mli_Accelerator_valid(const struct mli_Accelerator *self)
         }
         chk_msg(mli_OcTree_valid(&self->scenery_octree),
                 "Expected scenery_octree to be valid.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Accelerator_valid_wrt_Geometry(
+mli_bool mli_Accelerator_valid_wrt_Geometry(
         const struct mli_Accelerator *self,
         const struct mli_Geometry *geometry)
 {
@@ -1982,9 +1987,9 @@ int mli_Accelerator_valid_wrt_Geometry(
                         &self->scenery_octree, geometry->num_robjects),
                 "Expected scenery_octree to be valid w.r.t. to "
                 "geometry's num_robjects.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* aperture */
@@ -2197,7 +2202,7 @@ void mli_camera_Aperture_assign_pixel_colors_to_sum_and_exposure_image(
         }
 }
 
-int mli_camera_Aperture_render_image(
+chk_rc mli_camera_Aperture_render_image(
         const struct mli_camera_Aperture self,
         const struct mli_HomTraComp camera2root_comp,
         const struct mli_PathTracer *pathtracer,
@@ -2316,7 +2321,7 @@ int mli_camera_Aperture_render_image(
         mli_Image_free(&diff_image);
         mli_ColorVector_free(&colors_to_do);
         mli_image_PixelVector_free(&pixels_to_do);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Image_free(&sum_image);
         mli_Image_free(&exposure_image);
@@ -2326,7 +2331,7 @@ chk_error:
         mli_Image_free(&diff_image);
         mli_ColorVector_free(&colors_to_do);
         mli_image_PixelVector_free(&pixels_to_do);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* archive */
@@ -2354,17 +2359,17 @@ void mli_Archive_free(struct mli_Archive *self)
         (*self) = mli_Archive_init();
 }
 
-int mli_Archive_malloc(struct mli_Archive *self)
+chk_rc mli_Archive_malloc(struct mli_Archive *self)
 {
         mli_Archive_free(self);
         chk(mli_StringVector_malloc(&self->textfiles, 0u));
         chk(mli_Map_malloc(&self->filenames));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Archive_push_back(
+chk_rc mli_Archive_push_back(
         struct mli_Archive *self,
         const struct mli_String *filename,
         const struct mli_String *payload)
@@ -2386,12 +2391,12 @@ int mli_Archive_push_back(
                 "Can not push back mli_String.");
         text = &self->textfiles.array[next];
         chk_msg(mli_String_copy(text, payload), "Can not copy payload.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Archive_from_io(struct mli_Archive *self, struct mli_IO *f)
+chk_rc mli_Archive_from_io(struct mli_Archive *self, struct mli_IO *f)
 {
         struct mli_Tar tar = mli_Tar_init();
         struct mli_TarHeader tarh = mli_TarHeader_init();
@@ -2429,36 +2434,36 @@ int mli_Archive_from_io(struct mli_Archive *self, struct mli_IO *f)
         chk_msg(mli_Tar_read_finalize(&tar), "Can't finalize reading tar.");
         mli_String_free(&payload);
         mli_String_free(&filename);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        fprintf(stderr, "tar->filename: '%s'.\n", tarh_name);
+        chk_eprintf("tar->filename: '%s'.\n", tarh_name);
         mli_String_free(&payload);
         mli_String_free(&filename);
         mli_Archive_free(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Archive__from_path_cstr(struct mli_Archive *self, const char *path)
+chk_rc mli_Archive__from_path_cstr(struct mli_Archive *self, const char *path)
 {
         struct mli_IO f = mli_IO_init();
-        chk_msg(mli_IO__open_file_cstr(&f, path, "r"),
+        chk_msg(mli_IO_open_file_cstr(&f, path, "r"),
                 "Cant open archive from path.");
         chk_msg(mli_Archive_from_io(self, &f),
                 "Can't fread Archive from file.");
         mli_IO_close(&f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Archive_has(
+mli_bool mli_Archive_has(
         const struct mli_Archive *self,
         const struct mli_String *filename)
 {
         return mli_Map_has(&self->filenames, filename);
 }
 
-int mli_Archive_get(
+chk_rc mli_Archive_get(
         const struct mli_Archive *self,
         const struct mli_String *filename,
         struct mli_String **str)
@@ -2468,9 +2473,9 @@ int mli_Archive_get(
         chk(mli_Map_find(&self->filenames, filename, &idx));
         txt = &self->textfiles.array[idx];
         (*str) = txt;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 uint64_t mli_Archive_size(const struct mli_Archive *self)
@@ -2509,7 +2514,7 @@ uint64_t mli_Archive_num_filename_prefix_sufix(
 /* Copyright 2018-2024 Sebastian Achim Mueller */
 
 
-int mli_StringVector_from_argc_argv(
+chk_rc mli_StringVector_from_argc_argv(
         struct mli_StringVector *self,
         int argc,
         char *argv[])
@@ -2527,10 +2532,10 @@ int mli_StringVector_from_argc_argv(
                         "Failed to malloc string in Argv.");
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_StringVector_free(self);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* array */
@@ -2575,11 +2580,6 @@ struct mli_Atmosphere mli_Atmosphere_init(void)
         /* The height for the density to drop by 1 over e */
         atm.Height_Rayleigh = 7994.0;
         atm.Height_Mie = 1200.0;
-
-        /*
-        atm.beta_Rayleigh = mli_Color_set(3.8e-6, 13.5e-6, 33.1e-6);
-        atm.beta_Mie = mli_Color_multiply(mli_Color_set(1.0, 1.0, 1.0), 41e-6);
-        */
 
         mli_ColorSpectrum_set_beta_rayleigh(&atm.beta_Rayleigh_spectrum);
         mli_ColorSpectrum_set(&atm.beta_Mie_spectrum, 41e-6);
@@ -2875,7 +2875,7 @@ void mli_Atmosphere_decrease_altitude(
 
 /* Copyright 2018-2021 Sebastian Achim Mueller */
 
-int mli_Atmosphere_from_json_token(
+chk_rc mli_Atmosphere_from_json_token(
         struct mli_Atmosphere *atm,
         const struct mli_Json *json,
         const uint64_t tkn)
@@ -2919,9 +2919,9 @@ int mli_Atmosphere_from_json_token(
         chk(mli_Json_double_by_key(json, tkn, &atm->altitude, "altitude"));
         chk_msg(atm->altitude > 0, "Expected atmosphere->altitude > 0.");
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* avl_Dict */
@@ -2947,15 +2947,15 @@ void mli_AvlDict_free(struct mli_AvlDict *dict)
         (*dict) = mli_AvlDict_init();
 }
 
-int mli_AvlDict_malloc(struct mli_AvlDict *dict, const uint64_t capacity)
+chk_rc mli_AvlDict_malloc(struct mli_AvlDict *dict, const uint64_t capacity)
 {
         mli_AvlDict_free(dict);
         dict->capacity = capacity;
         chk_malloc(dict->nodes, struct mli_AvlNode, dict->capacity);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_AvlDict_free(dict);
-        return 0;
+        return CHK_FAIL;
 }
 
 struct mli_AvlNode *mli_AvlDict_find(
@@ -2971,12 +2971,12 @@ struct mli_AvlNode *mli_AvlDict_find(
         return out;
 }
 
-int mli_AvlDict_update__(
+chk_rc mli_AvlDict_update__(
         const struct mli_AvlNode *node,
         struct mli_AvlDict *out)
 {
         if (node == NULL) {
-                return 1;
+                return CHK_SUCCESS;
         }
         chk_msg(mli_AvlDict_set(out, node->key, node->value),
                 "Failed to insert key/value into destination dict while "
@@ -2993,9 +2993,9 @@ int mli_AvlDict_update__(
                 chk_msg(mli_AvlDict_update__(right, out), "2");
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_AvlDict_swap(struct mli_AvlDict *a, struct mli_AvlDict *b)
@@ -3005,7 +3005,7 @@ void mli_AvlDict_swap(struct mli_AvlDict *a, struct mli_AvlDict *b)
         (*b) = swap;
 }
 
-int mli_AvlDict_grow(struct mli_AvlDict *dict)
+chk_rc mli_AvlDict_grow(struct mli_AvlDict *dict)
 {
         uint64_t new_capacity = (dict->capacity * 2);
         struct mli_AvlDict tmp = mli_AvlDict_init();
@@ -3020,12 +3020,12 @@ int mli_AvlDict_grow(struct mli_AvlDict *dict)
 
         mli_AvlDict_swap(dict, &tmp);
         mli_AvlDict_free(&tmp);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_AvlDict_insert(
+chk_rc mli_AvlDict_insert(
         struct mli_AvlDict *dict,
         const int64_t key,
         const int64_t value)
@@ -3049,12 +3049,12 @@ int mli_AvlDict_insert(
         dict->back += 1;
         dict->len += 1;
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_AvlDict_set(
+chk_rc mli_AvlDict_set(
         struct mli_AvlDict *dict,
         const int64_t key,
         const int64_t value)
@@ -3068,12 +3068,12 @@ int mli_AvlDict_set(
                 chk_msg(mli_AvlDict_insert(dict, key, value),
                         "Can't insert key/value into mli_AvlDict.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_AvlDict_shrink(struct mli_AvlDict *dict)
+chk_rc mli_AvlDict_shrink(struct mli_AvlDict *dict)
 {
         uint64_t new_capacity = (dict->len * 3) / 2;
         struct mli_AvlDict tmp = mli_AvlDict_init();
@@ -3089,12 +3089,12 @@ int mli_AvlDict_shrink(struct mli_AvlDict *dict)
 
         mli_AvlDict_swap(dict, &tmp);
         mli_AvlDict_free(&tmp);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_AvlDict_pop(struct mli_AvlDict *dict, const int64_t key)
+chk_rc mli_AvlDict_pop(struct mli_AvlDict *dict, const int64_t key)
 {
         int rc_remove;
         struct mli_AvlNode *nn = mli_AvlDict_find(dict, key);
@@ -3112,29 +3112,32 @@ int mli_AvlDict_pop(struct mli_AvlDict *dict, const int64_t key)
                 chk_msg(mli_AvlDict_shrink(dict), "Failed to shrink capacity.");
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_AvlDict_has(struct mli_AvlDict *dict, const int64_t key)
+mli_bool mli_AvlDict_has(struct mli_AvlDict *dict, const int64_t key)
 {
         struct mli_AvlNode *nn = mli_AvlDict_find(dict, key);
         if (nn == NULL) {
-                return 0;
+                return MLI_FALSE;
         } else {
-                return 1;
+                return MLI_TRUE;
         }
 }
 
-int mli_AvlDict_get(struct mli_AvlDict *dict, const int64_t key, int64_t *value)
+chk_rc mli_AvlDict_get(
+        struct mli_AvlDict *dict,
+        const int64_t key,
+        int64_t *value)
 {
         struct mli_AvlNode *nn = mli_AvlDict_find(dict, key);
         if (nn == NULL) {
-                return 0;
+                return CHK_FAIL;
         } else {
                 (*value) = nn->value;
-                return 1;
+                return CHK_SUCCESS;
         }
 }
 
@@ -3592,7 +3595,7 @@ int mli_AxisAlignedGrid_find_voxel_of_first_interaction(
                         return MLI_AXISALIGNEDGRID_RAY_DOES_NOT_INTERSECT_GRID;
                 }
         }
-        return 0;
+        return MLI_AXISALIGNEDGRID_RAY_DOES_NOT_INTERSECT_GRID;
 }
 
 struct mli_Vec mli_AxisAlignedGridTraversal_first_plane(
@@ -3683,14 +3686,14 @@ int mli_AxisAlignedGridTraversal_next(
         struct mli_AxisAlignedGridTraversal *traversal)
 {
         struct mli_AxisAlignedGridTraversal *t = traversal;
-        int RAY_LEFT_GRID = 0;
+        int RAY_ESCAPED_GRID = 0;
 
         if (t->tMax.x < t->tMax.y) {
                 if (t->tMax.x < t->tMax.z) {
                         t->voxel.x += t->step.x;
                         if (t->voxel.x < 0 ||
                             t->voxel.x >= t->grid->num_bins.x) {
-                                traversal->valid = RAY_LEFT_GRID;
+                                traversal->valid = RAY_ESCAPED_GRID;
                                 return traversal->valid;
                         }
                         t->tMax.x += t->tDelta.x;
@@ -3698,7 +3701,7 @@ int mli_AxisAlignedGridTraversal_next(
                         t->voxel.z += t->step.z;
                         if (t->voxel.z < 0 ||
                             t->voxel.z >= t->grid->num_bins.z) {
-                                traversal->valid = RAY_LEFT_GRID;
+                                traversal->valid = RAY_ESCAPED_GRID;
                                 return traversal->valid;
                         }
                         t->tMax.z += t->tDelta.z;
@@ -3708,7 +3711,7 @@ int mli_AxisAlignedGridTraversal_next(
                         t->voxel.y += t->step.y;
                         if (t->voxel.y < 0 ||
                             t->voxel.y >= t->grid->num_bins.y) {
-                                traversal->valid = RAY_LEFT_GRID;
+                                traversal->valid = RAY_ESCAPED_GRID;
                                 return traversal->valid;
                         }
                         t->tMax.y += t->tDelta.y;
@@ -3716,7 +3719,7 @@ int mli_AxisAlignedGridTraversal_next(
                         t->voxel.z += t->step.z;
                         if (t->voxel.z < 0 ||
                             t->voxel.z >= t->grid->num_bins.z) {
-                                traversal->valid = RAY_LEFT_GRID;
+                                traversal->valid = RAY_ESCAPED_GRID;
                                 return traversal->valid;
                         }
                         t->tMax.z += t->tDelta.z;
@@ -3773,6 +3776,19 @@ void mli_Ray_fprint(FILE *f, struct mli_Ray *ray)
                 ray->direction.z);
 }
 
+/* bool */
+/* ---- */
+
+
+char mli_bool_to_char(const mli_bool self)
+{
+        if (self == MLI_FALSE) {
+                return 'F';
+        } else {
+                return 'T';
+        }
+}
+
 /* boundarylayer */
 /* ------------- */
 
@@ -3794,29 +3810,29 @@ struct mli_BoundaryLayer mli_BoundaryLayer_init(void)
         return layer;
 }
 
-int mli_BoundaryLayer_equal(
+mli_bool mli_BoundaryLayer_equal(
         const struct mli_BoundaryLayer *a,
         const struct mli_BoundaryLayer *b)
 {
         if (!mli_String_equal(&a->name, &b->name)) {
-                return 0;
+                return MLI_FALSE;
         }
         if (a->inner.surface != b->inner.surface) {
-                return 0;
+                return MLI_FALSE;
         }
         if (a->inner.medium != b->inner.medium) {
-                return 0;
+                return MLI_FALSE;
         }
         if (a->outer.surface != b->outer.surface) {
-                return 0;
+                return MLI_FALSE;
         }
         if (a->outer.medium != b->outer.medium) {
-                return 0;
+                return MLI_FALSE;
         }
-        return 1;
+        return MLI_TRUE;
 }
 
-int mli_BoundaryLayer_to_io(
+chk_rc mli_BoundaryLayer_to_io(
         const struct mli_BoundaryLayer *self,
         struct mli_IO *f)
 {
@@ -3831,12 +3847,14 @@ int mli_BoundaryLayer_to_io(
         chk_IO_write(&self->outer.medium, sizeof(uint64_t), 1u, f);
         chk_IO_write(&self->outer.surface, sizeof(uint64_t), 1u, f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_BoundaryLayer_from_io(struct mli_BoundaryLayer *self, struct mli_IO *f)
+chk_rc mli_BoundaryLayer_from_io(
+        struct mli_BoundaryLayer *self,
+        struct mli_IO *f)
 {
         struct mli_MagicId magic;
         chk_IO_read(&magic, sizeof(struct mli_MagicId), 1u, f);
@@ -3850,9 +3868,9 @@ int mli_BoundaryLayer_from_io(struct mli_BoundaryLayer *self, struct mli_IO *f)
         chk_IO_read(&self->outer.medium, sizeof(uint64_t), 1u, f);
         chk_IO_read(&self->outer.surface, sizeof(uint64_t), 1u, f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* boundarylayer_array */
@@ -3891,18 +3909,6 @@ struct mli_Color mli_Color_set(const float r, const float g, const float b)
         rgb.g = g;
         rgb.b = b;
         return rgb;
-}
-
-struct mli_Color mli_Color_mix(
-        const struct mli_Color a,
-        const struct mli_Color b,
-        const float refl)
-{
-        struct mli_Color out;
-        out.r = (1.f - refl) * a.r + refl * b.r;
-        out.g = (1.f - refl) * a.g + refl * b.g;
-        out.b = (1.f - refl) * a.b + refl * b.b;
-        return out;
 }
 
 struct mli_Color mli_Color_mean(
@@ -3947,36 +3953,36 @@ struct mli_Color mli_Color_truncate(
         return out;
 }
 
-int mli_Color_equal(const struct mli_Color a, const struct mli_Color b)
+mli_bool mli_Color_equal(const struct mli_Color a, const struct mli_Color b)
 {
         if (a.r != b.r)
-                return 0;
+                return MLI_FALSE;
         if (a.g != b.g)
-                return 0;
+                return MLI_FALSE;
         if (a.b != b.b)
-                return 0;
-        return 1;
+                return MLI_FALSE;
+        return MLI_TRUE;
 }
 
-int mli_Color_is_in_range(
+mli_bool mli_Color_is_in_range(
         const struct mli_Color c,
         const float start,
         const float stop)
 {
         if (MLI_MATH_IS_NAN(c.r))
-                return 0;
+                return MLI_FALSE;
         if (MLI_MATH_IS_NAN(c.g))
-                return 0;
+                return MLI_FALSE;
         if (MLI_MATH_IS_NAN(c.b))
-                return 0;
+                return MLI_FALSE;
 
         if (c.r < start || c.r >= stop)
-                return 0;
+                return MLI_FALSE;
         if (c.g < start || c.g >= stop)
-                return 0;
+                return MLI_FALSE;
         if (c.b < start || c.b >= stop)
-                return 0;
-        return 1;
+                return MLI_FALSE;
+        return MLI_TRUE;
 }
 
 float mli_Color_luminance(const struct mli_Color self)
@@ -3996,19 +4002,12 @@ struct mli_Color mli_Color_multiply(const struct mli_Color c, const double f)
         return mli_Color_set(c.r * f, c.g * f, c.b * f);
 }
 
-struct mli_Color mli_Color_multiply_elementwise(
-        const struct mli_Color u,
-        const struct mli_Color v)
-{
-        return mli_Color_set(u.r * v.r, u.g * v.g, u.b * v.b);
-}
-
 /* color_cie1931 */
 /* ------------- */
 
 /* Copyright 2018-2024 Sebastian Achim Mueller */
 
-int mli_cie1931_spectral_matching_curve_x(struct mli_Func *self)
+chk_rc mli_cie1931_spectral_matching_curve_x(struct mli_Func *self)
 {
         float X[][2] = {
                 {2.000e-07, 0.000e+00}, {3.800e-07, 0.000e+00},
@@ -4061,12 +4060,12 @@ int mli_cie1931_spectral_matching_curve_x(struct mli_Func *self)
                 self->x[i] = X[i][0];
                 self->y[i] = X[i][1];
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_cie1931_spectral_matching_curve_y(struct mli_Func *self)
+chk_rc mli_cie1931_spectral_matching_curve_y(struct mli_Func *self)
 {
         float Y[][2] = {
                 {2.000e-07, 0.000e+00}, {3.800e-07, 0.000e+00},
@@ -4119,12 +4118,12 @@ int mli_cie1931_spectral_matching_curve_y(struct mli_Func *self)
                 self->x[i] = Y[i][0];
                 self->y[i] = Y[i][1];
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_cie1931_spectral_matching_curve_z(struct mli_Func *self)
+chk_rc mli_cie1931_spectral_matching_curve_z(struct mli_Func *self)
 {
         float Z[][2] = {
                 {2.000e-07, 0.000e+00}, {3.800e-07, 0.000e+00},
@@ -4177,9 +4176,9 @@ int mli_cie1931_spectral_matching_curve_z(struct mli_Func *self)
                 self->x[i] = Z[i][0];
                 self->y[i] = Z[i][1];
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 struct mli_Mat mli_cie1931_spectral_matching_xyz_to_rgb(void)
@@ -4212,7 +4211,7 @@ struct mli_Mat mli_cie1931_spectral_matching_rgb_to_xyz(void)
         return m;
 }
 
-int mli_cie1931_spectral_radiance_of_black_body_W_per_m2_per_sr_per_m(
+chk_rc mli_cie1931_spectral_radiance_of_black_body_W_per_m2_per_sr_per_m(
         struct mli_Func *self,
         const double wavelength_start,
         const double wavelength_stop,
@@ -4233,9 +4232,9 @@ int mli_cie1931_spectral_radiance_of_black_body_W_per_m2_per_sr_per_m(
                 self->x[i] = wavelength;
                 self->y[i] = radiance;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* color_materials */
@@ -4264,7 +4263,7 @@ void mli_ColorMaterials_free(struct mli_ColorMaterials *self)
         (*self) = mli_ColorMaterials_init();
 }
 
-int mli_ColorMaterials_set_observer_cie1931(struct mli_ColorMaterials *self)
+chk_rc mli_ColorMaterials_set_observer_cie1931(struct mli_ColorMaterials *self)
 {
         struct mli_Func func = mli_Func_init();
 
@@ -4293,12 +4292,12 @@ int mli_ColorMaterials_set_observer_cie1931(struct mli_ColorMaterials *self)
                 "Failed to resample cie1931.z onto ColorSpectrum.");
 
         mli_Func_free(&func);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_ColorMaterials_malloc(
+chk_rc mli_ColorMaterials_malloc(
         struct mli_ColorMaterials *self,
         const uint64_t num_spectra)
 {
@@ -4308,13 +4307,13 @@ int mli_ColorMaterials_malloc(
 
         chk_msg(mli_ColorMaterials_set_observer_cie1931(self),
                 "Failed to set observer_matching_curves.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_ColorMaterials_free(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_ColorMaterials_malloc_from_Materials(
+chk_rc mli_ColorMaterials_malloc_from_Materials(
         struct mli_ColorMaterials *self,
         const struct mli_Materials *materials)
 {
@@ -4330,10 +4329,10 @@ int mli_ColorMaterials_malloc_from_Materials(
                         "Failed to resample spectrum onto ColorSpectrum.");
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_ColorMaterials_free(self);
-        return 0;
+        return CHK_FAIL;
 }
 
 struct mli_Vec mli_ColorMaterials_ColorSpectrum_to_xyz(
@@ -4451,7 +4450,7 @@ float mli_ColorSpectrum_sum(const struct mli_ColorSpectrum *self)
         return c;
 }
 
-int mli_ColorSpectrum_from_func(
+chk_rc mli_ColorSpectrum_from_func(
         struct mli_ColorSpectrum *self,
         const struct mli_ColorSpectrumBinEdges *wavelength_bin_edges,
         const struct mli_Func *func)
@@ -4476,12 +4475,12 @@ int mli_ColorSpectrum_from_func(
                 self->values[i] = val_mean;
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_ColorSpectrum_set_radiance_of_black_body_W_per_m2_per_sr(
+void mli_ColorSpectrum_set_radiance_of_black_body_W_per_m2_per_sr(
         struct mli_ColorSpectrum *self,
         const double temperature)
 {
@@ -4508,7 +4507,7 @@ int mli_ColorSpectrum_set_radiance_of_black_body_W_per_m2_per_sr(
 
                 self->values[i] = average_radiance * step;
         }
-        return 1;
+        return;
 }
 
 /* color_spectrum_array */
@@ -4530,65 +4529,67 @@ MLI_VECTOR_IMPLEMENTATION(mli_ColorVector, struct mli_Color)
 
 /* Copyright Sebastian Achim Mueller */
 
-int mli_cstr_ends_with(const char *str, const char *sufix)
+mli_bool mli_cstr_ends_with(const char *str, const char *sufix)
 {
         uint64_t len_str, len_sufix;
         if (!str || !sufix) {
-                return 0;
+                return MLI_FALSE;
         }
         len_str = strlen(str);
         len_sufix = strlen(sufix);
         if (len_sufix > len_str) {
-                return 0;
+                return MLI_FALSE;
         }
         return strncmp(str + len_str - len_sufix, sufix, len_sufix) == 0;
 }
 
-int mli_cstr_starts_with(const char *str, const char *prefix)
+mli_bool mli_cstr_starts_with(const char *str, const char *prefix)
 {
         uint64_t len_str, len_prefix;
         if (!str || !prefix) {
-                return 0;
+                return MLI_FALSE;
         }
         len_str = strlen(str);
         len_prefix = strlen(prefix);
         if (len_prefix > len_str) {
-                return 0;
+                return MLI_FALSE;
         }
         return strncmp(str, prefix, len_prefix) == 0;
 }
 
-int mli_cstr_is_CRLF(const char *s)
+mli_bool mli_cstr_is_CRLF(const char *s)
 {
         if (s[0] == '\0') {
-                return 0;
+                return MLI_FALSE;
         }
         if (s[1] == '\0') {
-                return 0;
+                return MLI_FALSE;
         }
         if (s[0] == '\r' && s[1] == '\n') {
-                return 1;
+                return MLI_TRUE;
         }
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_cstr_is_CR(const char *s)
+mli_bool mli_cstr_is_CR(const char *s)
 {
         if (s[0] == '\0') {
-                return 0;
+                return MLI_FALSE;
         }
         if (s[0] == '\r') {
-                return 1;
+                return MLI_TRUE;
         }
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_cstr_assert_only_NUL_LF_TAB_controls(const char *str)
+mli_bool mli_cstr_assert_only_NUL_LF_TAB_controls(const char *str)
 {
-        return mli_cstr_assert_only_NUL_LF_TAB_controls_dbg(str, 1);
+        return mli_cstr_assert_only_NUL_LF_TAB_controls__dbg(str, 1);
 }
 
-int mli_cstr_assert_only_NUL_LF_TAB_controls_dbg(const char *str, const int dbg)
+mli_bool mli_cstr_assert_only_NUL_LF_TAB_controls__dbg(
+        const char *str,
+        const int dbg)
 {
         uint64_t pos = 0;
         while (str[pos] != '\0') {
@@ -4607,51 +4608,35 @@ int mli_cstr_assert_only_NUL_LF_TAB_controls_dbg(const char *str, const int dbg)
                                                 (uint8_t)str[pos],
                                                 pos);
                                 }
-                                return 0;
+                                return MLI_FALSE;
                         }
                 }
                 pos += 1;
         }
-        return 1;
+        return MLI_TRUE;
 }
 
-int mli_fprint_line_match(
-        FILE *f,
-        const int64_t line,
-        const int64_t line_number)
-{
-        chk(fprintf(f, "% 6d", (int32_t)line));
-        if (line == line_number) {
-                chk(fprintf(f, "->|  "));
-        } else {
-                chk(fprintf(f, "  |  "));
-        }
-        return 1;
-chk_error:
-        return 0;
-}
-
-int mli_cstr_match_templeate(
+mli_bool mli_cstr_match_templeate(
         const char *s,
         const char *t,
         const char digit_wildcard)
 {
         uint64_t i;
         if (strlen(s) != strlen(t)) {
-                return 0;
+                return MLI_FALSE;
         }
         for (i = 0; i < strlen(s); i++) {
                 if (t[i] == digit_wildcard) {
                         if (!isdigit(s[i])) {
-                                return 0;
+                                return MLI_FALSE;
                         }
                 } else {
                         if (s[i] != t[i]) {
-                                return 0;
+                                return MLI_FALSE;
                         }
                 }
         }
-        return 1;
+        return MLI_TRUE;
 }
 
 /* cstr_numbers */
@@ -4659,7 +4644,7 @@ int mli_cstr_match_templeate(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_cstr_nto_int64(
+chk_rc mli_cstr_nto_int64(
         int64_t *out,
         const char *s,
         const uint64_t base,
@@ -4679,21 +4664,21 @@ int mli_cstr_nto_int64(
         chk_msg(actual_num_chars == expected_num_chars,
                 "Integer has not the expected number of chars.");
         *out = l;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_cstr_to_int64(int64_t *out, const char *s, const uint64_t base)
+chk_rc mli_cstr_to_int64(int64_t *out, const char *s, const uint64_t base)
 {
         chk_msg(mli_cstr_nto_int64(out, s, base, strlen(s)),
                 "Can not convert string to int64.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_cstr_nto_uint64(
+chk_rc mli_cstr_nto_uint64(
         uint64_t *out,
         const char *s,
         const uint64_t base,
@@ -4703,23 +4688,23 @@ int mli_cstr_nto_uint64(
         chk(mli_cstr_nto_int64(&tmp, s, base, expected_num_chars));
         chk_msg(tmp >= 0, "Expected a positive integer.");
         (*out) = tmp;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_cstr_to_uint64(uint64_t *out, const char *s, const uint64_t base)
+chk_rc mli_cstr_to_uint64(uint64_t *out, const char *s, const uint64_t base)
 {
         int64_t tmp;
         chk(mli_cstr_to_int64(&tmp, s, base));
         chk_msg(tmp >= 0, "Expected a positive integer.");
         (*out) = tmp;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_cstr_nto_double(
+chk_rc mli_cstr_nto_double(
         double *out,
         const char *s,
         const uint64_t expected_num_chars)
@@ -4739,21 +4724,21 @@ int mli_cstr_nto_double(
         chk_msg(actual_num_chars == expected_num_chars,
                 "float64 has not the expected number of chars.");
         *out = l;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_cstr_to_double(double *out, const char *s)
+chk_rc mli_cstr_to_double(double *out, const char *s)
 {
         chk_msg(mli_cstr_nto_double(out, s, strlen(s)),
                 "Can not convert string to float64.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_cstr_print_uint64(
+chk_rc mli_cstr_print_uint64(
         uint64_t u,
         char *s,
         const uint64_t max_num_chars,
@@ -4823,9 +4808,9 @@ int mli_cstr_print_uint64(
         chk_msg(pos < (int64_t)max_num_chars, "Exceeded max num. chars.");
         s[pos] = '\0';
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* cube */
@@ -4920,13 +4905,13 @@ struct mli_Cube mli_Cube_octree_child_code(
         return child;
 }
 
-int mli_Cube_equal(const struct mli_Cube a, const struct mli_Cube b)
+mli_bool mli_Cube_equal(const struct mli_Cube a, const struct mli_Cube b)
 {
         if (a.edge_length != b.edge_length)
-                return 0;
+                return MLI_FALSE;
         if (!mli_Vec_equal(a.lower, b.lower))
-                return 0;
-        return 1;
+                return MLI_FALSE;
+        return MLI_TRUE;
 }
 
 /* double_array */
@@ -4992,7 +4977,7 @@ void mli_Frame_free(struct mli_Frame *f)
         (*f) = mli_Frame_init();
 }
 
-int mli_Frame_malloc(struct mli_Frame *f, const uint64_t type)
+chk_rc mli_Frame_malloc(struct mli_Frame *f, const uint64_t type)
 {
         mli_Frame_free(f);
         f->type = type;
@@ -5004,12 +4989,12 @@ int mli_Frame_malloc(struct mli_Frame *f, const uint64_t type)
                 chk_msg(mli_Uint32Vector_malloc(&f->boundary_layers, 0u),
                         "Failed to malloc frame's boundary_layers.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Frame_set_mother_and_child(
+chk_rc mli_Frame_set_mother_and_child(
         struct mli_Frame *mother,
         struct mli_Frame *child)
 {
@@ -5019,9 +5004,9 @@ int mli_Frame_set_mother_and_child(
                 "Can not push back child-frame.");
 
         child->mother = (struct mli_Frame *)mother;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 struct mli_Frame *mli_Frame_add(struct mli_Frame *mother, const uint64_t type)
@@ -5036,7 +5021,7 @@ chk_error:
         return NULL;
 }
 
-int mli_frame_type_to_string(const uint64_t type, char *s)
+chk_rc mli_frame_type_to_string(const uint64_t type, char *s)
 {
         switch (type) {
         case MLI_FRAME_TYPE_FRAME:
@@ -5049,12 +5034,12 @@ int mli_frame_type_to_string(const uint64_t type, char *s)
                 chk_bad("Type is unknown.");
                 break;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_frame_string_to_type(const char *s, uint64_t *type)
+chk_rc mli_frame_string_to_type(const char *s, uint64_t *type)
 {
         if (strcmp(s, "frame") == 0) {
                 *type = MLI_FRAME_TYPE_FRAME;
@@ -5063,9 +5048,9 @@ int mli_frame_string_to_type(const char *s, uint64_t *type)
         } else {
                 chk_bad("Type is unknown.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_Frame_print_walk(const struct mli_Frame *f, const uint64_t indention)
@@ -5132,7 +5117,7 @@ void mli_Frame_set_frame2root(struct mli_Frame *f)
         }
 }
 
-int mli_Frame_estimate_num_robjects_and_total_num_boundary_layers_walk(
+chk_rc mli_Frame_estimate_num_robjects_and_total_num_boundary_layers_walk(
         const struct mli_Frame *frame,
         uint64_t *num_robjects,
         uint64_t *total_num_boundary_layers)
@@ -5155,12 +5140,12 @@ int mli_Frame_estimate_num_robjects_and_total_num_boundary_layers_walk(
                 chk_bad("Expected either type 'frame' or 'object'.");
                 break;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Frame_estimate_num_robjects_and_total_num_boundary_layers(
+chk_rc mli_Frame_estimate_num_robjects_and_total_num_boundary_layers(
         const struct mli_Frame *frame,
         uint64_t *num_robjects,
         uint64_t *total_num_boundary_layers)
@@ -5171,9 +5156,9 @@ int mli_Frame_estimate_num_robjects_and_total_num_boundary_layers(
                         frame, num_robjects, total_num_boundary_layers),
                 "Failed to walk tree of frames to estimate "
                 "num_robjects and total_num_boundary_layers.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* frame_from_archive */
@@ -5181,7 +5166,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Frame_from_Archive(
+chk_rc mli_Frame_from_Archive(
         struct mli_Frame *root,
         const struct mli_Archive *archive,
         const struct mli_Map *object_names,
@@ -5217,11 +5202,11 @@ int mli_Frame_from_Archive(
         mli_Frame_set_frame2root(root);
 
         mli_String_free(&fixname);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&fixname);
         mli_Json_free(&tree_json);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* frame_json */
@@ -5229,7 +5214,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Frame_type_from_json_token(
+chk_rc mli_Frame_type_from_json_token(
         uint64_t *type,
         const struct mli_Json *json,
         const uint64_t token)
@@ -5250,13 +5235,13 @@ int mli_Frame_type_from_json_token(
                 chk_bad("Not expected to happen");
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Json_debug_token_fprint(stderr, json, token);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Frame_id_from_json_token(
+chk_rc mli_Frame_id_from_json_token(
         uint32_t *id,
         const struct mli_Json *json,
         const uint64_t token)
@@ -5270,13 +5255,13 @@ int mli_Frame_id_from_json_token(
         chk_msg(_id >= 0, "Expected Frame's id >= 0.");
         (*id) = _id;
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Json_debug_token_fprint(stderr, json, token);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Frame_pos_rot_from_json_token(
+chk_rc mli_Frame_pos_rot_from_json_token(
         struct mli_HomTraComp *frame2mother,
         const struct mli_Json *json,
         const uint64_t token)
@@ -5295,13 +5280,13 @@ int mli_Frame_pos_rot_from_json_token(
         chk_msg(mli_Quaternion_from_json(
                         &frame2mother->rotation, json, token_rot + 1),
                 "Failed to parse Frame's 'rot' from json.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Json_debug_token_fprint(stderr, json, token);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Frame_boundary_layers_form_json_token(
+chk_rc mli_Frame_boundary_layers_form_json_token(
         struct mli_Uint32Vector *boundary_layers,
         const uint32_t object_idx,
         const struct mli_Object *objects,
@@ -5346,13 +5331,13 @@ int mli_Frame_boundary_layers_form_json_token(
                         "frame's boundary_layers.");
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Json_debug_token_fprint(stderr, json, token);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Frame_object_reference_form_json_token(
+chk_rc mli_Frame_object_reference_form_json_token(
         uint32_t *object_reference,
         const struct mli_Json *json,
         const uint64_t token,
@@ -5367,13 +5352,13 @@ int mli_Frame_object_reference_form_json_token(
                         token_obj_key + 1,
                         object_reference),
                 "Failed to get object-reference 'obj' from map");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Json_debug_token_fprint(stderr, json, token);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Frame_from_json(
+chk_rc mli_Frame_from_json(
         struct mli_Frame *mother,
         const struct mli_Json *json,
         const uint64_t token_children,
@@ -5450,9 +5435,9 @@ int mli_Frame_from_json(
                         break;
                 }
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* frame_ptr_vector */
@@ -5530,16 +5515,16 @@ struct mli_Vec mli_Fresnel_refraction_direction(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_raytracing_from_outside_to_inside(
+mli_bool mli_raytracing_from_outside_to_inside(
         const struct mli_Vec ray_direction_local,
         const struct mli_Vec surface_normal_local)
 {
         const double proj =
                 mli_Vec_dot(surface_normal_local, ray_direction_local);
         if (proj < 0.)
-                return 1;
+                return MLI_TRUE;
         else
-                return 0;
+                return MLI_FALSE;
 }
 
 /* func */
@@ -5563,30 +5548,33 @@ void mli_Func_free(struct mli_Func *f)
         (*f) = mli_Func_init();
 }
 
-int mli_Func_malloc(struct mli_Func *f, const uint64_t num_points)
+chk_rc mli_Func_malloc(struct mli_Func *f, const uint64_t num_points)
 {
         mli_Func_free(f);
         f->num_points = num_points;
         chk_malloc(f->x, double, f->num_points);
         chk_malloc(f->y, double, f->num_points);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Func_free(f);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Func_x_is_strictly_increasing(const struct mli_Func *f)
+mli_bool mli_Func_x_is_strictly_increasing(const struct mli_Func *f)
 {
         uint64_t i;
         for (i = 1; i < f->num_points; i++) {
                 if (f->x[i] <= f->x[i - 1]) {
-                        return 0;
+                        return MLI_FALSE;
                 }
         }
-        return 1;
+        return MLI_TRUE;
 }
 
-int mli_Func_evaluate(const struct mli_Func *f, const double xarg, double *out)
+chk_rc mli_Func_evaluate(
+        const struct mli_Func *f,
+        const double xarg,
+        double *out)
 {
         double y1, y0, x1, x0;
         uint64_t idx = mli_math_upper_compare_double(f->x, f->num_points, xarg);
@@ -5601,152 +5589,39 @@ int mli_Func_evaluate(const struct mli_Func *f, const double xarg, double *out)
                 x0 = f->x[idx - 1u];
                 (*out) = mli_math_linear_interpolate_2d(xarg, x0, y0, x1, y1);
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Func_in_range(const struct mli_Func *f, const double xarg)
+mli_bool mli_Func_in_range(const struct mli_Func *f, const double xarg)
 {
         if (f->num_points < 2) {
-                return 0;
+                return MLI_FALSE;
         }
         if (xarg >= f->x[0]) {
                 if (xarg < f->x[f->num_points - 1]) {
-                        return 1;
+                        return MLI_TRUE;
                 }
         }
-        return 0;
+        return MLI_FALSE;
 }
 
-double mli_Func_evaluate_with_default_when_out_of_range(
-        const struct mli_Func *f,
-        const double xarg,
-        const double default_value)
-{
-        double y1, y0, x1, x0;
-        uint64_t idx = mli_math_upper_compare_double(f->x, f->num_points, xarg);
-        if (idx == 0) {
-                /* mli_Func argument below lower bound */
-                return default_value;
-        } else if (idx == f->num_points) {
-                /* mli_Func argument above upper bound */
-                return default_value;
-        } else {
-                y1 = f->y[idx];
-                y0 = f->y[idx - 1u];
-                x1 = f->x[idx];
-                x0 = f->x[idx - 1u];
-                return mli_math_linear_interpolate_2d(xarg, x0, y0, x1, y1);
-        }
-}
-
-double mli_Func_evaluate_with_default_closest(
-        const struct mli_Func *f,
-        const double xarg)
-{
-        double y1, y0, x1, x0;
-        uint64_t idx = mli_math_upper_compare_double(f->x, f->num_points, xarg);
-        if (idx == 0) {
-                /* mli_Func argument below lower bound */
-                return f->y[0];
-        } else if (idx == f->num_points) {
-                /* mli_Func argument above upper bound */
-                return f->y[f->num_points - 1];
-        } else {
-                y1 = f->y[idx];
-                y0 = f->y[idx - 1u];
-                x1 = f->x[idx];
-                x0 = f->x[idx - 1u];
-                return mli_math_linear_interpolate_2d(xarg, x0, y0, x1, y1);
-        }
-}
-
-int mli_Func_fold_numeric(
-        const struct mli_Func *a,
-        const struct mli_Func *b,
-        double *fold)
-{
-        uint64_t i;
-        const uint64_t NUM_STEPS = 1024 * 8;
-        const double xmin = a->x[0];
-        const double xmax = a->x[a->num_points - 1];
-        const double step_size = (xmax - xmin) / (double)NUM_STEPS;
-        chk_msg(a->num_points >= 2u, "Expect a->num_points >= 2.");
-        chk_msg(b->num_points >= 2u, "Expect b->num_points >= 2.");
-        chk_msg(a->x[0] == b->x[0], "Expect a->x[0] == b->x[0].");
-        chk_msg(a->x[a->num_points - 1] == b->x[b->num_points - 1],
-                "Expect a->x[:-1] == b->x[:-1].");
-        (*fold) = 0.0;
-        for (i = 0; i < NUM_STEPS; i++) {
-                double ra = MLI_MATH_NAN;
-                double rb = MLI_MATH_NAN;
-                double x = xmin + (double)i * step_size;
-                chk(mli_Func_evaluate(a, x, &ra));
-                chk(mli_Func_evaluate(b, x, &rb));
-                (*fold) += (ra * rb) * step_size;
-        }
-        return 1;
-chk_error:
-        return 0;
-}
-
-int mli_Func_fold_numeric_default_closest(
-        const struct mli_Func *a,
-        const struct mli_Func *b,
-        double *fold)
-{
-        double x_start, x_stop, x_step, x_range, x_weight;
-        uint64_t i;
-        const uint64_t NUM_STEPS = 1024 * 8;
-
-        chk_msg(a->num_points >= 2u, "Expect a->num_points >= 2.");
-        chk_msg(b->num_points >= 2u, "Expect b->num_points >= 2.");
-
-        chk_msg(mli_Func_x_is_strictly_increasing(a),
-                "Expected function a to be strictly_increasing.");
-        chk_msg(mli_Func_x_is_strictly_increasing(b),
-                "Expected function b to be strictly_increasing.");
-
-        x_start = MLI_MATH_MAX2(a->x[0], b->x[0]);
-        x_stop =
-                MLI_MATH_MIN2(a->x[a->num_points - 1], b->x[b->num_points - 1]);
-        x_range = x_stop - x_start;
-        x_step = (x_range) / (double)NUM_STEPS;
-        x_weight = x_step / x_range;
-
-        (*fold) = 0.0;
-        if (x_start < x_stop) {
-                for (i = 0; i < NUM_STEPS; i++) {
-                        double ra = MLI_MATH_NAN;
-                        double rb = MLI_MATH_NAN;
-                        double x = x_start + (double)i * x_step;
-                        ra = mli_Func_evaluate_with_default_closest(a, x);
-                        rb = mli_Func_evaluate_with_default_closest(b, x);
-                        (*fold) += (ra * rb) * x_weight;
-                }
-        }
-
-        return 1;
-chk_error:
-        return 0;
-}
-
-int mli_Func_equal(const struct mli_Func a, const struct mli_Func b)
+mli_bool mli_Func_equal(const struct mli_Func a, const struct mli_Func b)
 {
         uint64_t i;
         if (a.num_points != b.num_points)
-                return 0;
+                return MLI_FALSE;
         for (i = 0; i < a.num_points; i++) {
                 if (a.x[i] != b.x[i])
-                        return 0;
+                        return MLI_FALSE;
                 if (a.y[i] != b.y[i])
-                        return 0;
+                        return MLI_FALSE;
         }
-        return 1;
+        return MLI_TRUE;
 }
 
-int mli_Func_is_valid(const struct mli_Func *func)
+mli_bool mli_Func_is_valid(const struct mli_Func *func)
 {
         uint64_t i;
         chk_msg(func->num_points >= 2,
@@ -5767,12 +5642,12 @@ int mli_Func_is_valid(const struct mli_Func *func)
                 "Expected x-arguments to be strictly increasing, "
                 "but they do not.");
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Func_malloc_constant(
+mli_bool mli_Func_malloc_constant(
         struct mli_Func *self,
         const double start,
         const double stop,
@@ -5784,9 +5659,9 @@ int mli_Func_malloc_constant(
         self->x[1] = stop;
         self->y[1] = value;
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* func_csv */
@@ -5794,7 +5669,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Func_from_csv_split_line(
+chk_rc mli_Func_from_csv_split_line(
         struct mli_String *line,
         struct mli_String *sx,
         struct mli_String *sy)
@@ -5807,7 +5682,7 @@ int mli_Func_from_csv_split_line(
                 char c = line->array[i];
                 if (c == ',') {
                         if (num_commas > 0) {
-                                return 1;
+                                return CHK_SUCCESS;
                         }
                         num_commas += 1;
                 } else {
@@ -5820,12 +5695,12 @@ int mli_Func_from_csv_split_line(
         }
         chk(mli_String_strip(sx, sx));
         chk(mli_String_strip(sy, sy));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Func_from_csv(
+chk_rc mli_Func_from_csv(
         struct mli_Func *func,
         struct mli_String *xname,
         struct mli_String *yname,
@@ -5883,7 +5758,7 @@ int mli_Func_from_csv(
         mli_String_free(&sy);
         mli_DoubleVector_free(&x);
         mli_DoubleVector_free(&y);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&line);
         mli_String_free(&sx);
@@ -5894,7 +5769,7 @@ chk_error:
         mli_String_free(xname);
         mli_String_free(yname);
         mli_Func_free(func);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* func_fprint */
@@ -5902,7 +5777,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Func_fprint(
+chk_rc mli_Func_fprint(
         FILE *f,
         const struct mli_Func *func,
         struct mli_Func_fprint_Config cfg)
@@ -5970,9 +5845,9 @@ int mli_Func_fprint(
         }
         fprintf(f, "%-8.2e ", cfg.x_stop);
         fprintf(f, "\n");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* func_info */
@@ -5995,39 +5870,39 @@ void mli_FuncInfo_free(struct mli_FuncInfo *self)
         (*self) = mli_FuncInfo_init();
 }
 
-int mli_FuncInfo_malloc(struct mli_FuncInfo *self)
+chk_rc mli_FuncInfo_malloc(struct mli_FuncInfo *self)
 {
         chk(mli_String_malloc(&self->x, 0u));
         chk(mli_String_malloc(&self->y, 0u));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_FuncInfo_equal(
+mli_bool mli_FuncInfo_equal(
         const struct mli_FuncInfo *a,
         const struct mli_FuncInfo *b)
 {
         if (!mli_String_equal(&a->x, &b->x))
-                return 0;
+                return MLI_FALSE;
         if (!mli_String_equal(&a->y, &b->y))
-                return 0;
-        return 1;
+                return MLI_FALSE;
+        return MLI_TRUE;
 }
 
-int mli_FuncInfo_to_io(const struct mli_FuncInfo *self, struct mli_IO *f)
+chk_rc mli_FuncInfo_to_io(const struct mli_FuncInfo *self, struct mli_IO *f)
 {
         struct mli_MagicId magic = mli_MagicId_init();
         chk(mli_MagicId_set(&magic, "mli_FuncInfo"));
         chk_IO_write(&magic, sizeof(struct mli_MagicId), 1u, f);
         chk(mli_String_to_io(&self->x, f));
         chk(mli_String_to_io(&self->y, f));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_FuncInfo_from_io(struct mli_FuncInfo *self, struct mli_IO *f)
+chk_rc mli_FuncInfo_from_io(struct mli_FuncInfo *self, struct mli_IO *f)
 {
         struct mli_MagicId magic = mli_MagicId_init();
         chk_IO_read(&magic, sizeof(struct mli_MagicId), 1u, f);
@@ -6035,9 +5910,9 @@ int mli_FuncInfo_from_io(struct mli_FuncInfo *self, struct mli_IO *f)
         mli_MagicId_warn_version(&magic);
         chk(mli_String_from_io(&self->x, f));
         chk(mli_String_from_io(&self->y, f));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* func_serialize */
@@ -6045,7 +5920,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Func_to_io(const struct mli_Func *func, struct mli_IO *f)
+chk_rc mli_Func_to_io(const struct mli_Func *func, struct mli_IO *f)
 {
         struct mli_MagicId magic;
         chk(mli_MagicId_set(&magic, "mli_Func"));
@@ -6054,12 +5929,12 @@ int mli_Func_to_io(const struct mli_Func *func, struct mli_IO *f)
         chk_IO_write(&func->num_points, sizeof(uint64_t), 1u, f);
         chk_IO_write(func->x, sizeof(double), func->num_points, f);
         chk_IO_write(func->y, sizeof(double), func->num_points, f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Func_from_io(struct mli_Func *func, struct mli_IO *f)
+chk_rc mli_Func_from_io(struct mli_Func *func, struct mli_IO *f)
 {
         uint64_t num_points;
         struct mli_MagicId magic;
@@ -6072,10 +5947,10 @@ int mli_Func_from_io(struct mli_Func *func, struct mli_IO *f)
         chk_IO_read(func->x, sizeof(double), func->num_points, f);
         chk_IO_read(func->y, sizeof(double), func->num_points, f);
         chk_msg(mli_Func_is_valid(func), "Expected function to be valid.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Func_free(func);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* geometry */
@@ -6133,7 +6008,7 @@ void mli_Geometry_free(struct mli_Geometry *self)
         (*self) = mli_Geometry_init();
 }
 
-int mli_Geometry_malloc_objects(
+chk_rc mli_Geometry_malloc_objects(
         struct mli_Geometry *self,
         const uint32_t num_objects)
 {
@@ -6145,13 +6020,13 @@ int mli_Geometry_malloc_objects(
                 self->objects[i] = mli_Object_init();
                 self->object_names[i] = mli_String_init();
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Geometry_free_objects(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Geometry_malloc_references(
+chk_rc mli_Geometry_malloc_references(
         struct mli_Geometry *self,
         const uint32_t num_robjects)
 {
@@ -6160,13 +6035,13 @@ int mli_Geometry_malloc_references(
         chk_malloc(self->robject_ids, uint32_t, self->num_robjects);
         chk_malloc(
                 self->robject2root, struct mli_HomTraComp, self->num_robjects);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Geometry_free_references(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Geometry_malloc(
+chk_rc mli_Geometry_malloc(
         struct mli_Geometry *self,
         const uint32_t num_objects,
         const uint32_t num_robjects)
@@ -6174,10 +6049,10 @@ int mli_Geometry_malloc(
         mli_Geometry_free(self);
         chk(mli_Geometry_malloc_objects(self, num_objects));
         chk(mli_Geometry_malloc_references(self, num_robjects));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Geometry_free(self);
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_Geometry_info_fprint(FILE *f, const struct mli_Geometry *self)
@@ -6255,7 +6130,7 @@ void mli_Geometry_info_fprint(FILE *f, const struct mli_Geometry *self)
         }
 }
 
-int mli_Geometry_warn_objects(const struct mli_Geometry *self)
+chk_rc mli_Geometry_warn_objects(const struct mli_Geometry *self)
 {
         uint32_t o;
         for (o = 0; o < self->num_objects; o++) {
@@ -6284,9 +6159,9 @@ int mli_Geometry_warn_objects(const struct mli_Geometry *self)
                 }
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* geometry_aabb */
@@ -6294,7 +6169,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Geometry_robject_has_overlap_aabb(
+mli_bool mli_Geometry_robject_has_overlap_aabb(
         const struct mli_GeometryAndAccelerator *accgeo,
         const uint32_t robject_idx,
         const struct mli_AABB aabb)
@@ -6313,11 +6188,11 @@ int mli_Geometry_robject_has_overlap_aabb(
                         accgeo->geometry->robject2root[robject_idx]);
                 return mli_Object_has_overlap_aabb(obj_ptr, robj2root, aabb);
         } else {
-                return 0;
+                return MLI_FALSE;
         }
 }
 
-int mli_Geometry_robject_has_overlap_aabb_void(
+mli_bool mli_Geometry_robject_has_overlap_aabb_void(
         const void *accgeo,
         const uint32_t robject_idx,
         const struct mli_AABB aabb)
@@ -6338,7 +6213,7 @@ int mli_Geometry_robject_has_overlap_aabb_void(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Geometry_objects_equal(
+mli_bool mli_Geometry_objects_equal(
         const struct mli_Geometry *a,
         const struct mli_Geometry *b)
 {
@@ -6353,13 +6228,13 @@ int mli_Geometry_objects_equal(
                                 &a->object_names[i], &b->object_names[i]),
                         "Expected object_name to be equal.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         fprintf(stderr, "In geometry.object[%u]\n", i);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Geometry_object_references_equal(
+mli_bool mli_Geometry_object_references_equal(
         const struct mli_Geometry *a,
         const struct mli_Geometry *b)
 {
@@ -6381,13 +6256,13 @@ int mli_Geometry_object_references_equal(
                         "Expected homogenous transformation of "
                         "object-references to be equal");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         fprintf(stderr, "In geometry.object_reference[%lu]\n", rob);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Geometry_equal(
+mli_bool mli_Geometry_equal(
         const struct mli_Geometry *a,
         const struct mli_Geometry *b)
 {
@@ -6395,9 +6270,9 @@ int mli_Geometry_equal(
                 "Expected objects to be equal.");
         chk_msg(mli_Geometry_object_references_equal(a, b),
                 "Expected object-references to be equal.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* geometry_from_archive */
@@ -6405,7 +6280,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Geometry_from_archive(
+chk_rc mli_Geometry_from_archive(
         struct mli_Geometry *geometry,
         struct mli_Map *object_names,
         const struct mli_Archive *archive)
@@ -6461,12 +6336,12 @@ int mli_Geometry_from_archive(
         mli_String_free(&extension);
         mli_String_free(&basename);
         mli_String_free(&key);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&extension);
         mli_String_free(&basename);
         mli_String_free(&key);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* geometry_id */
@@ -6487,7 +6362,7 @@ struct mli_GeometryId mli_GeometryId_init(void)
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Geometry_from_io(struct mli_Geometry *geometry, struct mli_IO *f)
+chk_rc mli_Geometry_from_io(struct mli_Geometry *geometry, struct mli_IO *f)
 {
         uint32_t i;
         uint32_t num_objects = 0u;
@@ -6529,12 +6404,12 @@ int mli_Geometry_from_io(struct mli_Geometry *geometry, struct mli_IO *f)
                 geometry->num_robjects,
                 f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Geometry_to_io(const struct mli_Geometry *geometry, struct mli_IO *f)
+chk_rc mli_Geometry_to_io(const struct mli_Geometry *geometry, struct mli_IO *f)
 {
         uint32_t i;
         struct mli_MagicId magic;
@@ -6570,9 +6445,9 @@ int mli_Geometry_to_io(const struct mli_Geometry *geometry, struct mli_IO *f)
                 geometry->num_robjects,
                 f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* geometry_set_from_frame */
@@ -6580,7 +6455,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Geometry__set_robjects_and_material_map_from_frame_walk(
+chk_rc mli_Geometry__set_robjects_and_material_map_from_frame_walk(
         const struct mli_Frame *frame,
         struct mli_Geometry *geometry,
         struct mli_GeometryToMaterialMap *geomap,
@@ -6636,12 +6511,12 @@ int mli_Geometry__set_robjects_and_material_map_from_frame_walk(
                 chk_bad("Expected either type 'frame' or 'object'.");
                 break;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Geometry_set_robjects_and_material_map_from_frame(
+chk_rc mli_Geometry_set_robjects_and_material_map_from_frame(
         const struct mli_Frame *frame,
         struct mli_Geometry *geometry,
         struct mli_GeometryToMaterialMap *geomap)
@@ -6656,9 +6531,9 @@ int mli_Geometry_set_robjects_and_material_map_from_frame(
                         &total_num_boundary_layers),
                 "Failed to walk tree of frames to set "
                 "robjects and material map.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* geometry_valid */
@@ -6666,7 +6541,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Geometry_valid_objects(const struct mli_Geometry *geometry)
+mli_bool mli_Geometry_valid_objects(const struct mli_Geometry *geometry)
 {
         uint32_t i = 0;
         for (i = 0; i < geometry->num_objects; i++) {
@@ -6683,13 +6558,14 @@ int mli_Geometry_valid_objects(const struct mli_Geometry *geometry)
                 chk_msg(mli_Object_is_valid(&geometry->objects[i]),
                         "Expected object to be valid.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         fprintf(stderr, "In geometry.objects[%u]\n", i);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Geometry_valid_robjects_HomTras(const struct mli_Geometry *geometry)
+mli_bool mli_Geometry_valid_robjects_HomTras(
+        const struct mli_Geometry *geometry)
 {
         uint32_t i;
         for (i = 0; i < geometry->num_robjects; i++) {
@@ -6705,13 +6581,14 @@ int mli_Geometry_valid_robjects_HomTras(const struct mli_Geometry *geometry)
                 chk_msg(!MLI_MATH_IS_NAN(q.y), "quaternion.y is 'nan'.");
                 chk_msg(!MLI_MATH_IS_NAN(q.z), "quaternion.z is 'nan'.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         fprintf(stderr, "In geometry.robject2root[%u]\n", i);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Geometry_valid_object_references(const struct mli_Geometry *geometry)
+mli_bool mli_Geometry_valid_object_references(
+        const struct mli_Geometry *geometry)
 {
         uint32_t i;
         for (i = 0; i < geometry->num_robjects; i++) {
@@ -6722,13 +6599,13 @@ int mli_Geometry_valid_object_references(const struct mli_Geometry *geometry)
                  *       the user wants.
                  */
         }
-        return 1;
+        return CHK_SUCCESS;
         fprintf(stderr, "In geometry.robject[%u]\n", i);
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Geometry_valid(const struct mli_Geometry *geometry)
+mli_bool mli_Geometry_valid(const struct mli_Geometry *geometry)
 {
         chk_msg(mli_Geometry_valid_objects(geometry),
                 "Expected objects to be valid.");
@@ -6736,9 +6613,9 @@ int mli_Geometry_valid(const struct mli_Geometry *geometry)
                 "Expected robject transformations to be free of 'nan'.");
         chk_msg(mli_Geometry_valid_object_references(geometry),
                 "Expected object-references to be valid.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* geometrytomaterialmap */
@@ -6763,7 +6640,7 @@ void mli_GeometryToMaterialMap_free(struct mli_GeometryToMaterialMap *map)
         (*map) = mli_GeometryToMaterialMap_init();
 }
 
-int mli_GeometryToMaterialMap_malloc(
+chk_rc mli_GeometryToMaterialMap_malloc(
         struct mli_GeometryToMaterialMap *map,
         const uint32_t num_robjects,
         const uint32_t total_num_boundary_layers)
@@ -6782,9 +6659,9 @@ int mli_GeometryToMaterialMap_malloc(
                 map->first_boundary_layer_in_robject, 0, map->num_robjects);
         MLI_MATH_ARRAY_SET(
                 map->boundary_layers, 0, map->total_num_boundary_layers);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 uint32_t mli_GeometryToMaterialMap_resolve_idx(
@@ -6876,7 +6753,7 @@ void mli_GeometryToMaterialMap_info_fprint(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_GeometryToMaterialMap_equal(
+mli_bool mli_GeometryToMaterialMap_equal(
         const struct mli_GeometryToMaterialMap *a,
         const struct mli_GeometryToMaterialMap *b)
 {
@@ -6895,9 +6772,9 @@ int mli_GeometryToMaterialMap_equal(
                         "Expected all first_boundary_layer_in_robject "
                         "to be equal.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* geometrytomaterialmap_serialize */
@@ -6905,7 +6782,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_GeometryToMaterialMap_from_io(
+chk_rc mli_GeometryToMaterialMap_from_io(
         struct mli_GeometryToMaterialMap *geomap,
         struct mli_IO *f)
 {
@@ -6934,12 +6811,12 @@ int mli_GeometryToMaterialMap_from_io(
                 sizeof(uint32_t),
                 geomap->num_robjects,
                 f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_GeometryToMaterialMap_to_io(
+chk_rc mli_GeometryToMaterialMap_to_io(
         const struct mli_GeometryToMaterialMap *geomap,
         struct mli_IO *f)
 {
@@ -6963,9 +6840,9 @@ int mli_GeometryToMaterialMap_to_io(
                 sizeof(uint32_t),
                 geomap->num_robjects,
                 f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* geometrytomaterialmap_valid */
@@ -6973,7 +6850,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_GeometryToMaterialMap_valid(
+mli_bool mli_GeometryToMaterialMap_valid(
         const struct mli_GeometryToMaterialMap *geomap)
 {
         uint32_t i = 0u;
@@ -6986,12 +6863,12 @@ int mli_GeometryToMaterialMap_valid(
                         "Expected all position of first_boundary_layer[i] < "
                         "total_num_boundary_layers");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_GeometryToMaterialMap_valid_wrt_Geometry(
+mli_bool mli_GeometryToMaterialMap_valid_wrt_Geometry(
         const struct mli_GeometryToMaterialMap *geomap,
         const struct mli_Geometry *geometry)
 {
@@ -7012,12 +6889,12 @@ int mli_GeometryToMaterialMap_valid_wrt_Geometry(
         chk_msg(total_num_boundary_layers == geomap->total_num_boundary_layers,
                 "Expected total_num_boundary_layers to match the Geometry.");
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_GeometryToMaterialMap_valid_wrt_Materials(
+mli_bool mli_GeometryToMaterialMap_valid_wrt_Materials(
         const struct mli_GeometryToMaterialMap *geomap,
         const struct mli_Materials *materials)
 {
@@ -7028,9 +6905,9 @@ int mli_GeometryToMaterialMap_valid_wrt_Materials(
                         "Expected geomap's boundary_layers[i] to refer to "
                         "a valid boundary_layer in Materials.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* homtra */
@@ -7195,15 +7072,15 @@ struct mli_Vec mli_HomTraComp_dir_inverse(
         return mli_transform_orientation_inverse(&t->rotation, in);
 }
 
-int mli_HomTraComp_equal(
+mli_bool mli_HomTraComp_equal(
         const struct mli_HomTraComp a,
         const struct mli_HomTraComp b)
 {
         if (!mli_Vec_equal(a.translation, b.translation))
-                return 0;
+                return MLI_FALSE;
         if (!mli_Quaternion_equal(a.rotation, b.rotation))
-                return 0;
-        return 1;
+                return MLI_FALSE;
+        return MLI_TRUE;
 }
 
 struct mli_HomTraComp mli_HomTraComp_sequence(
@@ -7246,7 +7123,7 @@ void mli_Image_free(struct mli_Image *self)
         (*self) = mli_Image_init();
 }
 
-int mli_Image__malloc(
+chk_rc mli_Image__malloc(
         struct mli_Image *self,
         const uint32_t num_cols,
         const uint32_t num_rows)
@@ -7273,26 +7150,26 @@ int mli_Image__malloc(
                                 self->geometry.chunk_edge_size));
                 }
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Image_free(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Image_malloc(
+chk_rc mli_Image_malloc(
         struct mli_Image *self,
         const uint32_t num_cols,
         const uint32_t num_rows)
 {
         if (self->geometry.num_cols == num_cols &&
             self->geometry.num_rows == num_rows) {
-                return 1;
+                return CHK_SUCCESS;
         } else {
                 return mli_Image__malloc(self, num_cols, num_rows);
         }
 }
 
-int mli_Image_malloc_same_size(
+chk_rc mli_Image_malloc_same_size(
         struct mli_Image *self,
         const struct mli_Image *other)
 {
@@ -7408,7 +7285,7 @@ void mli_Image_set_all(
         }
 }
 
-int mli_Image_scale_down_twice(
+chk_rc mli_Image_scale_down_twice(
         const struct mli_Image *src,
         struct mli_Image *dst)
 {
@@ -7439,12 +7316,12 @@ int mli_Image_scale_down_twice(
                 mli_image_PixelWalk_walk(&w, &dst->geometry);
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Image_sobel(const struct mli_Image *src, struct mli_Image *dst)
+chk_rc mli_Image_sobel(const struct mli_Image *src, struct mli_Image *dst)
 {
         uint64_t i;
         uint64_t NUM = mli_Image_num_pixel(src);
@@ -7596,12 +7473,12 @@ int mli_Image_sobel(const struct mli_Image *src, struct mli_Image *dst)
                 mli_Image__set_by_PixelWalk(dst, w, color_result);
                 mli_image_PixelWalk_walk(&w, &src->geometry);
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Image_luminance_threshold_dilatation(
+chk_rc mli_Image_luminance_threshold_dilatation(
         const struct mli_Image *self,
         const float threshold,
         const struct mli_Color marker,
@@ -7638,9 +7515,9 @@ int mli_Image_luminance_threshold_dilatation(
                         }
                 }
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_image_PixelVector_push_back_all_from_image(
@@ -7660,7 +7537,7 @@ void mli_image_PixelVector_push_back_all_from_image(
         }
 }
 
-int mli_image_PixelVector_above_threshold(
+chk_rc mli_image_PixelVector_above_threshold(
         const struct mli_Image *self,
         const float threshold,
         struct mli_image_PixelVector *pixels)
@@ -7681,12 +7558,12 @@ int mli_image_PixelVector_above_threshold(
                 }
                 mli_image_PixelWalk_walk(&w, &self->geometry);
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Image_copy(const struct mli_Image *src, struct mli_Image *dst)
+chk_rc mli_Image_copy(const struct mli_Image *src, struct mli_Image *dst)
 {
         uint64_t i;
         const uint64_t NUM = mli_Image_num_pixel(src);
@@ -7701,12 +7578,12 @@ int mli_Image_copy(const struct mli_Image *src, struct mli_Image *dst)
                 mli_image_PixelWalk_walk(&walk, &src->geometry);
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Image_fabs_difference(
+chk_rc mli_Image_fabs_difference(
         const struct mli_Image *a,
         const struct mli_Image *b,
         struct mli_Image *out)
@@ -7729,9 +7606,9 @@ int mli_Image_fabs_difference(
                 mli_Image__set_by_PixelWalk(out, w, _o);
                 mli_image_PixelWalk_walk(&w, &out->geometry);
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_Image_histogram(
@@ -7823,7 +7700,7 @@ void mli_Image_power(struct mli_Image *self, const struct mli_Color power)
         }
 }
 
-int mli_Image_divide_pixelwise(
+chk_rc mli_Image_divide_pixelwise(
         const struct mli_Image *numerator,
         const struct mli_Image *denominator,
         struct mli_Image *out)
@@ -7850,9 +7727,9 @@ int mli_Image_divide_pixelwise(
                 mli_Image__set_by_PixelWalk(out, w, _out);
                 mli_image_PixelWalk_walk(&w, &out->geometry);
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* image_Pixel */
@@ -7987,16 +7864,16 @@ void mli_image_Chunk_free(struct mli_image_Chunk *self)
         (*self) = mli_image_Chunk_init();
 }
 
-int mli_image_Chunk_malloc(
+chk_rc mli_image_Chunk_malloc(
         struct mli_image_Chunk *self,
         const uint64_t edge_size)
 {
         const uint64_t num_pixel = edge_size * edge_size;
         self->edge_size = edge_size;
         chk_malloc(self->array, struct mli_Color, num_pixel);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_image_Chunk_set(
@@ -8056,21 +7933,21 @@ struct mli_image_ChunkGeometry mli_image_ChunkGeometry_set(
         return out;
 }
 
-int mli_image_ChunkGeometry_equal(
+mli_bool mli_image_ChunkGeometry_equal(
         const struct mli_image_ChunkGeometry a,
         const struct mli_image_ChunkGeometry b)
 {
         if (a.num_cols != b.num_cols)
-                return 0;
+                return MLI_FALSE;
         if (a.num_rows != b.num_rows)
-                return 0;
+                return MLI_FALSE;
         if (a.chunk_edge_size != b.chunk_edge_size)
-                return 0;
+                return MLI_FALSE;
         if (a.num_chunks_row != b.num_chunks_row)
-                return 0;
+                return MLI_FALSE;
         if (a.num_chunks_col != b.num_chunks_col)
-                return 0;
-        return 1;
+                return MLI_FALSE;
+        return MLI_TRUE;
 }
 
 /* image_ppm */
@@ -8078,12 +7955,15 @@ int mli_image_ChunkGeometry_equal(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Image_from_io(struct mli_Image *img, struct mli_IO *f)
+chk_rc mli_Image_from_io(struct mli_Image *img, struct mli_IO *f)
 {
         struct mli_String line = mli_String_init();
         uint64_t num_comment_lines = 0;
         uint64_t num_cols;
         uint64_t num_rows;
+        uint64_t color_depth_factor;
+        double inverse_color_depth_factor;
+        uint64_t color_depth_num_bit;
         uint64_t col;
         uint64_t row;
         chk_msg(mli_IO_text_read_line(f, &line, '\n'),
@@ -8110,36 +7990,57 @@ int mli_Image_from_io(struct mli_Image *img, struct mli_IO *f)
                 "Can't parse num. rows.");
         chk_msg(mli_IO_text_read_line(f, &line, '\n'),
                 "Can't read header-line.");
-        chk_msg(mli_String_equal_cstr(&line, "255"),
-                "Expected 8bit range '255'.");
+        chk_msg(mli_String_to_uint64(&color_depth_factor, &line, 10),
+                "Can't parse color-depth-factor.");
+        chk_msg(color_depth_factor > 0, "Expected color-depth-factor > 0.");
+        chk_msg(color_depth_factor <= 65535,
+                "Expected color-depth-factor <= 65535.");
+
+        if (color_depth_factor <= 255) {
+                color_depth_num_bit = MLI_IMAGE_PPM_COLOR_DEPTH_8BIT;
+        } else {
+                color_depth_num_bit = MLI_IMAGE_PPM_COLOR_DEPTH_16BIT;
+        }
+        inverse_color_depth_factor = 1.0 / (double)color_depth_factor;
 
         chk_mem(mli_Image_malloc(img, num_cols, num_rows));
         for (row = 0; row < mli_Image_num_rows(img); row++) {
                 for (col = 0; col < mli_Image_num_cols(img); col++) {
-                        uint8_t r, g, b;
                         struct mli_Color color;
-                        chk_IO_read(&r, sizeof(uint8_t), 1u, f);
-                        chk_IO_read(&g, sizeof(uint8_t), 1u, f);
-                        chk_IO_read(&b, sizeof(uint8_t), 1u, f);
-                        color.r = (float)r;
-                        color.g = (float)g;
-                        color.b = (float)b;
+
+                        switch (color_depth_num_bit) {
+                        case MLI_IMAGE_PPM_COLOR_DEPTH_8BIT:
+                                chk(mli_image_ppm__read_color_8bit(&color, f));
+                                break;
+                        case MLI_IMAGE_PPM_COLOR_DEPTH_16BIT:
+                                chk(mli_image_ppm__read_color_16bit(&color, f));
+                                break;
+                        default:
+                                chk_bad("color_depth_num_bit is out of range.");
+                        }
+
+                        color = mli_Color_multiply(
+                                color, inverse_color_depth_factor);
+
                         mli_Image_set_by_col_row(img, col, row, color);
                 }
         }
         mli_String_free(&line);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&line);
         mli_Image_free(img);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Image_to_io(const struct mli_Image *img, struct mli_IO *f)
+chk_rc mli_Image_to_io(
+        const struct mli_Image *img,
+        struct mli_IO *f,
+        const uint64_t color_depth_num_bit)
 {
-
         uint32_t col;
         uint32_t row;
+        double color_depth_factor;
         chk(mli_IO_text_write_cstr(f, "P6\n"));
         chk(mli_IO_text_write_cstr(f, "# merlict_c89\n"));
         chk(mli_IO_text_write_cstr_format(
@@ -8150,24 +8051,133 @@ int mli_Image_to_io(const struct mli_Image *img, struct mli_IO *f)
                 MLI_VERSION_PATCH));
         chk(mli_IO_text_write_cstr_format(f, "%ld\n", mli_Image_num_cols(img)));
         chk(mli_IO_text_write_cstr_format(f, "%ld\n", mli_Image_num_rows(img)));
-        chk(mli_IO_text_write_cstr(f, "255\n"));
+
+        switch (color_depth_num_bit) {
+        case MLI_IMAGE_PPM_COLOR_DEPTH_8BIT:
+                chk(mli_IO_text_write_cstr(f, "255\n"));
+                color_depth_factor = 255.0;
+                break;
+        case MLI_IMAGE_PPM_COLOR_DEPTH_16BIT:
+                chk(mli_IO_text_write_cstr(f, "65535\n"));
+                color_depth_factor = 65535.0;
+                break;
+        default:
+                chk_bad("color_depth_num_bit is out of range.");
+        }
+
         for (row = 0; row < mli_Image_num_rows(img); row++) {
                 for (col = 0; col < mli_Image_num_cols(img); col++) {
                         struct mli_Color color =
                                 mli_Image_get_by_col_row(img, col, row);
-                        struct mli_Color out =
-                                mli_Color_truncate(color, 0., 255.);
-                        uint8_t r = (uint8_t)out.r;
-                        uint8_t g = (uint8_t)out.g;
-                        uint8_t b = (uint8_t)out.b;
-                        chk_IO_write(&r, sizeof(uint8_t), 1u, f);
-                        chk_IO_write(&g, sizeof(uint8_t), 1u, f);
-                        chk_IO_write(&b, sizeof(uint8_t), 1u, f);
+
+                        color = mli_Color_multiply(color, color_depth_factor);
+
+                        switch (color_depth_num_bit) {
+                        case MLI_IMAGE_PPM_COLOR_DEPTH_8BIT:
+                                chk(mli_image_ppm__write_color_8bit(color, f));
+                                break;
+                        case MLI_IMAGE_PPM_COLOR_DEPTH_16BIT:
+                                chk(mli_image_ppm__write_color_16bit(color, f));
+                                break;
+                        default:
+                                chk_bad("color_depth_num_bit is out of range.");
+                        }
                 }
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
+}
+
+chk_rc mli_image_ppm__read_color_8bit(struct mli_Color *color, struct mli_IO *f)
+{
+        uint8_t r, g, b;
+        chk_IO_read(&r, sizeof(uint8_t), 1u, f);
+        chk_IO_read(&g, sizeof(uint8_t), 1u, f);
+        chk_IO_read(&b, sizeof(uint8_t), 1u, f);
+        color->r = (float)r;
+        color->g = (float)g;
+        color->b = (float)b;
+        return CHK_SUCCESS;
+chk_error:
+        return CHK_FAIL;
+}
+
+chk_rc mli_image_ppm__write_color_8bit(
+        const struct mli_Color color,
+        struct mli_IO *f)
+{
+        struct mli_Color out = mli_Color_truncate(color, 0., 255.);
+        uint8_t r = (uint8_t)out.r;
+        uint8_t g = (uint8_t)out.g;
+        uint8_t b = (uint8_t)out.b;
+        chk_IO_write(&r, sizeof(uint8_t), 1u, f);
+        chk_IO_write(&g, sizeof(uint8_t), 1u, f);
+        chk_IO_write(&b, sizeof(uint8_t), 1u, f);
+        return CHK_SUCCESS;
+chk_error:
+        return CHK_FAIL;
+}
+
+chk_rc mli_image_ppm__read_color_16bit(
+        struct mli_Color *color,
+        struct mli_IO *f)
+{
+        uint8_t rl, gl, bl, rh, gh, bh;
+        float frl, fgl, fbl, frh, fgh, fbh;
+
+        chk_IO_read(&rh, sizeof(uint8_t), 1u, f);
+        chk_IO_read(&rl, sizeof(uint8_t), 1u, f);
+
+        chk_IO_read(&gh, sizeof(uint8_t), 1u, f);
+        chk_IO_read(&gl, sizeof(uint8_t), 1u, f);
+
+        chk_IO_read(&bh, sizeof(uint8_t), 1u, f);
+        chk_IO_read(&bl, sizeof(uint8_t), 1u, f);
+
+        frh = (float)rh;
+        frl = (float)rl;
+
+        fgh = (float)gh;
+        fgl = (float)gl;
+
+        fbh = (float)bh;
+        fbl = (float)bl;
+
+        color->r = frh * 256.0 + frl;
+        color->g = fgh * 256.0 + fgl;
+        color->b = fbh * 256.0 + fbl;
+        return CHK_SUCCESS;
+chk_error:
+        return CHK_FAIL;
+}
+
+chk_rc mli_image_ppm__write_color_16bit(
+        const struct mli_Color color,
+        struct mli_IO *f)
+{
+        struct mli_Color out = mli_Color_truncate(color, 0., 65535.);
+
+        uint8_t rl = (uint8_t)((uint64_t)out.r % 256);
+        uint8_t gl = (uint8_t)((uint64_t)out.g % 256);
+        uint8_t bl = (uint8_t)((uint64_t)out.b % 256);
+
+        uint8_t rh = (uint8_t)((uint64_t)out.r / 256);
+        uint8_t gh = (uint8_t)((uint64_t)out.g / 256);
+        uint8_t bh = (uint8_t)((uint64_t)out.b / 256);
+
+        chk_IO_write(&rh, sizeof(uint8_t), 1u, f);
+        chk_IO_write(&rl, sizeof(uint8_t), 1u, f);
+
+        chk_IO_write(&gh, sizeof(uint8_t), 1u, f);
+        chk_IO_write(&gl, sizeof(uint8_t), 1u, f);
+
+        chk_IO_write(&bh, sizeof(uint8_t), 1u, f);
+        chk_IO_write(&bl, sizeof(uint8_t), 1u, f);
+
+        return CHK_SUCCESS;
+chk_error:
+        return CHK_FAIL;
 }
 
 /* image_print */
@@ -8211,17 +8221,21 @@ void mli_Image_print_ansi_escape_chars(
         const uint64_t *cols,
         const uint64_t num_symbols)
 {
+        const double color_depth_factor = 255.0;
         uint32_t col, row, sym;
         char symbol;
+
         for (row = 0; row < mli_Image_num_rows(img); row++) {
                 for (col = 0; col < mli_Image_num_cols(img); col++) {
+                        uint8_t r, g, b;
                         struct mli_Color color =
                                 mli_Image_get_by_col_row(img, col, row);
-                        struct mli_Color out =
-                                mli_Color_truncate(color, 0., 255.);
-                        uint8_t r = (uint8_t)out.r;
-                        uint8_t g = (uint8_t)out.g;
-                        uint8_t b = (uint8_t)out.b;
+                        color = mli_Color_multiply(color, color_depth_factor);
+                        color = mli_Color_truncate(
+                                color, 0., color_depth_factor);
+                        r = (uint8_t)color.r;
+                        g = (uint8_t)color.g;
+                        b = (uint8_t)color.b;
                         symbol = ' ';
                         for (sym = 0; sym < num_symbols; sym++) {
                                 if (rows[sym] == row && cols[sym] == col) {
@@ -8243,6 +8257,7 @@ void mli_Image_print_ascii_chars(
         const uint64_t *cols,
         const uint64_t num_symbols)
 {
+        const double color_depth_factor = 15.0;
         uint32_t col, row, sym;
         char symbol;
         char chars_with_ascending_fill[16] = {
@@ -8264,12 +8279,15 @@ void mli_Image_print_ascii_chars(
                 '#'};
         for (row = 0; row < mli_Image_num_rows(img); row++) {
                 for (col = 0; col < mli_Image_num_cols(img); col++) {
+                        float lum = 0.0;
+                        int64_t l = 0;
                         struct mli_Color color =
                                 mli_Image_get_by_col_row(img, col, row);
-                        struct mli_Color out =
-                                mli_Color_truncate(color, 0., 255.);
-                        float lum = 1.0 / 3.0 * (out.r + out.g + out.b);
-                        int64_t l = lum / 16.0;
+                        color = mli_Color_multiply(color, color_depth_factor);
+                        color = mli_Color_truncate(
+                                color, 0., color_depth_factor);
+                        lum = 1.0 / 3.0 * (color.r + color.g + color.b);
+                        l = lum;
                         if (l < 0) {
                                 l = 0;
                         }
@@ -8451,7 +8469,7 @@ struct mli_IO mli_IO_init(void)
         return out;
 }
 
-int mli_IO_open_memory(struct mli_IO *self)
+chk_rc mli_IO_open_memory(struct mli_IO *self)
 {
         mli_IO_close(self);
         self->type = MLI_IO_TYPE_MEMORY;
@@ -8459,7 +8477,7 @@ int mli_IO_open_memory(struct mli_IO *self)
         return mli_IoMemory_open(&self->data.memory);
 }
 
-int mli_IO_open_file(
+chk_rc mli_IO_open_file(
         struct mli_IO *self,
         const struct mli_String *filename,
         const struct mli_String *mode)
@@ -8470,7 +8488,7 @@ int mli_IO_open_file(
         return mli_IoFile_open(&self->data.file, filename, mode);
 }
 
-int mli_IO_adopt_file(struct mli_IO *self, FILE *cfile)
+chk_rc mli_IO_adopt_file(struct mli_IO *self, FILE *cfile)
 {
         mli_IO_close(self);
         self->type = MLI_IO_TYPE_FILE;
@@ -8478,7 +8496,7 @@ int mli_IO_adopt_file(struct mli_IO *self, FILE *cfile)
         return mli_IoFile_adopt_cfile(&self->data.file, cfile);
 }
 
-int mli_IO__open_file_cstr(
+chk_rc mli_IO_open_file_cstr(
         struct mli_IO *self,
         const char *filename,
         const char *mode)
@@ -8492,17 +8510,17 @@ int mli_IO__open_file_cstr(
 
         mli_String_free(&_filename);
         mli_String_free(&_mode);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&_filename);
         mli_String_free(&_mode);
         mli_IO_close(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IO_close(struct mli_IO *self)
+chk_rc mli_IO_close(struct mli_IO *self)
 {
-        int rc = 0;
+        chk_rc rc = CHK_FAIL;
         switch (self->type) {
         case MLI_IO_TYPE_MEMORY:
                 rc = mli_IoMemory_close(&self->data.memory);
@@ -8511,7 +8529,7 @@ int mli_IO_close(struct mli_IO *self)
                 rc = mli_IoFile_close(&self->data.file);
                 break;
         case MLI_IO_TYPE_VOID:
-                rc = 1;
+                rc = CHK_FAIL;
                 break;
         }
         (*self) = mli_IO_init();
@@ -8532,7 +8550,8 @@ size_t mli_IO_write(
         case MLI_IO_TYPE_FILE:
                 rc = mli_IoFile_write(ptr, size, count, &self->data.file);
                 break;
-        default:
+        case MLI_IO_TYPE_VOID:
+                chk_warning("Expected io->type != VOID in order to write.");
                 rc = 0;
         }
         return rc;
@@ -8552,7 +8571,8 @@ size_t mli_IO_read(
         case MLI_IO_TYPE_FILE:
                 rc = mli_IoFile_read(ptr, size, count, &self->data.file);
                 break;
-        default:
+        case MLI_IO_TYPE_VOID:
+                chk_warning("Expected io->type != VOID in order to read.");
                 rc = 0;
         }
         return rc;
@@ -8567,12 +8587,14 @@ void mli_IO_rewind(struct mli_IO *self)
         case MLI_IO_TYPE_FILE:
                 rewind(self->data.file.cfile);
                 break;
+        case MLI_IO_TYPE_VOID:
+                chk_warning("Expected io->type != VOID in order to rewind.");
         }
 }
 
 int64_t mli_IO_tell(struct mli_IO *self)
 {
-        int64_t rc = -1;
+        int64_t rc = EOF;
         switch (self->type) {
         case MLI_IO_TYPE_MEMORY:
                 rc = mli_IoMemory_tell(&self->data.memory);
@@ -8580,6 +8602,9 @@ int64_t mli_IO_tell(struct mli_IO *self)
         case MLI_IO_TYPE_FILE:
                 rc = mli_IoFile_tell(&self->data.file);
                 break;
+        case MLI_IO_TYPE_VOID:
+                rc = EOF;
+                chk_warning("Expected io->type != VOID in order to tell.");
         }
         return rc;
 }
@@ -8589,7 +8614,7 @@ int64_t mli_IO_seek(
         const int64_t offset,
         const int64_t origin)
 {
-        int64_t rc = -1;
+        int64_t rc = EOF;
         switch (self->type) {
         case MLI_IO_TYPE_MEMORY:
                 rc = mli_IoMemory_seek(&self->data.memory, offset, origin);
@@ -8597,11 +8622,14 @@ int64_t mli_IO_seek(
         case MLI_IO_TYPE_FILE:
                 rc = mli_IoFile_seek(&self->data.file, offset, origin);
                 break;
+        case MLI_IO_TYPE_VOID:
+                rc = EOF;
+                chk_warning("Expected io->type != VOID in order to seek.");
         }
         return rc;
 }
 
-int mli_IO_eof(const struct mli_IO *self)
+int64_t mli_IO_eof(const struct mli_IO *self)
 {
         int64_t rc = EOF;
         switch (self->type) {
@@ -8611,20 +8639,26 @@ int mli_IO_eof(const struct mli_IO *self)
         case MLI_IO_TYPE_FILE:
                 rc = mli_IoFile_eof(&self->data.file);
                 break;
+        case MLI_IO_TYPE_VOID:
+                rc = EOF;
+                chk_warning("Expected io->type != VOID in order to eof.");
         }
         return rc;
 }
 
-int mli_IO_flush(struct mli_IO *self)
+int64_t mli_IO_flush(struct mli_IO *self)
 {
-        int64_t rc = -1;
+        int64_t rc = EOF;
         switch (self->type) {
         case MLI_IO_TYPE_MEMORY:
-                rc = 1;
+                rc = 0;
                 break;
         case MLI_IO_TYPE_FILE:
                 rc = mli_IoFile_flush(&self->data.file);
                 break;
+        case MLI_IO_TYPE_VOID:
+                rc = EOF;
+                chk_warning("Expected io->type != VOID in order to flush.");
         }
         return rc;
 }
@@ -8641,14 +8675,14 @@ struct mli_IoFile mli_IoFile_init(void)
         return out;
 }
 
-int mli_IoFile_close(struct mli_IoFile *self)
+chk_rc mli_IoFile_close(struct mli_IoFile *self)
 {
-        int rc = 1;
+        chk_rc rc = CHK_SUCCESS;
         if (self->cfile != NULL) {
                 if (!mli_IoFile__cfile_is_stdin_or_stdout_stderr(self)) {
                         int fclose_rc = fclose(self->cfile);
                         if (fclose_rc == EOF) {
-                                rc = EOF;
+                                rc = CHK_FAIL;
                         }
                 }
         }
@@ -8657,7 +8691,7 @@ int mli_IoFile_close(struct mli_IoFile *self)
         return rc;
 }
 
-int mli_IoFile_open(
+chk_rc mli_IoFile_open(
         struct mli_IoFile *self,
         const struct mli_String *filename,
         const struct mli_String *mode)
@@ -8665,17 +8699,17 @@ int mli_IoFile_open(
         mli_IoFile_close(self);
         self->cfile = fopen(filename->array, mode->array);
         chk_msg(self->cfile != NULL, "Failed to open file.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_IoFile_close(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IoFile_adopt_cfile(struct mli_IoFile *self, FILE *cfile)
+chk_rc mli_IoFile_adopt_cfile(struct mli_IoFile *self, FILE *cfile)
 {
         mli_IoFile_close(self);
         self->cfile = cfile;
-        return 1;
+        return CHK_SUCCESS;
 }
 
 size_t mli_IoFile_write(
@@ -8716,22 +8750,29 @@ int64_t mli_IoFile_seek(
         return fseek(self->cfile, offset, origin);
 }
 
-int mli_IoFile_eof(const struct mli_IoFile *self) { return feof(self->cfile); }
+int64_t mli_IoFile_eof(const struct mli_IoFile *self)
+{
+        return feof(self->cfile);
+}
 
-int mli_IoFile_flush(struct mli_IoFile *self) { return fflush(self->cfile); }
+int64_t mli_IoFile_flush(struct mli_IoFile *self)
+{
+        return fflush(self->cfile);
+}
 
-int mli_IoFile__cfile_is_stdin_or_stdout_stderr(const struct mli_IoFile *self)
+mli_bool mli_IoFile__cfile_is_stdin_or_stdout_stderr(
+        const struct mli_IoFile *self)
 {
         if (self->cfile == stdin) {
-                return 1;
+                return MLI_TRUE;
         }
         if (self->cfile == stdout) {
-                return 1;
+                return MLI_TRUE;
         }
         if (self->cfile == stderr) {
-                return 1;
+                return MLI_TRUE;
         }
-        return 0;
+        return MLI_FALSE;
 }
 
 /* io_memory */
@@ -8749,15 +8790,14 @@ struct mli_IoMemory mli_IoMemory_init(void)
         return byt;
 }
 
-int mli_IoMemory_close(struct mli_IoMemory *self)
+chk_rc mli_IoMemory_close(struct mli_IoMemory *self)
 {
-        const int RC_IS_ALWAYS_1 = 1;
         free(self->cstr);
         (*self) = mli_IoMemory_init();
-        return RC_IS_ALWAYS_1;
+        return CHK_SUCCESS;
 }
 
-int mli_IoMemory__malloc_capacity(
+chk_rc mli_IoMemory__malloc_capacity(
         struct mli_IoMemory *self,
         const uint64_t capacity)
 {
@@ -8766,20 +8806,20 @@ int mli_IoMemory__malloc_capacity(
         self->size = 0u;
         chk_malloc(self->cstr, unsigned char, self->capacity + 1u);
         memset(self->cstr, '\0', self->capacity + 1u);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IoMemory__malloc(struct mli_IoMemory *self)
+chk_rc mli_IoMemory__malloc(struct mli_IoMemory *self)
 {
         chk(mli_IoMemory__malloc_capacity(self, 0u));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IoMemory__realloc_capacity(
+chk_rc mli_IoMemory__realloc_capacity(
         struct mli_IoMemory *self,
         const uint64_t new_capacity)
 {
@@ -8812,12 +8852,12 @@ int mli_IoMemory__realloc_capacity(
         self->size = tmp.size;
 
         mli_IoMemory_close(&tmp);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IoMemory_open(struct mli_IoMemory *self)
+chk_rc mli_IoMemory_open(struct mli_IoMemory *self)
 {
         if (self->cstr == NULL) {
                 chk(mli_IoMemory__malloc(self));
@@ -8828,21 +8868,21 @@ int mli_IoMemory_open(struct mli_IoMemory *self)
                 self->size = 0u;
                 memset(self->cstr, '\0', self->capacity + 1u);
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IoMemory__shrink_to_fit(struct mli_IoMemory *self)
+chk_rc mli_IoMemory__shrink_to_fit(struct mli_IoMemory *self)
 {
         chk_msg(mli_IoMemory__realloc_capacity(self, self->size),
                 "Failed to reallocate to size.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IoMemory__write_unsigned_char(
+chk_rc mli_IoMemory__write_unsigned_char(
         struct mli_IoMemory *self,
         const unsigned char *c)
 {
@@ -8869,12 +8909,12 @@ int mli_IoMemory__write_unsigned_char(
         self->size = new_size;
         self->pos += 1;
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IoMemory__read_unsigned_char(
+chk_rc mli_IoMemory__read_unsigned_char(
         struct mli_IoMemory *self,
         unsigned char *c)
 {
@@ -8961,7 +9001,7 @@ int64_t mli_IoMemory_seek(
         }
 }
 
-int mli_IoMemory_eof(const struct mli_IoMemory *self)
+int64_t mli_IoMemory_eof(const struct mli_IoMemory *self)
 {
         if (self->pos < self->size) {
                 return 0;
@@ -8970,7 +9010,7 @@ int mli_IoMemory_eof(const struct mli_IoMemory *self)
         }
 }
 
-int mli_IoMemory__write_cstr(struct mli_IoMemory *self, const char *cstr)
+chk_rc mli_IoMemory__write_cstr(struct mli_IoMemory *self, const char *cstr)
 {
         /* For testing purposes */
         size_t i = 0;
@@ -8980,9 +9020,9 @@ int mli_IoMemory__write_cstr(struct mli_IoMemory *self, const char *cstr)
                 i += 1;
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* io_text */
@@ -8990,40 +9030,43 @@ chk_error:
 
 /* Copyright 2018-2024 Sebastian Achim Mueller */
 
-int mli_IO_text_getc(struct mli_IO *self)
+int64_t mli_IO_text_getc(struct mli_IO *self)
 {
         char c = EOF;
         size_t rc = mli_IO_read((void *)(&c), sizeof(char), 1, self);
         if (rc == 0) {
                 return EOF;
         } else {
-                return (int)c;
+                return (int64_t)c;
         }
 }
 
-int mli_IO_text_putc(struct mli_IO *self, const char c)
+chk_rc mli_IO_text_putc(struct mli_IO *self, const char c)
 {
         chk_msg(mli_IO_write((void *)(&c), sizeof(char), 1, self),
                 "Can not write char to IO.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IO_text_write_cstr(struct mli_IO *self, const char *cstr)
+chk_rc mli_IO_text_write_cstr(struct mli_IO *self, const char *cstr)
 {
         struct mli_String tmp = mli_String_init();
         chk_msg(mli_String_from_cstr(&tmp, cstr),
                 "Can't malloc mli_String from cstr");
         chk(mli_IO_text_write_String(self, &tmp));
         mli_String_free(&tmp);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&tmp);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IO_text_write_cstr_format(struct mli_IO *self, const char *format, ...)
+chk_rc mli_IO_text_write_cstr_format(
+        struct mli_IO *self,
+        const char *format,
+        ...)
 {
         struct mli_String tmp = mli_String_init();
         va_list args;
@@ -9032,22 +9075,22 @@ int mli_IO_text_write_cstr_format(struct mli_IO *self, const char *format, ...)
         chk(mli_IO_text_write_String(self, &tmp));
         va_end(args);
         mli_String_free(&tmp);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         va_end(args);
         mli_String_free(&tmp);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IO_text_read_string(struct mli_IO *self, struct mli_String *str)
+chk_rc mli_IO_text_read_string(struct mli_IO *self, struct mli_String *str)
 {
         chk(mli_IO_text_read_line(self, str, '\0'));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IO_text_read_line(
+chk_rc mli_IO_text_read_line(
         struct mli_IO *self,
         struct mli_String *line,
         const char delimiter)
@@ -9071,12 +9114,14 @@ int mli_IO_text_read_line(
                 }
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IO_text_write_String(struct mli_IO *self, const struct mli_String *str)
+chk_rc mli_IO_text_write_String(
+        struct mli_IO *self,
+        const struct mli_String *str)
 {
         uint64_t i;
         for (i = 0; i < str->size; i++) {
@@ -9086,12 +9131,12 @@ int mli_IO_text_write_String(struct mli_IO *self, const struct mli_String *str)
                 }
                 chk(mli_IO_text_putc(self, c));
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IO_text_write_multi_line_debug_view_line_match(
+chk_rc mli_IO_text_write_multi_line_debug_view_line_match(
         struct mli_IO *self,
         const int64_t line_number,
         const int64_t line_number_of_interest)
@@ -9102,12 +9147,12 @@ int mli_IO_text_write_multi_line_debug_view_line_match(
         } else {
                 chk(mli_IO_text_write_cstr_format(self, "  |  "));
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_IO_text_write_multi_line_debug_view(
+chk_rc mli_IO_text_write_multi_line_debug_view(
         struct mli_IO *self,
         const struct mli_String *text,
         const uint64_t line_number,
@@ -9146,9 +9191,9 @@ int mli_IO_text_write_multi_line_debug_view(
         }
         chk(mli_IO_text_putc(self, '\n'));
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* json */
@@ -9172,19 +9217,19 @@ void mli_Json_free(struct mli_Json *json)
         (*json) = mli_Json_init();
 }
 
-int mli_Json__malloc_tokens(struct mli_Json *json)
+chk_rc mli_Json__malloc_tokens(struct mli_Json *json)
 {
         struct jsmntok_t default_token = {JSMN_UNDEFINED, 0, 0, 0};
         chk_msg(&json->raw.array != NULL, "Expected raw cstr to be malloced.");
         json->num_tokens = json->raw.size / 2;
         chk_malloc(json->tokens, struct jsmntok_t, json->num_tokens);
         MLI_MATH_ARRAY_SET(json->tokens, default_token, json->num_tokens);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json__parse_tokens(struct mli_Json *json)
+chk_rc mli_Json__parse_tokens(struct mli_Json *json)
 {
         int64_t num_tokens_parsed;
         struct jsmn_parser parser;
@@ -9207,38 +9252,38 @@ int mli_Json__parse_tokens(struct mli_Json *json)
                 "bytes expected.");
         chk_msg(num_tokens_parsed >= 0, "Can't parse Json-string");
         json->num_tokens = num_tokens_parsed;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_from_string(struct mli_Json *self, const struct mli_String *str)
+chk_rc mli_Json_from_string(struct mli_Json *self, const struct mli_String *str)
 {
         mli_Json_free(self);
         chk_msg(mli_String_copy(&self->raw, str),
                 "Failed to copy string into json->raw.");
         chk_msg(mli_Json__malloc_tokens(self), "Can't malloc Json's tokens.");
         chk_msg(mli_Json__parse_tokens(self), "Can't parse Json into tokens.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Json_free(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_from_io(struct mli_Json *self, struct mli_IO *io)
+chk_rc mli_Json_from_io(struct mli_Json *self, struct mli_IO *io)
 {
         mli_Json_free(self);
         chk_msg(mli_IO_text_read_string(io, &self->raw),
                 "Failed to read file into String.");
         chk_msg(mli_Json__malloc_tokens(self), "Can't malloc Json's tokens.");
         chk_msg(mli_Json__parse_tokens(self), "Can't parse Json into tokens.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Json_free(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_cstr_by_token(
+chk_rc mli_Json_cstr_by_token(
         const struct mli_Json *json,
         const uint64_t token,
         char *return_string,
@@ -9251,12 +9296,12 @@ int mli_Json_cstr_by_token(
                 "json-string, but it is not.");
         memcpy(return_string, json->raw.array + t.start, actual_length);
         return_string[actual_length] = '\0';
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_string_by_token(
+chk_rc mli_Json_string_by_token(
         const struct mli_Json *json,
         const uint64_t token,
         struct mli_String *return_string)
@@ -9266,12 +9311,12 @@ int mli_Json_string_by_token(
         chk(mli_String_malloc(return_string, size));
         memcpy(return_string->array, json->raw.array + t.start, size);
         return_string->size = size;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_int64_by_token(
+chk_rc mli_Json_int64_by_token(
         const struct mli_Json *json,
         const uint64_t token,
         int64_t *return_int64)
@@ -9286,12 +9331,12 @@ int mli_Json_int64_by_token(
                         10,
                         token_length),
                 "Can't parse int64.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_uint64_by_token(
+chk_rc mli_Json_uint64_by_token(
         const struct mli_Json *json,
         const uint64_t token,
         uint64_t *val)
@@ -9300,12 +9345,12 @@ int mli_Json_uint64_by_token(
         chk(mli_Json_int64_by_token(json, token, &tmp));
         chk_msg(tmp >= 0, "Expected value to be unsigned.");
         (*val) = (uint64_t)tmp;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_int64_by_key(
+chk_rc mli_Json_int64_by_key(
         const struct mli_Json *json,
         const uint64_t token,
         int64_t *val,
@@ -9316,12 +9361,12 @@ int mli_Json_int64_by_key(
         chk_msgf(
                 mli_Json_int64_by_token(json, token_n + 1, val),
                 ("Can't parse value of '%s' into int64.", key));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_uint64_by_key(
+chk_rc mli_Json_uint64_by_key(
         const struct mli_Json *json,
         const uint64_t token,
         uint64_t *val,
@@ -9331,12 +9376,12 @@ int mli_Json_uint64_by_key(
         chk(mli_Json_int64_by_key(json, token, &tmp, key));
         chk_msg(tmp >= 0, "Expected value to be unsigned.");
         (*val) = (uint64_t)tmp;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_double_by_token(
+chk_rc mli_Json_double_by_token(
         const struct mli_Json *json,
         const uint64_t token,
         double *val)
@@ -9348,12 +9393,12 @@ int mli_Json_double_by_token(
         chk_msg(mli_cstr_nto_double(
                         val, (char *)&json->raw.array[t.start], token_length),
                 "Can't parse double.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_double_by_key(
+chk_rc mli_Json_double_by_key(
         const struct mli_Json *json,
         const uint64_t token,
         double *val,
@@ -9365,12 +9410,12 @@ int mli_Json_double_by_key(
                 mli_Json_double_by_token(json, token_n + 1, val),
                 ("Can't parse value of '%s' into double.", key));
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_cstrcmp(
+mli_bool mli_Json_cstrcmp(
         const struct mli_Json *json,
         const uint64_t token,
         const char *str)
@@ -9381,25 +9426,25 @@ int mli_Json_cstrcmp(
         const uint64_t str_length = strlen(str);
 
         if (token_length != str_length) {
-                return 0;
+                return MLI_FALSE;
         }
         for (i = 0; i < token_length; i++) {
                 const char token_char = (char)json->raw.array[t.start + i];
                 const char str_char = str[i];
                 if (token_char != str_char) {
-                        return 0;
+                        return MLI_FALSE;
                 }
         }
-        return 1;
+        return MLI_TRUE;
 }
 
-int mli_Json_token_by_key(
+chk_rc mli_Json_token_by_key(
         const struct mli_Json *json,
         const uint64_t token,
         const char *key,
         uint64_t *key_token)
 {
-        int64_t found = 0;
+        int64_t num_found = 0;
         int64_t child = 0;
         int64_t subchild_balance = 0;
         int64_t idx = token + 1;
@@ -9407,7 +9452,7 @@ int mli_Json_token_by_key(
         while (child < json->tokens[token].size) {
                 if (mli_Json_cstrcmp(json, idx, key)) {
                         (*key_token) = idx;
-                        found += 1;
+                        num_found += 1;
                 }
                 subchild_balance += json->tokens[idx].size;
                 while (subchild_balance > 0) {
@@ -9418,10 +9463,14 @@ int mli_Json_token_by_key(
                 idx += 1;
                 child += 1;
         }
-        return found;
+        if (num_found > 0) {
+                return CHK_SUCCESS;
+        } else {
+                return CHK_FAIL;
+        }
 }
 
-int mli_Json_token_by_key_eprint(
+chk_rc mli_Json_token_by_key_eprint(
         const struct mli_Json *json,
         const uint64_t token,
         const char *key,
@@ -9430,9 +9479,9 @@ int mli_Json_token_by_key_eprint(
         chk_msgf(
                 mli_Json_token_by_key(json, token, key, key_token),
                 ("Expected key '%s' in json.", key));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 uint64_t mli_Json__token_by_index_unsafe(
@@ -9457,7 +9506,7 @@ uint64_t mli_Json__token_by_index_unsafe(
         return idx;
 }
 
-int mli_Json_token_by_idx(
+chk_rc mli_Json_token_by_idx(
         const struct mli_Json *json,
         const uint64_t token,
         const uint64_t idx,
@@ -9469,12 +9518,12 @@ int mli_Json_token_by_idx(
                  token,
                  json->tokens[token].size));
         (*idx_token) = mli_Json__token_by_index_unsafe(json, token, idx);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_debug_token_fprint(
+chk_rc mli_Json_debug_token_fprint(
         FILE *f,
         const struct mli_Json *self,
         const uint64_t token)
@@ -9482,12 +9531,12 @@ int mli_Json_debug_token_fprint(
         struct mli_IO io = mli_IO_init();
         mli_IO_adopt_file(&io, f);
         chk(mli_Json_debug_token_to_io(self, token, &io));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_debug_token_to_io(
+chk_rc mli_Json_debug_token_to_io(
         const struct mli_Json *self,
         const uint64_t token,
         struct mli_IO *io)
@@ -9510,21 +9559,21 @@ int mli_Json_debug_token_to_io(
                 chk(mli_IO_text_putc(io, self->raw.array[t.start + i]));
         }
         chk(mli_IO_text_putc(io, '\n'));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Json_debug_to_io(const struct mli_Json *self, struct mli_IO *io)
+chk_rc mli_Json_debug_to_io(const struct mli_Json *self, struct mli_IO *io)
 {
         uint64_t i;
         for (i = 0; i < self->num_tokens; i++) {
                 chk_msg(mli_Json_debug_token_to_io(self, i, io),
                         "Failed to write json-token debug-info to io.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* json_jsmn */
@@ -9947,12 +9996,12 @@ struct mli_JsonWalk mli_JsonWalk_copy(const struct mli_JsonWalk *self)
         return out;
 }
 
-int mli_JsonWalk__type(const struct mli_JsonWalk *self)
+enum jsmntype_t mli_JsonWalk__type(const struct mli_JsonWalk *self)
 {
         return self->json->tokens[self->token].type;
 }
 
-int mli_JsonWalk_to_key(struct mli_JsonWalk *self, const char *key)
+chk_rc mli_JsonWalk_to_key(struct mli_JsonWalk *self, const char *key)
 {
         uint64_t key_token;
         chk_msg(mli_JsonWalk__type(self) == JSMN_OBJECT,
@@ -9961,12 +10010,12 @@ int mli_JsonWalk_to_key(struct mli_JsonWalk *self, const char *key)
                 mli_Json_token_by_key(self->json, self->token, key, &key_token),
                 ("No key '%s'", key));
         self->token = key_token + 1;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_JsonWalk_to_idx(struct mli_JsonWalk *self, const uint64_t idx)
+chk_rc mli_JsonWalk_to_idx(struct mli_JsonWalk *self, const uint64_t idx)
 {
         uint64_t idx_token;
         chk_msg(mli_JsonWalk__type(self) == JSMN_ARRAY,
@@ -9975,36 +10024,38 @@ int mli_JsonWalk_to_idx(struct mli_JsonWalk *self, const uint64_t idx)
                 mli_Json_token_by_idx(self->json, self->token, idx, &idx_token),
                 ("No index '%lu'", idx));
         self->token = idx_token;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_JsonWalk_to_root(struct mli_JsonWalk *self) { self->token = 0; }
 
-int mli_JsonWalk_get_array_size(const struct mli_JsonWalk *self, uint64_t *size)
+chk_rc mli_JsonWalk_get_array_size(
+        const struct mli_JsonWalk *self,
+        uint64_t *size)
 {
         chk_msg(mli_JsonWalk__type(self) == JSMN_ARRAY,
                 "Can only get size of json-array.");
         (*size) = self->json->tokens[self->token].size;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_JsonWalk_get_string(
+chk_rc mli_JsonWalk_get_string(
         const struct mli_JsonWalk *self,
         struct mli_String *val)
 {
         return mli_Json_string_by_token(self->json, self->token, val);
 }
 
-int mli_JsonWalk_get_int64(const struct mli_JsonWalk *self, int64_t *val)
+chk_rc mli_JsonWalk_get_int64(const struct mli_JsonWalk *self, int64_t *val)
 {
         return mli_Json_int64_by_token(self->json, self->token, val);
 }
 
-int mli_JsonWalk_get_double(const struct mli_JsonWalk *self, double *val)
+chk_rc mli_JsonWalk_get_double(const struct mli_JsonWalk *self, double *val)
 {
         return mli_Json_double_by_token(self->json, self->token, val);
 }
@@ -10058,7 +10109,7 @@ struct mli_MagicId mli_MagicId_init(void)
         return magic;
 }
 
-int mli_MagicId_set(struct mli_MagicId *magic, const char *word)
+chk_rc mli_MagicId_set(struct mli_MagicId *magic, const char *word)
 {
         uint64_t i, len;
         (*magic) = mli_MagicId_init();
@@ -10074,12 +10125,12 @@ int mli_MagicId_set(struct mli_MagicId *magic, const char *word)
                 magic->word[i] = '\0';
                 i += 1;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_MagicId_has_word(const struct mli_MagicId *magic, const char *word)
+chk_rc mli_MagicId_has_word(const struct mli_MagicId *magic, const char *word)
 {
         uint64_t i, len;
         chk_msg(strlen(word) < sizeof(magic->word),
@@ -10089,18 +10140,18 @@ int mli_MagicId_has_word(const struct mli_MagicId *magic, const char *word)
 
         for (i = 0; i < len; i++) {
                 if (magic->word[i] != word[i]) {
-                        return 0;
+                        return CHK_FAIL;
                 }
         }
         while (i < sizeof(magic->word)) {
                 if (magic->word[i] != '\0') {
-                        return 0;
+                        return CHK_FAIL;
                 }
                 i += 1;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_MagicId_warn_version(const struct mli_MagicId *magic)
@@ -10144,18 +10195,18 @@ void mli_Map_free(struct mli_Map *map)
         mli_MapItemVector_free(&map->items);
 }
 
-int mli_Map_malloc(struct mli_Map *map)
+chk_rc mli_Map_malloc(struct mli_Map *map)
 {
         chk_msg(mli_MapItemVector_malloc(&map->items, 0u),
                 "Failed to malloc map items.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 uint64_t mli_Map_size(const struct mli_Map *map) { return map->items.size; }
 
-int mli_Map_find(
+chk_rc mli_Map_find(
         const struct mli_Map *map,
         const struct mli_String *key,
         uint64_t *idx)
@@ -10165,19 +10216,23 @@ int mli_Map_find(
                 struct mliMapItem *item = &map->items.array[i];
                 if (mli_String_compare(&item->key, key) == 0) {
                         (*idx) = i;
-                        return 1;
+                        return CHK_SUCCESS;
                 }
         }
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Map_has(const struct mli_Map *map, const struct mli_String *key)
+mli_bool mli_Map_has(const struct mli_Map *map, const struct mli_String *key)
 {
         uint64_t idx;
-        return mli_Map_find(map, key, &idx);
+        if (mli_Map_find(map, key, &idx) == CHK_SUCCESS) {
+                return MLI_TRUE;
+        } else {
+                return MLI_FALSE;
+        }
 }
 
-int mli_Map_insert(
+chk_rc mli_Map_insert(
         struct mli_Map *map,
         const struct mli_String *key,
         uint64_t value)
@@ -10193,12 +10248,12 @@ int mli_Map_insert(
                 "Failed to malloc map item key.") item.value = value;
         chk_msg(mli_MapItemVector_push_back(&map->items, item),
                 "Failed to mmaloc item.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Map_get(
+chk_rc mli_Map_get(
         const struct mli_Map *map,
         const struct mli_String *key,
         uint64_t *value)
@@ -10208,9 +10263,9 @@ int mli_Map_get(
         chk_msg(mli_Map_find(map, key, &idx), "Key does not exist.");
         item = &map->items.array[idx];
         (*value) = item->value;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* map_json */
@@ -10218,7 +10273,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Map_insert_key_from_json(
+chk_rc mli_Map_insert_key_from_json(
         struct mli_Map *map,
         const struct mli_Json *json,
         const uint64_t token,
@@ -10238,14 +10293,14 @@ int mli_Map_insert_key_from_json(
         chk_msg(mli_Map_insert(map, &buff, value),
                 "Failed to insert name and value into map.");
         mli_String_free(&buff);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&buff);
         mli_Json_debug_token_fprint(stderr, json, token);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Map_get_value_for_string_from_json(
+chk_rc mli_Map_get_value_for_string_from_json(
         const struct mli_Map *map,
         const struct mli_Json *json,
         const uint64_t token,
@@ -10268,11 +10323,11 @@ int mli_Map_get_value_for_string_from_json(
         (*out_value) = (uint32_t)value;
 
         mli_String_free(&buff);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&buff);
         mli_Json_debug_token_fprint(stderr, json, token);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* mat */
@@ -10411,7 +10466,7 @@ struct mli_Mat mli_Mat_unity(void)
         return u;
 }
 
-int mli_Mat_equal_margin(
+mli_bool mli_Mat_equal_margin(
         const struct mli_Mat a,
         const struct mli_Mat b,
         const double margin)
@@ -10422,11 +10477,11 @@ int mli_Mat_equal_margin(
                         const double diff = fabs(
                                 mli_Mat_get(&a, i, j) - mli_Mat_get(&b, i, j));
                         if (diff > margin) {
-                                return 0;
+                                return MLI_FALSE;
                         }
                 }
         }
-        return 1;
+        return MLI_TRUE;
 }
 
 struct mli_Mat mli_Mat_init_tait_bryan(
@@ -10708,15 +10763,15 @@ void mli_Mat_qr_decompose(
         (*q) = mli_Mat_transpose(*q);
 }
 
-int mli_Mat_has_shurform(const struct mli_Mat m, const double margin)
+mli_bool mli_Mat_has_shurform(const struct mli_Mat m, const double margin)
 {
         if (fabs(m.r10) > margin)
-                return 0;
+                return MLI_FALSE;
         if (fabs(m.r20) > margin)
-                return 0;
+                return MLI_FALSE;
         if (fabs(m.r21) > margin)
-                return 0;
-        return 1;
+                return MLI_FALSE;
+        return MLI_TRUE;
 }
 
 void mli_Mat_find_eigenvalues(
@@ -10747,7 +10802,7 @@ void mli_Mat_find_eigenvalues(
         (*e2) = ak.r22;
 }
 
-int mli_Mat_find_eigenvector_for_eigenvalue(
+chk_rc mli_Mat_find_eigenvector_for_eigenvalue(
         struct mli_Mat A,
         const double eigen_value,
         struct mli_Vec *eigen_vector,
@@ -10767,12 +10822,12 @@ int mli_Mat_find_eigenvector_for_eigenvalue(
         mli_Mat_lup_solve(&A, pivots, &right_hand_side, eigen_vector);
         (*eigen_vector) = mli_Vec_normalized(*eigen_vector);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Mat_lup_decompose(struct mli_Mat *A, int *P, const double tolerance)
+chk_rc mli_Mat_lup_decompose(struct mli_Mat *A, int *P, const double tolerance)
 {
         /*
         Parameters
@@ -10818,7 +10873,7 @@ int mli_Mat_lup_decompose(struct mli_Mat *A, int *P, const double tolerance)
                 }
 
                 if (maxA < tolerance) {
-                        return 0; /* failure, matrix is degenerate */
+                        return CHK_FAIL; /* failure, matrix is degenerate */
                 }
 
                 if (imax != i) {
@@ -10860,7 +10915,7 @@ int mli_Mat_lup_decompose(struct mli_Mat *A, int *P, const double tolerance)
                 }
         }
 
-        return 1; /* decomposition done */
+        return CHK_SUCCESS; /* decomposition done */
 }
 
 void mli_Mat_lup_solve(
@@ -10958,7 +11013,7 @@ void mli_Materials_free(struct mli_Materials *self)
         (*self) = mli_Materials_init();
 }
 
-int mli_Materials_malloc(
+chk_rc mli_Materials_malloc(
         struct mli_Materials *self,
         const struct mli_MaterialsCapacity rescap)
 {
@@ -10986,13 +11041,13 @@ int mli_Materials_malloc(
                 self->boundary_layers.array[i] = mli_BoundaryLayer_init();
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Materials_free(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Materials_info_fprint(FILE *f, const struct mli_Materials *self)
+chk_rc mli_Materials_info_fprint(FILE *f, const struct mli_Materials *self)
 {
         uint32_t i = 0;
         struct mli_String tmp = mli_String_init();
@@ -11100,13 +11155,13 @@ int mli_Materials_info_fprint(FILE *f, const struct mli_Materials *self)
         }
 
         mli_String_free(&tmp);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&tmp);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Materials__has_surface_name_cstr(
+mli_bool mli_Materials__has_surface_name_cstr(
         const struct mli_Materials *self,
         const char *name)
 {
@@ -11114,23 +11169,23 @@ int mli_Materials__has_surface_name_cstr(
         for (i = 0; i < self->surfaces.size; i++) {
                 if (mli_String_equal_cstr(
                             &self->surfaces.array[i].name, name)) {
-                        return 1;
+                        return MLI_TRUE;
                 }
         }
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_Materials__has_medium_name_cstr(
+mli_bool mli_Materials__has_medium_name_cstr(
         const struct mli_Materials *self,
         const char *name)
 {
         uint64_t i;
         for (i = 0; i < self->media.size; i++) {
                 if (mli_String_equal_cstr(&self->media.array[i].name, name)) {
-                        return 1;
+                        return MLI_TRUE;
                 }
         }
-        return 0;
+        return MLI_FALSE;
 }
 
 /* materials_equal */
@@ -11138,7 +11193,7 @@ int mli_Materials__has_medium_name_cstr(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Materials_media_equal(
+mli_bool mli_Materials_media_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b)
 {
@@ -11149,13 +11204,13 @@ int mli_Materials_media_equal(
                                 &a->media.array[i], &b->media.array[i]),
                         "Medium is different.");
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
         fprintf(stderr, "In materials.media[%lu].\n", i);
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_Materials_surfaces_equal(
+mli_bool mli_Materials_surfaces_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b)
 {
@@ -11167,13 +11222,13 @@ int mli_Materials_surfaces_equal(
                                 &a->surfaces.array[i], &b->surfaces.array[i]),
                         "Surface is different.");
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
         fprintf(stderr, "In materials.surfaces[%lu].\n", i);
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_Materials_boundary_layers_equal(
+mli_bool mli_Materials_boundary_layers_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b)
 {
@@ -11186,13 +11241,13 @@ int mli_Materials_boundary_layers_equal(
                                 &b->boundary_layers.array[i]),
                         "Boundary layer is different.");
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
         fprintf(stderr, "In materials.boundary_layers[%lu].\n", i);
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_Materials_spectra_equal(
+mli_bool mli_Materials_spectra_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b)
 {
@@ -11204,23 +11259,23 @@ int mli_Materials_spectra_equal(
                                 &a->spectra.array[i], &b->spectra.array[i]),
                         "Spectrum is not equal.");
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_Materials_default_medium_equal(
+mli_bool mli_Materials_default_medium_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b)
 {
         chk_msg(a->default_medium == b->default_medium,
                 "Different default_medium.");
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_Materials_equal(
+mli_bool mli_Materials_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b)
 {
@@ -11229,9 +11284,9 @@ int mli_Materials_equal(
         chk(mli_Materials_surfaces_equal(a, b));
         chk(mli_Materials_boundary_layers_equal(a, b));
         chk(mli_Materials_default_medium_equal(a, b));
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        return 0;
+        return MLI_FALSE;
 }
 
 /* materials_from_archive */
@@ -11239,7 +11294,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Materials__key_from_filename(
+chk_rc mli_Materials__key_from_filename(
         struct mli_String *key,
         const struct mli_String *filename)
 {
@@ -11249,12 +11304,12 @@ int mli_Materials__key_from_filename(
         chk(mli_path_splitext(&basename, key, &extension));
         mli_String_free(&extension);
         mli_String_free(&basename);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Materials_from_Archive__set_spectra(
+chk_rc mli_Materials_from_Archive__set_spectra(
         struct mli_Materials *materials,
         struct mli_materials_Names *names,
         const struct mli_Archive *archive)
@@ -11310,12 +11365,12 @@ int mli_Materials_from_Archive__set_spectra(
 
         mli_String_free(&key);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Materials_from_Archive__set_media(
+chk_rc mli_Materials_from_Archive__set_media(
         struct mli_Materials *materials,
         struct mli_materials_Names *names,
         const struct mli_Archive *archive)
@@ -11361,12 +11416,12 @@ int mli_Materials_from_Archive__set_media(
 
         mli_String_free(&key);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Materials_from_Archive__set_surfaces(
+chk_rc mli_Materials_from_Archive__set_surfaces(
         struct mli_Materials *materials,
         struct mli_materials_Names *names,
         const struct mli_Archive *archive)
@@ -11412,12 +11467,12 @@ int mli_Materials_from_Archive__set_surfaces(
 
         mli_String_free(&key);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_BoundaryLayer_from_json_string_and_name(
+chk_rc mli_BoundaryLayer_from_json_string_and_name(
         struct mli_BoundaryLayer *self,
         const struct mli_Map *surface_names,
         const struct mli_Map *media_names,
@@ -11471,12 +11526,12 @@ int mli_BoundaryLayer_from_json_string_and_name(
 
         mli_Json_free(&json);
         mli_String_free(&key);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Materials_from_Archive__set_boundary_layers(
+chk_rc mli_Materials_from_Archive__set_boundary_layers(
         struct mli_Materials *materials,
         struct mli_materials_Names *names,
         const struct mli_Archive *archive)
@@ -11526,12 +11581,12 @@ int mli_Materials_from_Archive__set_boundary_layers(
 
         mli_String_free(&key);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Materials_from_Archive__set_default_medium(
+chk_rc mli_Materials_from_Archive__set_default_medium(
         struct mli_Materials *materials,
         struct mli_materials_Names *names,
         const struct mli_Archive *archive)
@@ -11552,12 +11607,12 @@ int mli_Materials_from_Archive__set_default_medium(
         mli_String_free(&filename);
         mli_String_free(&key);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Materials_from_Archive(
+chk_rc mli_Materials_from_Archive(
         struct mli_Materials *materials,
         struct mli_materials_Names *names,
         const struct mli_Archive *archive)
@@ -11601,11 +11656,11 @@ int mli_Materials_from_Archive(
                         materials, names, archive),
                 "Can't set default_medium from archive.");
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Materials_free(materials);
         mli_materials_Names_free(names);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* materials_names */
@@ -11623,16 +11678,16 @@ struct mli_materials_Names mli_materials_Names_init(void)
         return nm;
 }
 
-int mli_materials_Names_malloc(struct mli_materials_Names *namemap)
+chk_rc mli_materials_Names_malloc(struct mli_materials_Names *namemap)
 {
         mli_materials_Names_free(namemap);
         chk_mem(mli_Map_malloc(&namemap->spectra));
         chk_mem(mli_Map_malloc(&namemap->media));
         chk_mem(mli_Map_malloc(&namemap->surfaces));
         chk_mem(mli_Map_malloc(&namemap->boundary_layers));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_materials_Names_free(struct mli_materials_Names *namemap)
@@ -11648,7 +11703,7 @@ void mli_materials_Names_free(struct mli_materials_Names *namemap)
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Materials_to_io(const struct mli_Materials *self, struct mli_IO *f)
+chk_rc mli_Materials_to_io(const struct mli_Materials *self, struct mli_IO *f)
 {
         uint64_t i;
         struct mli_MagicId magic = mli_MagicId_init();
@@ -11676,12 +11731,12 @@ int mli_Materials_to_io(const struct mli_Materials *self, struct mli_IO *f)
 
         chk_IO_write(&self->default_medium, sizeof(uint64_t), 1, f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Materials_from_io(struct mli_Materials *self, struct mli_IO *f)
+chk_rc mli_Materials_from_io(struct mli_Materials *self, struct mli_IO *f)
 {
         uint64_t i;
         struct mli_MagicId magic;
@@ -11713,9 +11768,9 @@ int mli_Materials_from_io(struct mli_Materials *self, struct mli_IO *f)
         }
         chk_IO_read(&self->default_medium, sizeof(uint64_t), 1, f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* materials_valid */
@@ -11723,7 +11778,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Materials_valid_media(const struct mli_Materials *self)
+mli_bool mli_Materials_valid_media(const struct mli_Materials *self)
 {
         uint64_t i = 0u;
         for (i = 0; i < self->media.size; i++) {
@@ -11731,26 +11786,26 @@ int mli_Materials_valid_media(const struct mli_Materials *self)
                                 &self->media.array[i], self),
                         "Medium is not valid.");
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        fprintf(stderr, "In materials.media[%lu]\n", i);
-        return 0;
+        chk_eprintf("In materials.media[%lu]\n", i);
+        return MLI_FALSE;
 }
 
-int mli_Materials_valid_spectra(const struct mli_Materials *self)
+mli_bool mli_Materials_valid_spectra(const struct mli_Materials *self)
 {
         uint64_t i = 0u;
         for (i = 0; i < self->spectra.size; i++) {
                 chk_msg(mli_Func_is_valid(&self->spectra.array[i].spectrum),
                         "Expected spectrum function to be valid.");
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        fprintf(stderr, "In materials.spectra[%lu]\n", i);
-        return 0;
+        chk_eprintf("In materials.spectra[%lu]\n", i);
+        return MLI_FALSE;
 }
 
-int mli_Materials_valid_surfaces(const struct mli_Materials *self)
+mli_bool mli_Materials_valid_surfaces(const struct mli_Materials *self)
 {
         uint64_t i = 0u;
         for (i = 0; i < self->surfaces.size; i++) {
@@ -11758,13 +11813,13 @@ int mli_Materials_valid_surfaces(const struct mli_Materials *self)
                                 &self->surfaces.array[i], self),
                         "Surface is not valid.");
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        fprintf(stderr, "In materials.surface[%lu]\n", i);
-        return 0;
+        chk_eprintf("In materials.surface[%lu]\n", i);
+        return MLI_FALSE;
 }
 
-int mli_Materials_valid_boundary_layers(const struct mli_Materials *self)
+mli_bool mli_Materials_valid_boundary_layers(const struct mli_Materials *self)
 {
         uint64_t i = 0u;
         for (i = 0; i < self->boundary_layers.size; i++) {
@@ -11782,13 +11837,13 @@ int mli_Materials_valid_boundary_layers(const struct mli_Materials *self)
                 chk_msg(mli_String_valid(&layer->name, 1),
                         "boundary_layer.name is invalid.");
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        fprintf(stderr, "In materials.boundary_layers[%lu]\n", i);
-        return 0;
+        chk_eprintf("In materials.boundary_layers[%lu]\n", i);
+        return MLI_FALSE;
 }
 
-int mli_Materials_valid(const struct mli_Materials *self)
+mli_bool mli_Materials_valid(const struct mli_Materials *self)
 {
         chk_msg(self->default_medium <= self->media.size,
                 "Expected default-medium to reference a valid medium.");
@@ -11796,9 +11851,9 @@ int mli_Materials_valid(const struct mli_Materials *self)
         chk(mli_Materials_valid_media(self));
         chk(mli_Materials_valid_surfaces(self));
         chk(mli_Materials_valid_boundary_layers(self));
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        return 0;
+        return MLI_FALSE;
 }
 
 /* math */
@@ -11965,7 +12020,7 @@ int64_t mli_math_interpret_double_as_int64(double d)
 
 /* Copyright 2019 Sebastian A. Mueller */
 
-int mli_math_quadratic_equation(
+chk_rc mli_math_quadratic_equation(
         const double p,
         const double q,
         double *minus_solution,
@@ -11985,9 +12040,9 @@ int mli_math_quadratic_equation(
                 squareroot = sqrt(inner_part_of_squareroot);
                 (*minus_solution) = -p_over_2 - squareroot;
                 (*plus_solution) = -p_over_2 + squareroot;
-                return 1;
+                return CHK_SUCCESS;
         } else {
-                return 0;
+                return CHK_FAIL;
         }
 }
 
@@ -12011,7 +12066,7 @@ void mli_Medium_free(struct mli_Medium *self)
         (*self) = mli_Medium_init();
 }
 
-int mli_Medium_valid_wrt_materials(
+mli_bool mli_Medium_valid_wrt_materials(
         const struct mli_Medium *self,
         const struct mli_Materials *materials)
 {
@@ -12022,12 +12077,14 @@ int mli_Medium_valid_wrt_materials(
         chk_msg(self->absorption_spectrum < materials->spectra.size,
                 "absorption_spectrum index is not in materials.");
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Medium_equal(const struct mli_Medium *a, const struct mli_Medium *b)
+mli_bool mli_Medium_equal(
+        const struct mli_Medium *a,
+        const struct mli_Medium *b)
 {
         chk_msg(mli_String_equal(&a->name, &b->name),
                 "Different names of medium models.");
@@ -12036,12 +12093,12 @@ int mli_Medium_equal(const struct mli_Medium *a, const struct mli_Medium *b)
         chk_msg(a->absorption_spectrum == b->absorption_spectrum,
                 "Different absorption_spectrum.");
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Medium_to_io(const struct mli_Medium *self, struct mli_IO *f)
+chk_rc mli_Medium_to_io(const struct mli_Medium *self, struct mli_IO *f)
 {
         struct mli_MagicId magic = mli_MagicId_init();
         chk(mli_MagicId_set(&magic, "mli_Medium"));
@@ -12052,12 +12109,12 @@ int mli_Medium_to_io(const struct mli_Medium *self, struct mli_IO *f)
         chk_IO_write(&self->refraction_spectrum, sizeof(int64_t), 1u, f);
         chk_IO_write(&self->absorption_spectrum, sizeof(int64_t), 1u, f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Medium_from_io(struct mli_Medium *self, struct mli_IO *f)
+chk_rc mli_Medium_from_io(struct mli_Medium *self, struct mli_IO *f)
 {
         struct mli_MagicId magic;
         chk_IO_read(&magic, sizeof(struct mli_MagicId), 1u, f);
@@ -12069,12 +12126,12 @@ int mli_Medium_from_io(struct mli_Medium *self, struct mli_IO *f)
         chk_IO_read(&self->refraction_spectrum, sizeof(int64_t), 1u, f);
         chk_IO_read(&self->absorption_spectrum, sizeof(int64_t), 1u, f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Medium_from_json_string_and_name(
+chk_rc mli_Medium_from_json_string_and_name(
         struct mli_Medium *self,
         const struct mli_Map *spectra_names,
         const struct mli_String *json_string,
@@ -12109,9 +12166,9 @@ int mli_Medium_from_json_string_and_name(
 
         mli_String_free(&key);
         mli_Json_free(&json);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* medium_array */
@@ -12163,7 +12220,7 @@ void mli_Object_free(struct mli_Object *obj)
         *obj = mli_Object_init();
 }
 
-int mli_Object_malloc(
+chk_rc mli_Object_malloc(
         struct mli_Object *obj,
         const uint64_t num_vertices,
         const uint64_t num_vertex_normals,
@@ -12198,12 +12255,14 @@ int mli_Object_malloc(
         for (i = 0; i < obj->num_materials; i++) {
                 obj->material_names[i] = mli_String_init();
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Object_equal(const struct mli_Object *a, const struct mli_Object *b)
+mli_bool mli_Object_equal(
+        const struct mli_Object *a,
+        const struct mli_Object *b)
 {
         uint64_t i;
         chk(a->num_vertices == b->num_vertices);
@@ -12229,9 +12288,9 @@ int mli_Object_equal(const struct mli_Object *a, const struct mli_Object *b)
                 chk(mli_String_equal(
                         &a->material_names[i], &b->material_names[i]));
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 uint32_t mli_Object_resolve_material_idx(
@@ -12247,14 +12306,14 @@ uint32_t mli_Object_resolve_material_idx(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Object_face_in_local_frame_has_overlap_aabb(
+mli_bool mli_Object_face_in_local_frame_has_overlap_aabb(
         const struct mli_Object *obj,
         const uint64_t face_idx,
         const struct mli_AABB aabb)
 {
         struct mli_object_Face face;
         if (face_idx >= obj->num_faces) {
-                return 0;
+                return MLI_FALSE;
         }
         face = obj->faces_vertices[face_idx];
         if (mli_Triangle_has_overlap_aabb(
@@ -12262,12 +12321,12 @@ int mli_Object_face_in_local_frame_has_overlap_aabb(
                     obj->vertices[face.b],
                     obj->vertices[face.c],
                     aabb)) {
-                return 1;
+                return MLI_TRUE;
         }
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_Object_has_overlap_aabb(
+mli_bool mli_Object_has_overlap_aabb(
         const struct mli_Object *obj,
         const struct mli_HomTra local2root,
         const struct mli_AABB aabb)
@@ -12290,13 +12349,13 @@ int mli_Object_has_overlap_aabb(
 
                 if (mli_Triangle_has_overlap_aabb(
                             a_root, b_root, c_root, aabb)) {
-                        return 1;
+                        return MLI_TRUE;
                 }
         }
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_Object_face_in_local_frame_has_overlap_aabb_void(
+mli_bool mli_Object_face_in_local_frame_has_overlap_aabb_void(
         const void *obj,
         const uint32_t face_idx,
         const struct mli_AABB aabb)
@@ -12394,17 +12453,17 @@ struct mli_object_Face mli_object_Face_set(
         return face;
 }
 
-int mli_object_Face_equal(
+mli_bool mli_object_Face_equal(
         const struct mli_object_Face a,
         const struct mli_object_Face b)
 {
         if (a.a != b.a)
-                return 0;
+                return MLI_FALSE;
         if (a.b != b.b)
-                return 0;
+                return MLI_FALSE;
         if (a.c != b.c)
-                return 0;
-        return 1;
+                return MLI_FALSE;
+        return MLI_TRUE;
 }
 
 /* object_face_vector */
@@ -12418,7 +12477,7 @@ MLI_VECTOR_IMPLEMENTATION(mli_object_FaceVector, struct mli_object_Face)
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Object_to_io(const struct mli_Object *obj, struct mli_IO *f)
+chk_rc mli_Object_to_io(const struct mli_Object *obj, struct mli_IO *f)
 {
         uint64_t i;
         struct mli_MagicId magic;
@@ -12455,12 +12514,12 @@ int mli_Object_to_io(const struct mli_Object *obj, struct mli_IO *f)
                 chk(mli_String_to_io(&obj->material_names[i], f));
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Object_from_io(struct mli_Object *obj, struct mli_IO *f)
+chk_rc mli_Object_from_io(struct mli_Object *obj, struct mli_IO *f)
 {
         uint64_t i;
         uint32_t num_vertices;
@@ -12510,10 +12569,10 @@ int mli_Object_from_io(struct mli_Object *obj, struct mli_IO *f)
 
         chk_msg(mli_Object_has_valid_faces(obj),
                 "A face refers to a not existing vertex/vertex_normal.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Object_free(obj);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* object_valid */
@@ -12521,19 +12580,19 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Object_is_valid(const struct mli_Object *obj)
+mli_bool mli_Object_is_valid(const struct mli_Object *obj)
 {
         chk_msg(mli_Object_has_valid_vertices(obj), "Bad vertex.");
         chk_msg(mli_Object_has_valid_faces(obj), "Expected faces to be valid.");
         chk_msg(mli_Object_has_valid_normals(obj, MLI_MATH_EPSILON),
                 "Bad vertex-normal.");
         chk_msg(mli_Object_has_valid_materials(obj), "Bad material.");
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_Object_has_valid_faces(const struct mli_Object *obj)
+mli_bool mli_Object_has_valid_faces(const struct mli_Object *obj)
 {
         uint32_t i = 0;
         for (i = 0; i < obj->num_faces; i++) {
@@ -12560,13 +12619,13 @@ int mli_Object_has_valid_faces(const struct mli_Object *obj)
                         "Expected faces_materials < "
                         "num_materials");
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        fprintf(stderr, "In obj.faces[%u]\n", i);
-        return 0;
+        chk_eprintf("In obj.faces[%u]\n", i);
+        return MLI_FALSE;
 }
 
-int mli_Object_has_valid_vertices(const struct mli_Object *obj)
+mli_bool mli_Object_has_valid_vertices(const struct mli_Object *obj)
 {
         uint32_t i = 0;
         for (i = 0; i < obj->num_vertices; i++) {
@@ -12574,13 +12633,13 @@ int mli_Object_has_valid_vertices(const struct mli_Object *obj)
                 chk_msg(!MLI_MATH_IS_NAN(obj->vertices[i].y), "Y is 'nan'.");
                 chk_msg(!MLI_MATH_IS_NAN(obj->vertices[i].z), "Z is 'nan'.");
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        fprintf(stderr, "In obj.vertices[%u]\n", i);
-        return 0;
+        chk_eprintf("In obj.vertices[%u]\n", i);
+        return MLI_FALSE;
 }
 
-int mli_Object_has_valid_normals(
+mli_bool mli_Object_has_valid_normals(
         const struct mli_Object *obj,
         const double epsilon)
 {
@@ -12598,25 +12657,25 @@ int mli_Object_has_valid_normals(
                 chk_msg(fabs(norm - 1.0) <= epsilon,
                         "Expected vertex_normals to be normalized.");
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        fprintf(stderr, "In obj.vertex_normals[%u]\n", i);
-        return 0;
+        chk_eprintf("In obj.vertex_normals[%u]\n", i);
+        return MLI_FALSE;
 }
 
-int mli_Object_has_valid_materials(const struct mli_Object *obj)
+mli_bool mli_Object_has_valid_materials(const struct mli_Object *obj)
 {
         uint32_t i = 0;
         for (i = 0; i < obj->num_materials; i++) {
                 chk(mli_String_valid(&obj->material_names[i], 1));
         }
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        fprintf(stderr, "In obj.material_names[%u]\n", i);
-        return 0;
+        chk_eprintf("In obj.material_names[%u]\n", i);
+        return MLI_FALSE;
 }
 
-int mli_Object_num_unused(
+chk_rc mli_Object_num_unused(
         const struct mli_Object *obj,
         uint32_t *num_unused_vertices,
         uint32_t *num_unused_vertex_normals,
@@ -12673,9 +12732,12 @@ int mli_Object_num_unused(
         free(v);
         free(vn);
         free(mtl);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        free(v);
+        free(vn);
+        free(mtl);
+        return CHK_FAIL;
 }
 
 /* object_wavefront */
@@ -12687,9 +12749,7 @@ chk_error:
 #define MLI_WAVEFRONT_FACE_LINE_V_VN 37
 #define MLI_WAVEFRONT_FACE_LINE_V_VT_VN 25
 
-#define MLI_WAVEFRONT_LINE_BUFF_LENGTH 64
-
-int mli_Object_is_face_line_toggle(const int state)
+mli_bool mli_Object_is_face_line_toggle(const int state)
 {
         switch (state) {
         case 3:
@@ -12710,23 +12770,13 @@ int mli_Object_is_face_line_toggle(const int state)
         case 21:
         case 23:
         case 25:
-                return 1;
+                return MLI_TRUE;
                 break;
         }
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_String_to_uint32(uint32_t *out, const struct mli_String *str)
-{
-        uint64_t u = 0;
-        chk(mli_String_to_uint64(&u, str, 10));
-        (*out) = (uint32_t)u;
-        return 1;
-chk_error:
-        return 0;
-}
-
-int mli_Object_parse_face_line(
+chk_rc mli_Object_parse_face_line(
         const struct mli_String *line,
         struct mli_object_Face *faces_vertices,
         struct mli_object_Face *faces_texture_points,
@@ -13002,25 +13052,25 @@ int mli_Object_parse_face_line(
                 i++;
         }
         mli_String_free(&wuff);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&wuff);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Object_is_vert_line_toggle(const int state)
+mli_bool mli_Object_is_vert_line_toggle(const int state)
 {
         switch (state) {
         case 2:
         case 4:
         case 6:
-                return 1;
+                return MLI_TRUE;
                 break;
         }
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_Object_parse_three_float_line(
+chk_rc mli_Object_parse_three_float_line(
         const struct mli_String *line,
         struct mli_Vec *v)
 {
@@ -13138,12 +13188,12 @@ int mli_Object_parse_three_float_line(
                 old_state = state;
                 i++;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Object_parse_face_vertices_and_normals(
+chk_rc mli_Object_parse_face_vertices_and_normals(
         const struct mli_String *line,
         struct mli_object_Face *fv,
         struct mli_object_Face *fvn)
@@ -13171,12 +13221,14 @@ int mli_Object_parse_face_vertices_and_normals(
         fvn->a -= 1;
         fvn->b -= 1;
         fvn->c -= 1;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Object_malloc_from_wavefront(struct mli_Object *obj, struct mli_IO *io)
+chk_rc mli_Object_malloc_from_wavefront(
+        struct mli_Object *obj,
+        struct mli_IO *io)
 {
         uint64_t i = 0u;
         uint64_t line_number = 0u;
@@ -13321,7 +13373,7 @@ int mli_Object_malloc_from_wavefront(struct mli_Object *obj, struct mli_IO *io)
         mli_String_free(&sf);
         mli_String_free(&susemtl);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Object_free(obj);
 
@@ -13342,10 +13394,10 @@ chk_error:
         mli_String_free(&sf);
         mli_String_free(&susemtl);
 
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Object_fprint_to_wavefront(
+chk_rc mli_Object_fprint_to_wavefront(
         struct mli_IO *f,
         const struct mli_Object *obj)
 {
@@ -13391,9 +13443,9 @@ int mli_Object_fprint_to_wavefront(
                         obj->faces_vertex_normals[face].c + 1));
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* octree */
@@ -13492,7 +13544,7 @@ void mli_octree_LeafArray_free(struct mli_octree_LeafArray *leafs)
         *leafs = mli_octree_LeafArray_init();
 }
 
-int mli_octree_LeafArray_malloc(
+chk_rc mli_octree_LeafArray_malloc(
         struct mli_octree_LeafArray *leafs,
         const uint64_t num_leafs,
         const uint64_t num_object_links)
@@ -13512,9 +13564,9 @@ int mli_octree_LeafArray_malloc(
         for (i = 0; i < leafs->num_object_links; i++) {
                 leafs->object_links[i] = 0u;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 struct mli_octree_Node mli_octree_Node_init(void)
@@ -13547,7 +13599,7 @@ void mli_OcTree_free(struct mli_OcTree *tree)
         *tree = mli_OcTree_init();
 }
 
-int mli_OcTree_malloc(
+chk_rc mli_OcTree_malloc(
         struct mli_OcTree *tree,
         const uint64_t num_nodes,
         const uint64_t num_leafs,
@@ -13561,9 +13613,9 @@ int mli_OcTree_malloc(
                 tree->nodes[i] = mli_octree_Node_init();
         chk(mli_octree_LeafArray_malloc(
                 &tree->leafs, num_leafs, num_object_links));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_OcTree_set_node(
@@ -13677,7 +13729,7 @@ uint32_t mli_OcTree_leaf_object_link(
         return tree->leafs.object_links[i];
 }
 
-int mli_OcTree_equal_payload_walk(
+mli_bool mli_OcTree_equal_payload_walk(
         const struct mli_OcTree *tree,
         const int32_t node_idx,
         const int32_t node_type,
@@ -13749,12 +13801,12 @@ int mli_OcTree_equal_payload_walk(
                 chk_bad("node_idx must be either node, leaf or none");
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_OcTree_equal_payload(
+mli_bool mli_OcTree_equal_payload(
         const struct mli_OcTree *tree,
         const struct mli_octree_TmpOcTree *tmp_octree)
 {
@@ -13765,9 +13817,9 @@ int mli_OcTree_equal_payload(
         chk_msg(mli_OcTree_equal_payload_walk(
                         tree, root_node_idx, root_node_type, &tmp_octree->root),
                 "Tree is not equal");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_OcTree_print_walk(
@@ -13839,7 +13891,7 @@ void mli_OcTree_print(const struct mli_OcTree *tree)
         }
 }
 
-int mli_OcTree_malloc_from_object_wavefront(
+chk_rc mli_OcTree_malloc_from_object_wavefront(
         struct mli_OcTree *octree,
         const struct mli_Object *object)
 {
@@ -13865,12 +13917,12 @@ int mli_OcTree_malloc_from_object_wavefront(
         mli_OcTree_set(octree, &tmp_octree);
         mli_octree_TmpOcTree_free(&tmp_octree);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_OcTree_malloc_from_Geometry(
+chk_rc mli_OcTree_malloc_from_Geometry(
         struct mli_OcTree *octree,
         const struct mli_GeometryAndAccelerator *accgeo,
         const struct mli_AABB outermost_aabb)
@@ -13897,9 +13949,9 @@ int mli_OcTree_malloc_from_Geometry(
         mli_OcTree_set(octree, &tmp_octree);
         mli_octree_TmpOcTree_free(&tmp_octree);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* octree_equal */
@@ -13907,7 +13959,9 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_OcTree_equal(const struct mli_OcTree *a, const struct mli_OcTree *b)
+mli_bool mli_OcTree_equal(
+        const struct mli_OcTree *a,
+        const struct mli_OcTree *b)
 {
         uint64_t i, j;
         chk_msg(a->num_nodes == b->num_nodes, "num_nodes not equal.");
@@ -13947,9 +14001,9 @@ int mli_OcTree_equal(const struct mli_OcTree *a, const struct mli_OcTree *b)
                         "octree.leafs.object_links[i] not equal");
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* octree_overlaps */
@@ -13962,7 +14016,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_OcTree_to_io(const struct mli_OcTree *octree, struct mli_IO *f)
+chk_rc mli_OcTree_to_io(const struct mli_OcTree *octree, struct mli_IO *f)
 {
         struct mli_MagicId magic;
 
@@ -14005,12 +14059,12 @@ int mli_OcTree_to_io(const struct mli_OcTree *octree, struct mli_IO *f)
         /* root type */
         chk_IO_write(&octree->root_type, sizeof(uint8_t), 1u, f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_OcTree_from_io(struct mli_OcTree *octree, struct mli_IO *f)
+chk_rc mli_OcTree_from_io(struct mli_OcTree *octree, struct mli_IO *f)
 {
         uint64_t num_nodes;
         uint64_t num_leafs;
@@ -14056,9 +14110,9 @@ int mli_OcTree_from_io(struct mli_OcTree *octree, struct mli_IO *f)
         /* root type */
         chk_IO_read(&octree->root_type, sizeof(uint8_t), 1u, f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* octree_tmp */
@@ -14100,16 +14154,16 @@ void mli_octree_TmpNode_free(struct mli_octree_TmpNode *n)
         free(n->objects);
 }
 
-int mli_octree_TmpNode_malloc(
+chk_rc mli_octree_TmpNode_malloc(
         struct mli_octree_TmpNode *n,
         const uint32_t num_objects)
 {
         mli_octree_TmpNode_free(n);
         n->num_objects = num_objects;
         chk_malloc(n->objects, uint32_t, n->num_objects);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 uint32_t mli_octree_TmpNode_signs_to_child(
@@ -14120,10 +14174,10 @@ uint32_t mli_octree_TmpNode_signs_to_child(
         return 4 * sx + 2 * sy + 1 * sz;
 }
 
-int mli_octree_TmpNode_add_children(
+chk_rc mli_octree_TmpNode_add_children(
         struct mli_octree_TmpNode *node,
         const void *bundle,
-        int (*item_in_bundle_has_overlap_aabb)(
+        mli_bool (*item_in_bundle_has_overlap_aabb)(
                 const void *,
                 const uint32_t,
                 const struct mli_AABB),
@@ -14137,11 +14191,11 @@ int mli_octree_TmpNode_add_children(
         struct mli_octree_OverlapVector overlap[8];
 
         if (node->num_objects <= 32u) {
-                return 1;
+                return CHK_SUCCESS;
         }
 
         if (depth == max_depth) {
-                return 1;
+                return CHK_SUCCESS;
         }
 
         for (c = 0u; c < 8u; c++) {
@@ -14202,16 +14256,16 @@ int mli_octree_TmpNode_add_children(
                         max_depth);
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_octree_TmpNode_malloc_tree_from_bundle(
+chk_rc mli_octree_TmpNode_malloc_tree_from_bundle(
         struct mli_octree_TmpNode *root_node,
         const void *bundle,
         const uint32_t num_items_in_bundle,
-        int (*item_in_bundle_has_overlap_aabb)(
+        mli_bool (*item_in_bundle_has_overlap_aabb)(
                 const void *,
                 const uint32_t,
                 const struct mli_AABB),
@@ -14235,12 +14289,12 @@ int mli_octree_TmpNode_malloc_tree_from_bundle(
                 bundle_cube,
                 start_depth,
                 max_depth);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_octree_TmpNode_num_children(const struct mli_octree_TmpNode *node)
+uint32_t mli_octree_TmpNode_num_children(const struct mli_octree_TmpNode *node)
 {
         uint32_t c, num = 0;
         for (c = 0u; c < 8u; c++)
@@ -14301,15 +14355,15 @@ void mli_octree_TmpNode_print(
  *      0, 1, 2, 3, 4, 5, 6, ...
  */
 
-int mli_octree_TmpNode_exists_and_has_objects(
+mli_bool mli_octree_TmpNode_exists_and_has_objects(
         const struct mli_octree_TmpNode *node)
 {
         if (node != NULL) {
                 if (node->num_objects > 0u) {
-                        return 1;
+                        return MLI_TRUE;
                 }
         }
-        return 0;
+        return MLI_FALSE;
 }
 
 void mli_octree_TmpNode_set_flat_index_walk(
@@ -14425,11 +14479,11 @@ void mli_octree_TmpOcTree_free(struct mli_octree_TmpOcTree *octree)
         mli_octree_TmpNode_free(&octree->root);
 }
 
-int mli_octree_TmpOcTree_malloc_from_bundle(
+chk_rc mli_octree_TmpOcTree_malloc_from_bundle(
         struct mli_octree_TmpOcTree *octree,
         const void *bundle,
         const uint32_t num_items_in_bundle,
-        int (*item_in_bundle_has_overlap_aabb)(
+        mli_bool (*item_in_bundle_has_overlap_aabb)(
                 const void *,
                 const uint32_t,
                 const struct mli_AABB),
@@ -14444,9 +14498,9 @@ int mli_octree_TmpOcTree_malloc_from_bundle(
                         item_in_bundle_has_overlap_aabb,
                         octree->cube),
                 "Failed to allocate dynamic octree from bundle.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_octree_TmpOcTree_print(const struct mli_octree_TmpOcTree *octree)
@@ -14459,7 +14513,7 @@ void mli_octree_TmpOcTree_print(const struct mli_octree_TmpOcTree *octree)
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_OcTree_valid(const struct mli_OcTree *octree)
+mli_bool mli_OcTree_valid(const struct mli_OcTree *octree)
 {
         uint32_t n, c;
         chk_msg(!MLI_MATH_IS_NAN(octree->cube.lower.x),
@@ -14499,12 +14553,12 @@ int mli_OcTree_valid(const struct mli_OcTree *octree)
                         }
                 }
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_OcTree_valid_wrt_links(
+mli_bool mli_OcTree_valid_wrt_links(
         const struct mli_OcTree *octree,
         const uint32_t num_links)
 {
@@ -14513,16 +14567,16 @@ int mli_OcTree_valid_wrt_links(
                 chk_msg(octree->leafs.object_links[n] < num_links,
                         "Expected object_links[n] <  num_links.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* path */
 /* ---- */
 
 
-int mli_path_strip_this_dir(
+chk_rc mli_path_strip_this_dir(
         const struct mli_String *src,
         struct mli_String *dst)
 {
@@ -14544,14 +14598,14 @@ int mli_path_strip_this_dir(
         length = cpysrc.size - start;
         chk(mli_String_copyn(dst, &cpysrc, start, length));
         mli_String_free(&cpysrc);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&cpysrc);
         mli_String_free(dst);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_path_basename(const struct mli_String *src, struct mli_String *dst)
+chk_rc mli_path_basename(const struct mli_String *src, struct mli_String *dst)
 {
         int64_t pos_last_del = -1;
         mli_String_free(dst);
@@ -14565,13 +14619,13 @@ int mli_path_basename(const struct mli_String *src, struct mli_String *dst)
                 chk(mli_String_from_cstr_fromat(
                         dst, &src->array[pos_last_del + 1]));
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(dst);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_path_splitext(
+chk_rc mli_path_splitext(
         const struct mli_String *src,
         struct mli_String *dst,
         struct mli_String *ext)
@@ -14597,12 +14651,12 @@ int mli_path_splitext(
         }
 
         mli_String_free(&tmp);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&tmp);
         mli_String_free(dst);
         mli_String_free(ext);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* pathtracer */
@@ -14671,6 +14725,7 @@ struct mli_Color mli_pathtracer_trace_ray(
         struct mli_ColorSpectrum spectrum;
         struct mli_Vec xyz, rgb;
         struct mli_pathtracer_Path path = mli_pathtracer_Path_init();
+        const double fff = 1. / 255.;
 
         spectrum = mli_pathtracer_trace_path_to_next_intersection(
                 tracer, ray, path, prng);
@@ -14683,7 +14738,7 @@ struct mli_Color mli_pathtracer_trace_ray(
                          ->observer_matching_curve_xyz_to_rgb,
                 xyz);
 
-        return mli_Color_set(rgb.x, rgb.y, rgb.z);
+        return mli_Color_set(rgb.x * fff, rgb.y * fff, rgb.z * fff);
 }
 
 struct mli_ColorSpectrum mli_pathtracer_trace_path_to_next_intersection(
@@ -15030,7 +15085,7 @@ struct mli_ColorSpectrum mli_raytracing_color_tone_of_diffuse_sky(
         struct mli_Vec facing_surface_normal;
         struct mli_Intersection isec;
         int has_direct_view_to_sky = 0;
-        int num_samples = 5;
+        int num_samples = 3;
 
         facing_surface_normal =
                 intersection->from_outside_to_inside
@@ -15064,8 +15119,7 @@ struct mli_ColorSpectrum mli_raytracing_color_tone_of_diffuse_sky(
                 }
         }
 
-        return mli_ColorSpectrum_multiply_scalar(
-                sky, 1.0 / (255.0 * num_samples));
+        return mli_ColorSpectrum_multiply_scalar(sky, 1.0 / num_samples);
 }
 
 /* pathtracer_config */
@@ -15075,9 +15129,16 @@ struct mli_ColorSpectrum mli_raytracing_color_tone_of_diffuse_sky(
 
 struct mli_pathtracer_Config mli_pathtracer_Config_init(void)
 {
+        const double power_fraction_of_diffuse_sky_relative_to_direct_sun =
+                1e-1;
         struct mli_pathtracer_Config config;
         mli_ColorSpectrum_set_radiance_of_black_body_W_per_m2_per_sr(
                 &config.ambient_radiance_W_per_m2_per_sr, 5000.0);
+
+        config.ambient_radiance_W_per_m2_per_sr =
+                mli_ColorSpectrum_multiply_scalar(
+                        config.ambient_radiance_W_per_m2_per_sr,
+                        power_fraction_of_diffuse_sky_relative_to_direct_sun);
 
         config.num_trails_global_light_source = 3;
         config.have_atmosphere = 0;
@@ -15090,7 +15151,7 @@ struct mli_pathtracer_Config mli_pathtracer_Config_init(void)
 
 /* Copyright 2018-2021 Sebastian Achim Mueller */
 
-int mli_pathtracer_Config_from_json_token(
+chk_rc mli_pathtracer_Config_from_json_token(
         struct mli_pathtracer_Config *tc,
         const struct mli_Json *json,
         const uint64_t tkn)
@@ -15112,9 +15173,9 @@ int mli_pathtracer_Config_from_json_token(
         chk(mli_Json_token_by_key(json, tkn, "atmosphere", &atmtkn));
         chk(mli_Atmosphere_from_json_token(&tc->atmosphere, json, atmtkn + 1));
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* pathtracer_path */
@@ -15140,7 +15201,7 @@ struct mli_pathtracer_Path mli_pathtracer_Path_init(void)
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_photon_interaction_type_to_string(const int32_t type, char *s)
+chk_rc mli_photon_interaction_type_to_string(const int32_t type, char *s)
 {
         switch (type) {
         case MLI_PHOTON_CREATION:
@@ -15168,12 +15229,12 @@ int mli_photon_interaction_type_to_string(const int32_t type, char *s)
                 chk_bad("PhotonInteraction.type is unknown.");
                 break;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_photon_time_of_flight(
+chk_rc mli_photon_time_of_flight(
         const struct mli_Materials *materials,
         const struct mli_PhotonInteraction *phisec,
         const double wavelength,
@@ -15190,9 +15251,9 @@ int mli_photon_time_of_flight(
 
         (*time_of_flight) = (refractive_index * phisec->distance_of_ray) /
                             MLI_PHYSICS_SPEED_OF_LIGHT_M_PER_S;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* photon_interaction_vector */
@@ -15204,7 +15265,7 @@ MLI_VECTOR_IMPLEMENTATION(
         mli_PhotonInteractionVector,
         struct mli_PhotonInteraction)
 
-int mli_PhotonInteractionVector_time_of_flight(
+chk_rc mli_PhotonInteractionVector_time_of_flight(
         const struct mli_PhotonInteractionVector *history,
         const struct mli_Scenery *scenery,
         const double wavelength,
@@ -15222,9 +15283,9 @@ int mli_PhotonInteractionVector_time_of_flight(
                         "Can't estimate time-of-flight.");
                 (*total_time_of_flight) += time_of_flight;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 void mli_PhotonInteractionVector_print(
@@ -15330,7 +15391,7 @@ struct mli_PhotonInteraction mliPhotonInteraction_from_Intersection(
         return phia;
 }
 
-int mli_propagate_photon_cooktorrance(
+chk_rc mli_propagate_photon_cooktorrance(
         struct mli_PhotonPropagation *env,
         const struct mli_IntersectionSurfaceNormal *isec)
 {
@@ -15407,12 +15468,12 @@ int mli_propagate_photon_cooktorrance(
                         mliPhotonInteraction_from_Intersection(
                                 MLI_PHOTON_ABSORPTION, env->scenery, isec)));
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_propagate_photon_pass_boundary_layer(
+chk_rc mli_propagate_photon_pass_boundary_layer(
         struct mli_PhotonPropagation *env,
         const struct mli_IntersectionSurfaceNormal *isec,
         const struct mli_Fresnel fresnel)
@@ -15425,12 +15486,12 @@ int mli_propagate_photon_pass_boundary_layer(
                 isec->position, mli_Fresnel_refraction_direction(fresnel));
         chk_msg(mli_propagate_photon_env(env),
                 "Failed to continue after passing boundary layer");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_propagate_photon_probability_passing_medium_coming_from(
+chk_rc mli_propagate_photon_probability_passing_medium_coming_from(
         const struct mli_Scenery *scenery,
         const struct mli_Photon *photon,
         const struct mli_IntersectionSurfaceNormal *isec,
@@ -15456,12 +15517,12 @@ int mli_propagate_photon_probability_passing_medium_coming_from(
         (*probability_passing) =
                 exp(-isec->distance_of_ray * absorption_coefficient);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_propagate_photon_fresnel_refraction_and_reflection(
+chk_rc mli_propagate_photon_fresnel_refraction_and_reflection(
         struct mli_PhotonPropagation *env,
         const struct mli_IntersectionSurfaceNormal *isec)
 {
@@ -15509,12 +15570,12 @@ int mli_propagate_photon_fresnel_refraction_and_reflection(
                                 env, isec, fresnel),
                         "Failed to pass boundary");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_propagate_photon_interact_with_object(
+chk_rc mli_propagate_photon_interact_with_object(
         struct mli_PhotonPropagation *env,
         const struct mli_IntersectionSurfaceNormal *isec)
 {
@@ -15538,12 +15599,12 @@ int mli_propagate_photon_interact_with_object(
                 chk_bad("Unkown type of surface.");
                 break;
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_propagate_photon_distance_until_absorption(
+chk_rc mli_propagate_photon_distance_until_absorption(
         const struct mli_Func *absorption_in_medium_passing_through,
         const double wavelength,
         struct mli_Prng *prng,
@@ -15557,12 +15618,12 @@ int mli_propagate_photon_distance_until_absorption(
                 "Failed to eval. absorption for wavelength.");
         (*distance_until_absorption) =
                 mli_Prng_expovariate(prng, absorption_coefficient);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_propagate_photon_work_on_causal_intersection(
+chk_rc mli_propagate_photon_work_on_causal_intersection(
         struct mli_PhotonPropagation *env)
 {
         int ray_does_intersect_surface = 0;
@@ -15694,23 +15755,23 @@ int mli_propagate_photon_work_on_causal_intersection(
                 chk(mli_PhotonInteractionVector_push_back(env->history, phia));
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_propagate_photon_env(struct mli_PhotonPropagation *env)
+chk_rc mli_propagate_photon_env(struct mli_PhotonPropagation *env)
 {
         if (env->max_interactions > env->history->size) {
                 chk_msg(mli_propagate_photon_work_on_causal_intersection(env),
                         "Failed to work on intersection.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_propagate_photon(
+chk_rc mli_propagate_photon(
         const struct mli_Scenery *scenery,
         struct mli_PhotonInteractionVector *history,
         struct mli_Photon *photon,
@@ -15724,9 +15785,9 @@ int mli_propagate_photon(
         env.prng = prng;
         env.max_interactions = max_interactions;
         chk(mli_propagate_photon_env(&env));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* photon_source */
@@ -15734,7 +15795,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_photon_source_parallel_towards_z_from_xy_disc(
+chk_rc mli_photon_source_parallel_towards_z_from_xy_disc(
         struct mli_PhotonVector *out_photons,
         const double wavelength,
         const double radius,
@@ -15751,12 +15812,12 @@ int mli_photon_source_parallel_towards_z_from_xy_disc(
                 ph.id = i;
                 chk(mli_PhotonVector_push_back(out_photons, ph));
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_photon_source_point_like_opening_cone_towards_z(
+chk_rc mli_photon_source_point_like_opening_cone_towards_z(
         struct mli_PhotonVector *out_photons,
         const double wavelength,
         const double opening_angle,
@@ -15779,9 +15840,9 @@ int mli_photon_source_point_like_opening_cone_towards_z(
                 ph.id = i;
                 chk(mli_PhotonVector_push_back(out_photons, ph));
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* photon_vector */
@@ -16270,39 +16331,39 @@ struct mli_Quaternion mli_Quaternion_set_unit_xyz(
         return mli_Quaternion_set(w, x, y, z);
 }
 
-int mli_Quaternion_equal(
+mli_bool mli_Quaternion_equal(
         const struct mli_Quaternion a,
         const struct mli_Quaternion b)
 {
         if (fabs(a.w - b.w) > DBL_EPSILON)
-                return 0;
+                return MLI_FALSE;
         if (fabs(a.x - b.x) > DBL_EPSILON)
-                return 0;
+                return MLI_FALSE;
         if (fabs(a.y - b.y) > DBL_EPSILON)
-                return 0;
+                return MLI_FALSE;
         if (fabs(a.z - b.z) > DBL_EPSILON)
-                return 0;
-        return 1;
+                return MLI_FALSE;
+        return MLI_TRUE;
 }
 
-int mli_Quaternion_equal_margin(
+mli_bool mli_Quaternion_equal_margin(
         const struct mli_Quaternion a,
         const struct mli_Quaternion b,
         const double margin)
 {
         if (fabs(a.w - b.w) >= margin) {
-                return 0;
+                return MLI_FALSE;
         }
         if (fabs(a.x - b.x) >= margin) {
-                return 0;
+                return MLI_FALSE;
         }
         if (fabs(a.y - b.y) >= margin) {
-                return 0;
+                return MLI_FALSE;
         }
         if (fabs(a.z - b.z) >= margin) {
-                return 0;
+                return MLI_FALSE;
         }
-        return 1;
+        return MLI_TRUE;
 }
 
 struct mli_Quaternion mli_Quaternion_complex_conjugate(
@@ -16404,7 +16465,7 @@ struct mli_Quaternion mli_Quaternion_set_tait_bryan(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Quaternion_tait_bryan_from_json(
+chk_rc mli_Quaternion_tait_bryan_from_json(
         struct mli_Quaternion *quat,
         const struct mli_Json *json,
         const uint64_t token)
@@ -16419,12 +16480,12 @@ int mli_Quaternion_tait_bryan_from_json(
                 mli_math_deg2rad(xyz_deg.x),
                 mli_math_deg2rad(xyz_deg.y),
                 mli_math_deg2rad(xyz_deg.z));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Quaternion_axis_angle_from_json(
+chk_rc mli_Quaternion_axis_angle_from_json(
         struct mli_Quaternion *quat,
         const struct mli_Json *json,
         const uint64_t token)
@@ -16442,12 +16503,12 @@ int mli_Quaternion_axis_angle_from_json(
                 "Failed to parse axis_angle's 'angle_deg' from json.");
         *quat = mli_Quaternion_set_rotaxis_and_angle(
                 axis, mli_math_deg2rad(angle_deg));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Quaternion_quaternion_from_json(
+chk_rc mli_Quaternion_quaternion_from_json(
         struct mli_Quaternion *quat,
         const struct mli_Json *json,
         const uint64_t token)
@@ -16461,12 +16522,12 @@ int mli_Quaternion_quaternion_from_json(
         *quat = mli_Quaternion_set_unit_xyz(q.x, q.y, q.z);
         chk_msg(fabs(mli_Quaternion_norm(*quat) - 1.) < 1e-6,
                 "Expected norm(quaternion) < 1e-6. Expected unit-quaternion.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Quaternion_from_json(
+chk_rc mli_Quaternion_from_json(
         struct mli_Quaternion *quat,
         const struct mli_Json *json,
         const uint64_t token)
@@ -16489,9 +16550,9 @@ int mli_Quaternion_from_json(
         } else {
                 chk_bad("Unknown representation 'repr' in rotation.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* ray */
@@ -16519,7 +16580,7 @@ struct mli_Vec mli_Ray_at(const struct mli_Ray *ray, const double t)
         return out;
 }
 
-int mli_Ray_sphere_intersection(
+chk_rc mli_Ray_sphere_intersection(
         const struct mli_Vec support,
         const struct mli_Vec direction,
         const double radius,
@@ -16576,20 +16637,20 @@ void mli_Ray_aabb_intersections(
         (*t_far) = MLI_MATH_MIN3(t2.x, t2.y, t2.z);
 }
 
-int mli_Ray_aabb_intersections_is_valid_given_near_and_far(
+mli_bool mli_Ray_aabb_intersections_is_valid_given_near_and_far(
         const double t_near,
         const double t_far)
 {
         if (t_far < 0) {
-                return 0;
+                return MLI_FALSE;
         }
         if (t_near > t_far) {
-                return 0;
+                return MLI_FALSE;
         }
-        return 1;
+        return MLI_TRUE;
 }
 
-int mli_Ray_has_overlap_aabb(
+mli_bool mli_Ray_has_overlap_aabb(
         const struct mli_Ray ray,
         const struct mli_AABB aabb)
 {
@@ -16656,7 +16717,7 @@ int mli_Ray_has_overlap_aabb(
  *      cite{revelles2000efficient}
  */
 
-int mli_raytracing_ray_octree_traversal_first_octree_node(
+mli_octree_node mli_raytracing_ray_octree_traversal_first_octree_node(
         const struct mli_Vec t0,
         const struct mli_Vec tm)
 {
@@ -16668,7 +16729,7 @@ int mli_raytracing_ray_octree_traversal_first_octree_node(
                                 child |= 2;
                         if (tm.z < t0.x)
                                 child |= 1;
-                        return (int)child;
+                        return (mli_octree_node)child;
                 }
         } else {
                 if (t0.y > t0.z) {
@@ -16677,7 +16738,7 @@ int mli_raytracing_ray_octree_traversal_first_octree_node(
                                 child |= 4;
                         if (tm.z < t0.y)
                                 child |= 1;
-                        return (int)child;
+                        return (mli_octree_node)child;
                 }
         }
         /* X-Y-plane */
@@ -16685,14 +16746,14 @@ int mli_raytracing_ray_octree_traversal_first_octree_node(
                 child |= 4;
         if (tm.y < t0.z)
                 child |= 2;
-        return (int)child;
+        return (mli_octree_node)child;
 }
 
-int mli_raytracing_ray_octree_traversal_next_octree_node(
+mli_octree_node mli_raytracing_ray_octree_traversal_next_octree_node(
         const struct mli_Vec tm,
-        int x,
-        int y,
-        int z)
+        mli_octree_node x,
+        mli_octree_node y,
+        mli_octree_node z)
 {
         if (tm.x < tm.y) {
                 if (tm.x < tm.z) {
@@ -17023,7 +17084,7 @@ void mli_raytracing_inner_object_traversal(
         return;
 }
 
-int mli_raytracing_query_object_reference(
+mli_bool mli_raytracing_query_object_reference(
         const struct mli_Object *object,
         const struct mli_OcTree *object_octree,
         const struct mli_HomTraComp robject2root_comp,
@@ -17089,7 +17150,7 @@ void mli_raytracing_outer_scenery_traversal(
         return;
 }
 
-int mli_raytracing_query_intersection(
+mli_bool mli_raytracing_query_intersection(
         const struct mli_Scenery *scenery,
         const struct mli_Ray ray_root,
         struct mli_Intersection *isec)
@@ -17110,13 +17171,13 @@ int mli_raytracing_query_intersection(
                 mli_raytracing_outer_scenery_traversal);
 
         if (isec->distance_of_ray == DBL_MAX) {
-                return 0;
+                return MLI_FALSE;
         } else {
-                return 1;
+                return MLI_TRUE;
         }
 }
 
-int mli_raytracing_query_intersection_with_surface_normal(
+mli_bool mli_raytracing_query_intersection_with_surface_normal(
         const struct mli_Scenery *scenery,
         const struct mli_Ray ray_root,
         struct mli_IntersectionSurfaceNormal *isecsrf)
@@ -17167,9 +17228,9 @@ int mli_raytracing_query_intersection_with_surface_normal(
                                 ray_object.direction,
                                 isecsrf->surface_normal_local);
 
-                return 1;
+                return MLI_TRUE;
         } else {
-                return 0;
+                return MLI_FALSE;
         }
 }
 
@@ -17545,7 +17606,9 @@ uint32_t mli_Scenery_resolve_boundary_layer_idx(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Scenery_equal(const struct mli_Scenery *a, const struct mli_Scenery *b)
+mli_bool mli_Scenery_equal(
+        const struct mli_Scenery *a,
+        const struct mli_Scenery *b)
 {
         chk_msg(mli_Geometry_equal(&a->geometry, &b->geometry),
                 "Expected geometry to be valid.");
@@ -17555,9 +17618,9 @@ int mli_Scenery_equal(const struct mli_Scenery *a, const struct mli_Scenery *b)
                 "Expected accelerator to be valid.");
         chk_msg(mli_GeometryToMaterialMap_equal(&a->geomap, &b->geomap),
                 "Expected geomap to be valid.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* scenery_minimal_object */
@@ -17565,7 +17628,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Func_malloc_color_spectrum(
+chk_rc mli_Func_malloc_color_spectrum(
         struct mli_Func *self,
         const struct mli_Color color)
 {
@@ -17605,9 +17668,9 @@ int mli_Func_malloc_color_spectrum(
         self->x[10] = 1200e-9;
         self->y[10] = 0.0;
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 struct mli_Color mli_Color_random_uniform(struct mli_Prng *prng)
@@ -17624,7 +17687,7 @@ struct mli_Color mli_Color_random_uniform(struct mli_Prng *prng)
         return out;
 }
 
-int mli_Scenery_malloc_minimal_from_wavefront(
+chk_rc mli_Scenery_malloc_minimal_from_wavefront(
         struct mli_Scenery *self,
         const char *path)
 {
@@ -17743,9 +17806,9 @@ int mli_Scenery_malloc_minimal_from_wavefront(
                 "Failed to malloc accelerator from geometry.");
 
         chk_msg(mli_Scenery_valid(self), "Expected scenery to be valid.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* scenery_serialize */
@@ -17753,7 +17816,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Scenery_to_io(const struct mli_Scenery *self, struct mli_IO *f)
+chk_rc mli_Scenery_to_io(const struct mli_Scenery *self, struct mli_IO *f)
 {
         struct mli_MagicId magic;
         chk(mli_MagicId_set(&magic, "mli_Scenery"));
@@ -17763,12 +17826,12 @@ int mli_Scenery_to_io(const struct mli_Scenery *self, struct mli_IO *f)
         chk(mli_Accelerator_to_io(&self->accelerator, f));
         chk(mli_Materials_to_io(&self->materials, f));
         chk(mli_GeometryToMaterialMap_to_io(&self->geomap, f));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Scenery_from_io(struct mli_Scenery *self, struct mli_IO *f)
+chk_rc mli_Scenery_from_io(struct mli_Scenery *self, struct mli_IO *f)
 {
         struct mli_MagicId magic;
 
@@ -17782,35 +17845,37 @@ int mli_Scenery_from_io(struct mli_Scenery *self, struct mli_IO *f)
         chk(mli_Accelerator_from_io(&self->accelerator, f));
         chk(mli_Materials_from_io(&self->materials, f));
         chk(mli_GeometryToMaterialMap_from_io(&self->geomap, f));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_Scenery_free(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Scenery_malloc_from_path(struct mli_Scenery *self, const char *path)
+chk_rc mli_Scenery_malloc_from_path(struct mli_Scenery *self, const char *path)
 {
         struct mli_IO f = mli_IO_init();
-        chk_msg(mli_IO__open_file_cstr(&f, path, "r"), "Can't open file.");
+        chk_msg(mli_IO_open_file_cstr(&f, path, "r"), "Can't open file.");
         chk_msg(mli_Scenery_from_io(self, &f), "Can't read from file.");
         mli_IO_close(&f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_IO_close(&f);
         mli_Scenery_free(self);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Scenery_write_to_path(const struct mli_Scenery *self, const char *path)
+chk_rc mli_Scenery_write_to_path(
+        const struct mli_Scenery *self,
+        const char *path)
 {
         struct mli_IO f = mli_IO_init();
-        chk_msg(mli_IO__open_file_cstr(&f, path, "w"), "Can't write to file.");
+        chk_msg(mli_IO_open_file_cstr(&f, path, "w"), "Can't write to file.");
         chk_msg(mli_Scenery_to_io(self, &f), "Can't write to file.");
         mli_IO_close(&f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_IO_close(&f);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* scenery_tar */
@@ -17818,7 +17883,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Scenery_from_io_tar(struct mli_Scenery *self, struct mli_IO *f)
+chk_rc mli_Scenery_from_io_tar(struct mli_Scenery *self, struct mli_IO *f)
 {
         struct mli_Archive archive = mli_Archive_init();
         chk_dbg;
@@ -17829,27 +17894,27 @@ int mli_Scenery_from_io_tar(struct mli_Scenery *self, struct mli_IO *f)
                 "Can't malloc Scenery from Archive.");
         chk_dbg;
         mli_Archive_free(&archive);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Scenery__from_path_cstr(struct mli_Scenery *self, const char *path)
+chk_rc mli_Scenery__from_path_cstr(struct mli_Scenery *self, const char *path)
 {
         struct mli_IO f = mli_IO_init();
         chk_msgf(
-                mli_IO__open_file_cstr(&f, path, "r"),
+                mli_IO_open_file_cstr(&f, path, "r"),
                 ("Can't open path '%s'.", path));
         chk_msgf(
                 mli_Scenery_from_io_tar(self, &f),
                 ("Can't fread Scenery from path '%s'.", path));
         mli_IO_close(&f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Scenery_malloc_from_Archive(
+chk_rc mli_Scenery_malloc_from_Archive(
         struct mli_Scenery *self,
         const struct mli_Archive *archive)
 {
@@ -17920,9 +17985,9 @@ int mli_Scenery_malloc_from_Archive(
                 "Failed to warn about objects.");
 
         chk_dbg;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* scenery_valid */
@@ -17930,7 +17995,7 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Scenery_valid(const struct mli_Scenery *self)
+mli_bool mli_Scenery_valid(const struct mli_Scenery *self)
 {
         /* check in itself */
         chk_msg(mli_Materials_valid(&self->materials),
@@ -17952,9 +18017,9 @@ int mli_Scenery_valid(const struct mli_Scenery *self)
         chk_msg(mli_GeometryToMaterialMap_valid_wrt_Materials(
                         &self->geomap, &self->materials),
                 "Expected geomap to be valid w.r.t. materials.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* spectrum */
@@ -17978,7 +18043,7 @@ struct mli_Spectrum mli_Spectrum_init(void)
         return out;
 }
 
-int mli_Spectrum_equal(
+mli_bool mli_Spectrum_equal(
         const struct mli_Spectrum *a,
         const struct mli_Spectrum *b)
 {
@@ -17988,12 +18053,12 @@ int mli_Spectrum_equal(
                 "Different spectrum name.");
         chk_msg(mli_String_equal(&a->name, &b->name),
                 "Different spectrum name.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Spectrum_to_io(const struct mli_Spectrum *self, struct mli_IO *f)
+chk_rc mli_Spectrum_to_io(const struct mli_Spectrum *self, struct mli_IO *f)
 {
         struct mli_MagicId magic = mli_MagicId_init();
         chk(mli_MagicId_set(&magic, "mli_Spectrum"));
@@ -18003,12 +18068,12 @@ int mli_Spectrum_to_io(const struct mli_Spectrum *self, struct mli_IO *f)
         chk(mli_FuncInfo_to_io(&self->info, f));
         chk(mli_Func_to_io(&self->spectrum, f));
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Spectrum_from_io(struct mli_Spectrum *self, struct mli_IO *f)
+chk_rc mli_Spectrum_from_io(struct mli_Spectrum *self, struct mli_IO *f)
 {
         struct mli_MagicId magic;
         chk_IO_read(&magic, sizeof(struct mli_MagicId), 1u, f);
@@ -18022,12 +18087,14 @@ int mli_Spectrum_from_io(struct mli_Spectrum *self, struct mli_IO *f)
                 "Failed to read spectrum info.");
         chk_msg(mli_Func_from_io(&self->spectrum, f),
                 "Failed to read spectrum.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Spectrum_print_to_io(const struct mli_Spectrum *self, struct mli_IO *f)
+chk_rc mli_Spectrum_print_to_io(
+        const struct mli_Spectrum *self,
+        struct mli_IO *f)
 {
         uint64_t xamin, xamax, yamin, yamax = 0;
         MLI_MATH_ARRAY_ARGMIN(
@@ -18054,9 +18121,9 @@ int mli_Spectrum_print_to_io(const struct mli_Spectrum *self, struct mli_IO *f)
                 self->spectrum.y[yamin],
                 self->spectrum.y[yamax],
                 self->info.y.array));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* spectrum_array */
@@ -18075,7 +18142,7 @@ MLI_ARRAY_IMPLEMENTATION_FREE(
 
 MLI_VECTOR_IMPLEMENTATION_ZERO_TERMINATION(mli_String, char)
 
-int mli_String_from_cstr_fromat(
+chk_rc mli_String_from_cstr_fromat(
         struct mli_String *self,
         const char *format,
         ...)
@@ -18085,13 +18152,13 @@ int mli_String_from_cstr_fromat(
         chk_msg(mli_String_from_vargs(self, format, args),
                 "Failed to malloc String from variadic args.");
         va_end(args);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         va_end(args);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_String_from_vargs(
+chk_rc mli_String_from_vargs(
         struct mli_String *self,
         const char *format,
         va_list args)
@@ -18107,62 +18174,70 @@ int mli_String_from_vargs(
         chk(mli_String_copy(self, &tmp));
 
         mli_String_free(&tmp);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&tmp);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_String_from_cstr(struct mli_String *self, const char *s)
+chk_rc mli_String_from_cstr(struct mli_String *self, const char *s)
 {
         size_t length = strlen(s);
         chk(mli_String_malloc(self, length));
         self->size = length;
         strncpy(self->array, s, self->size);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_String_ends_with(
+mli_bool mli_String_ends_with(
         const struct mli_String *self,
         const struct mli_String *suffix)
 {
         if (!self->array || !suffix->array) {
-                return 0;
+                return MLI_FALSE;
         }
         if (suffix->size > self->size) {
-                return 0;
+                return MLI_FALSE;
         }
         return strncmp(self->array + self->size - suffix->size,
                        suffix->array,
                        suffix->size) == 0;
 }
 
-int mli_String_ends_with_cstr(const struct mli_String *self, const char *cstr)
+mli_bool mli_String_ends_with_cstr(
+        const struct mli_String *self,
+        const char *cstr)
 {
         return mli_cstr_ends_with(self->array, cstr);
 }
 
-int mli_String_starts_with(
+mli_bool mli_String_starts_with(
         const struct mli_String *self,
         const struct mli_String *prefix)
 {
         if (!self->array || !prefix->array) {
-                return 0;
+                return MLI_FALSE;
         }
         if (prefix->size > self->size) {
-                return 0;
+                return MLI_FALSE;
         }
-        return strncmp(self->array, prefix->array, prefix->size) == 0;
+        if (strncmp(self->array, prefix->array, prefix->size) == 0) {
+                return MLI_TRUE;
+        } else {
+                return MLI_FALSE;
+        }
 }
 
-int mli_String_starts_with_cstr(const struct mli_String *self, const char *cstr)
+mli_bool mli_String_starts_with_cstr(
+        const struct mli_String *self,
+        const char *cstr)
 {
         return mli_cstr_starts_with(self->array, cstr);
 }
 
-int mli_String_has_prefix_suffix(
+mli_bool mli_String_has_prefix_suffix(
         const struct mli_String *self,
         const struct mli_String *prefix,
         const struct mli_String *suffix)
@@ -18178,9 +18253,9 @@ int mli_String_has_prefix_suffix(
         }
 
         if (has_pre == 1 && has_suf == 1) {
-                return 1;
+                return MLI_TRUE;
         } else {
-                return 0;
+                return MLI_FALSE;
         }
 }
 
@@ -18210,30 +18285,7 @@ int64_t mli_String_find(const struct mli_String *self, const char c)
         return -1;
 }
 
-int mli_String_match_templeate(
-        const struct mli_String *s,
-        const struct mli_String *t,
-        const char digit_wildcard)
-{
-        uint64_t i;
-        if (s->size != t->size) {
-                return 0;
-        }
-        for (i = 0; i < s->size; i++) {
-                if (t->array[i] == digit_wildcard) {
-                        if (!isdigit(s->array[i])) {
-                                return 0;
-                        }
-                } else {
-                        if (s->array[i] != t->array[i]) {
-                                return 0;
-                        }
-                }
-        }
-        return 1;
-}
-
-int mli_String_strip(const struct mli_String *src, struct mli_String *dst)
+chk_rc mli_String_strip(const struct mli_String *src, struct mli_String *dst)
 {
         int64_t start = 0;
         int64_t stop = 0;
@@ -18261,11 +18313,11 @@ int mli_String_strip(const struct mli_String *src, struct mli_String *dst)
                 chk(mli_String_copyn(dst, &cpysrc, start, len + 1));
         }
         mli_String_free(&cpysrc);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&cpysrc);
         mli_String_free(dst);
-        return 0;
+        return CHK_FAIL;
 }
 
 uint64_t mli_String_countn(
@@ -18284,15 +18336,15 @@ uint64_t mli_String_countn(
         return count;
 }
 
-int mli_String_equal_cstr(const struct mli_String *self, const char *cstr)
+mli_bool mli_String_equal_cstr(const struct mli_String *self, const char *cstr)
 {
         if (self->array == NULL) {
-                return 0;
+                return MLI_FALSE;
         }
         if (strcmp(self->array, cstr) == 0) {
-                return 1;
+                return MLI_TRUE;
         } else {
-                return 0;
+                return MLI_FALSE;
         }
 }
 
@@ -18303,7 +18355,7 @@ int64_t mli_String_compare(
         return strcmp(s1->array, s2->array);
 }
 
-int mli_String_convert_line_break_CRLF_CR_to_LF(
+chk_rc mli_String_convert_line_break_CRLF_CR_to_LF(
         struct mli_String *dst,
         const struct mli_String *src)
 {
@@ -18325,10 +18377,10 @@ int mli_String_convert_line_break_CRLF_CR_to_LF(
         }
         chk(mli_String_copy(dst, &cpysrc));
         mli_String_free(&cpysrc);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&cpysrc);
-        return 0;
+        return CHK_FAIL;
 }
 
 int64_t mli_String__discover_size(const struct mli_String *self)
@@ -18348,27 +18400,27 @@ int64_t mli_String__discover_size(const struct mli_String *self)
         return i;
 }
 
-int mli_String_equal(
+mli_bool mli_String_equal(
         const struct mli_String *self,
         const struct mli_String *other)
 {
         if (self->array == NULL || other->array == NULL) {
-                return 0;
+                return MLI_FALSE;
         }
         if (self->size == other->size) {
                 size_t i;
                 for (i = 0; i < self->size; i++) {
                         if (self->array[i] != other->array[i]) {
-                                return 0;
+                                return MLI_FALSE;
                         }
                 }
-                return 1;
+                return MLI_TRUE;
         } else {
-                return 0;
+                return MLI_FALSE;
         }
 }
 
-int mli_String_valid(const struct mli_String *self, const size_t min_size)
+mli_bool mli_String_valid(const struct mli_String *self, const size_t min_size)
 {
         const int64_t size = mli_String__discover_size(self);
         chk_msg(self->array != NULL, "Expected string to be allocated.");
@@ -18378,12 +18430,12 @@ int mli_String_valid(const struct mli_String *self, const size_t min_size)
         chk_msg(size == (int64_t)self->size,
                 "Expected string.size to "
                 "match zero termination.");
-        return 1;
+        return MLI_TRUE;
 chk_error:
-        return 0;
+        return MLI_FALSE;
 }
 
-int mli_String__find_idx_with_cstr(
+chk_rc mli_String__find_idx_with_cstr(
         const struct mli_String *names,
         const uint64_t num_names,
         const char *key,
@@ -18394,10 +18446,10 @@ int mli_String__find_idx_with_cstr(
         for (i = 0; i < num_names; i++) {
                 if (mli_String_equal_cstr(&names[i], key)) {
                         (*idx) = i;
-                        return 1;
+                        return CHK_SUCCESS;
                 }
         }
-        return 0;
+        return CHK_FAIL;
 }
 
 /* string_numbers */
@@ -18405,7 +18457,7 @@ int mli_String__find_idx_with_cstr(
 
 /* Copyright 2018-2023 Sebastian Achim Mueller */
 
-int mli_String_nto_double(
+chk_rc mli_String_nto_double(
         double *out,
         const struct mli_String *str,
         const uint64_t expected_num_chars)
@@ -18426,21 +18478,21 @@ int mli_String_nto_double(
         chk_msg(actual_num_chars == expected_num_chars,
                 "double has not the expected number of chars.");
         *out = l;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_String_to_double(double *out, const struct mli_String *str)
+chk_rc mli_String_to_double(double *out, const struct mli_String *str)
 {
         chk_msg(mli_String_nto_double(out, str, str->size),
                 "Can not convert mli_String to double.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_String_nto_int64(
+chk_rc mli_String_nto_int64(
         int64_t *out,
         const struct mli_String *str,
         const uint64_t base,
@@ -18461,24 +18513,24 @@ int mli_String_nto_int64(
         chk_msg(actual_num_chars == expected_num_chars,
                 "Integer has not the expected number of chars.");
         *out = l;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_String_to_int64(
+chk_rc mli_String_to_int64(
         int64_t *out,
         const struct mli_String *str,
         const uint64_t base)
 {
         chk_msg(mli_String_nto_int64(out, str, base, str->size),
                 "Can not convert string to int64.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_String_nto_uint64(
+chk_rc mli_String_nto_uint64(
         uint64_t *out,
         const struct mli_String *str,
         const uint64_t base,
@@ -18488,12 +18540,12 @@ int mli_String_nto_uint64(
         chk(mli_String_nto_int64(&tmp, str, base, expected_num_chars));
         chk_msg(tmp >= 0, "Expected a positive integer.");
         (*out) = tmp;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_String_to_uint64(
+chk_rc mli_String_to_uint64(
         uint64_t *out,
         const struct mli_String *str,
         const uint64_t base)
@@ -18502,12 +18554,22 @@ int mli_String_to_uint64(
         chk(mli_String_to_int64(&tmp, str, base));
         chk_msg(tmp >= 0, "Expected a positive integer.");
         (*out) = tmp;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_String_reverse_print_uint64(
+chk_rc mli_String_to_uint32(uint32_t *out, const struct mli_String *str)
+{
+        uint64_t u = 0;
+        chk(mli_String_to_uint64(&u, str, 10));
+        (*out) = (uint32_t)u;
+        return CHK_SUCCESS;
+chk_error:
+        return CHK_FAIL;
+}
+
+chk_rc mli_String_reverse_print_uint64(
         const uint64_t u,
         struct mli_String *str,
         const uint64_t base)
@@ -18545,13 +18607,13 @@ int mli_String_reverse_print_uint64(
                 chk_msg(str->size < 127, "Exceeded max_num_chars.");
         } while (quotient > 0u);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(str);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_String_print_uint64(
+chk_rc mli_String_print_uint64(
         const uint64_t u,
         struct mli_String *str,
         const uint64_t base,
@@ -18589,11 +18651,11 @@ int mli_String_print_uint64(
         }
 
         mli_String_free(&tmp);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         /*mli_String_free(str);*/
         mli_String_free(&tmp);
-        return 0;
+        return CHK_FAIL;
 }
 
 /* string_serialize */
@@ -18601,19 +18663,19 @@ chk_error:
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_String_to_io(const struct mli_String *self, struct mli_IO *f)
+chk_rc mli_String_to_io(const struct mli_String *self, struct mli_IO *f)
 {
         struct mli_MagicId magic = mli_MagicId_init();
         chk(mli_MagicId_set(&magic, "mli_String"));
         chk_IO_write(&magic, sizeof(struct mli_MagicId), 1u, f);
         chk_IO_write(&self->size, sizeof(uint64_t), 1u, f);
         chk_IO_write(self->array, sizeof(char), self->size, f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_String_from_io(struct mli_String *self, struct mli_IO *f)
+chk_rc mli_String_from_io(struct mli_String *self, struct mli_IO *f)
 {
         uint64_t size;
         struct mli_MagicId magic;
@@ -18624,9 +18686,9 @@ int mli_String_from_io(struct mli_String *self, struct mli_IO *f)
         chk(mli_String_malloc(self, size));
         self->size = size;
         chk_IO_read(self->array, sizeof(char), self->size, f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* string_vector */
@@ -18654,7 +18716,9 @@ void mli_Surface_free(struct mli_Surface *self)
         (*self) = mli_Surface_init();
 }
 
-int mli_Surface_equal(const struct mli_Surface *a, const struct mli_Surface *b)
+mli_bool mli_Surface_equal(
+        const struct mli_Surface *a,
+        const struct mli_Surface *b)
 {
         chk_msg(a->type == b->type, "Different types of surface models.");
         chk_msg(mli_String_equal(&a->name, &b->name),
@@ -18675,45 +18739,12 @@ int mli_Surface_equal(const struct mli_Surface *a, const struct mli_Surface *b)
                 chk_badf(("surface-type-id '%lu' is unknown.", a->type));
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Surface_type_to_string(const uint64_t type, struct mli_String *s)
-{
-        switch (type) {
-        case MLI_SURFACE_TYPE_TRANSPARENT:
-                chk(mli_String_from_cstr(s, "transparent"));
-                break;
-        case MLI_SURFACE_TYPE_COOKTORRANCE:
-                chk(mli_String_from_cstr(s, "cook-torrance"));
-                break;
-        default:
-                chk_badf(("surface-type-id '%lu' is unknown.", type));
-        }
-        return 1;
-chk_error:
-        return 0;
-}
-
-int mli_Surface_type_from_string(const struct mli_String *s, uint64_t *id)
-{
-        if (mli_String_equal_cstr(s, "transparent")) {
-                (*id) = MLI_SURFACE_TYPE_TRANSPARENT;
-                return 1;
-        } else if (mli_String_equal_cstr(s, "cook-torrance")) {
-                (*id) = MLI_SURFACE_TYPE_COOKTORRANCE;
-                return 1;
-        } else {
-                chk_badf(("surface-type-string '%s' is unknown.", s->array));
-        }
-        return 1;
-chk_error:
-        return 0;
-}
-
-int mli_Surface_to_io(const struct mli_Surface *self, struct mli_IO *f)
+chk_rc mli_Surface_to_io(const struct mli_Surface *self, struct mli_IO *f)
 {
         struct mli_MagicId magic = mli_MagicId_init();
         chk(mli_MagicId_set(&magic, "mli_Surface"));
@@ -18737,12 +18768,12 @@ int mli_Surface_to_io(const struct mli_Surface *self, struct mli_IO *f)
         default:
                 chk_badf(("surface-type-id '%lu' is unknown.", self->type));
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Surface_from_io(struct mli_Surface *self, struct mli_IO *f)
+chk_rc mli_Surface_from_io(struct mli_Surface *self, struct mli_IO *f)
 {
         struct mli_MagicId magic;
         chk_IO_read(&magic, sizeof(struct mli_MagicId), 1u, f);
@@ -18767,12 +18798,12 @@ int mli_Surface_from_io(struct mli_Surface *self, struct mli_IO *f)
         default:
                 chk_badf(("surface-type-id '%lu' is unknown.", self->type));
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Surface_from_json_string_and_name(
+chk_rc mli_Surface_from_json_string_and_name(
         struct mli_Surface *self,
         const struct mli_Map *spectra_names,
         const struct mli_String *json_string,
@@ -18819,12 +18850,12 @@ int mli_Surface_from_json_string_and_name(
 
         mli_String_free(&key);
         mli_Json_free(&json);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Surface_valid_wrt_materials(
+chk_rc mli_Surface_valid_wrt_materials(
         const struct mli_Surface *self,
         const struct mli_Materials *materials)
 {
@@ -18845,9 +18876,9 @@ int mli_Surface_valid_wrt_materials(
                 chk_badf(("surface-type-id '%lu' is unknown.", self->type));
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* surface_array */
@@ -18864,26 +18895,26 @@ MLI_ARRAY_IMPLEMENTATION_FREE(
 
 /* Copyright 2018-2024 Sebastian Achim Mueller */
 
-int mli_Surface_CookTorrance_equal(
+mli_bool mli_Surface_CookTorrance_equal(
         const struct mli_Surface_CookTorrance *a,
         const struct mli_Surface_CookTorrance *b)
 {
         if (a->reflection_spectrum != b->reflection_spectrum) {
-                return 0;
+                return MLI_FALSE;
         }
         if (a->diffuse_weight != b->diffuse_weight) {
-                return 0;
+                return MLI_FALSE;
         }
         if (a->specular_weight != b->specular_weight) {
-                return 0;
+                return MLI_FALSE;
         }
         if (a->roughness != b->roughness) {
-                return 0;
+                return MLI_FALSE;
         }
-        return 1;
+        return MLI_TRUE;
 }
 
-int mli_Surface_CookTorrance_to_io(
+chk_rc mli_Surface_CookTorrance_to_io(
         const struct mli_Surface_CookTorrance *self,
         struct mli_IO *f)
 {
@@ -18896,12 +18927,12 @@ int mli_Surface_CookTorrance_to_io(
         chk_IO_write(&self->specular_weight, sizeof(double), 1u, f);
         chk_IO_write(&self->roughness, sizeof(double), 1u, f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Surface_CookTorrance_from_io(
+chk_rc mli_Surface_CookTorrance_from_io(
         struct mli_Surface_CookTorrance *self,
         struct mli_IO *f)
 {
@@ -18915,12 +18946,12 @@ int mli_Surface_CookTorrance_from_io(
         chk_IO_read(&self->specular_weight, sizeof(double), 1u, f);
         chk_IO_read(&self->roughness, sizeof(double), 1u, f);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Surface_CookTorrance_from_json_string(
+chk_rc mli_Surface_CookTorrance_from_json_string(
         struct mli_Surface_CookTorrance *self,
         const struct mli_Map *spectra_names,
         const struct mli_String *json_string)
@@ -18962,12 +18993,12 @@ int mli_Surface_CookTorrance_from_json_string(
         mli_String_free(&key);
         mli_Json_free(&json);
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Surface_CookTorrance_valid_wrt_materials(
+chk_rc mli_Surface_CookTorrance_valid_wrt_materials(
         const struct mli_Surface_CookTorrance *self,
         const struct mli_Materials *materials)
 {
@@ -18988,9 +19019,9 @@ int mli_Surface_CookTorrance_valid_wrt_materials(
         chk_msg(self->roughness >= 0.0, "Expected roughness >= 0.0");
         chk_msg(self->roughness <= 1.0, "Expected roughness <= 1.0");
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* surface_transparent */
@@ -18998,17 +19029,17 @@ chk_error:
 
 /* Copyright 2018-2024 Sebastian Achim Mueller */
 
-int mli_Surface_Transparent_equal(
+mli_bool mli_Surface_Transparent_equal(
         const struct mli_Surface_Transparent *a,
         const struct mli_Surface_Transparent *b)
 {
         if (a->nothing != b->nothing) {
-                return 0;
+                return MLI_FALSE;
         }
-        return 1;
+        return MLI_TRUE;
 }
 
-int mli_Surface_Transparent_to_io(
+chk_rc mli_Surface_Transparent_to_io(
         const struct mli_Surface_Transparent *self,
         struct mli_IO *f)
 {
@@ -19016,12 +19047,12 @@ int mli_Surface_Transparent_to_io(
         chk(mli_MagicId_set(&magic, "mli_Surface_Transparent"));
         chk_IO_write(&magic, sizeof(struct mli_MagicId), 1u, f);
         chk_IO_write(&self->nothing, sizeof(uint64_t), 1u, f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Surface_Transparent_from_io(
+chk_rc mli_Surface_Transparent_from_io(
         struct mli_Surface_Transparent *self,
         struct mli_IO *f)
 {
@@ -19030,12 +19061,12 @@ int mli_Surface_Transparent_from_io(
         chk(mli_MagicId_has_word(&magic, "mli_Surface_Transparent"));
         mli_MagicId_warn_version(&magic);
         chk_IO_read(&self->nothing, sizeof(uint64_t), 1u, f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Surface_Transparent_from_json_string(
+chk_rc mli_Surface_Transparent_from_json_string(
         struct mli_Surface_Transparent *self,
         const struct mli_Map *spectra_names,
         const struct mli_String *json_string)
@@ -19045,20 +19076,58 @@ int mli_Surface_Transparent_from_json_string(
 
         self->nothing = 0;
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Surface_Transparent_valid_wrt_materials(
+chk_rc mli_Surface_Transparent_valid_wrt_materials(
         const struct mli_Surface_Transparent *self,
         const struct mli_Materials *materials)
 {
         chk(self);
         chk(materials);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
+}
+
+/* surface_type */
+/* ------------ */
+
+/* Copyright 2018-2024 Sebastian Achim Mueller */
+
+chk_rc mli_Surface_type_to_string(const uint64_t type, struct mli_String *s)
+{
+        switch (type) {
+        case MLI_SURFACE_TYPE_TRANSPARENT:
+                chk(mli_String_from_cstr(s, "transparent"));
+                break;
+        case MLI_SURFACE_TYPE_COOKTORRANCE:
+                chk(mli_String_from_cstr(s, "cook-torrance"));
+                break;
+        default:
+                chk_badf(("surface-type-id '%lu' is unknown.", type));
+        }
+        return CHK_SUCCESS;
+chk_error:
+        return CHK_FAIL;
+}
+
+chk_rc mli_Surface_type_from_string(const struct mli_String *s, uint64_t *id)
+{
+        if (mli_String_equal_cstr(s, "transparent")) {
+                (*id) = MLI_SURFACE_TYPE_TRANSPARENT;
+                return CHK_SUCCESS;
+        } else if (mli_String_equal_cstr(s, "cook-torrance")) {
+                (*id) = MLI_SURFACE_TYPE_COOKTORRANCE;
+                return CHK_SUCCESS;
+        } else {
+                chk_badf(("surface-type-string '%s' is unknown.", s->array));
+        }
+        return CHK_SUCCESS;
+chk_error:
+        return CHK_FAIL;
 }
 
 /* tar */
@@ -19079,7 +19148,7 @@ uint64_t mli_Tar_round_up(uint64_t n, uint64_t incr)
         return n + (incr - n % incr) % incr;
 }
 
-int mli_Tar_field_to_uint(
+chk_rc mli_Tar_field_to_uint(
         uint64_t *out,
         const char *field,
         const uint64_t fieldsize)
@@ -19099,24 +19168,24 @@ int mli_Tar_field_to_uint(
         }
 
         chk(mli_cstr_to_uint64(out, buff, MLI_TAR_OCTAL));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_uint_to_field(
+chk_rc mli_Tar_uint_to_field(
         const uint64_t val,
         char *field,
         const uint64_t fieldsize)
 {
         chk(mli_cstr_print_uint64(
                 val, field, fieldsize, MLI_TAR_OCTAL, fieldsize - 1));
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_uint64_to_field12_2001star_base256(uint64_t val, char *field)
+chk_rc mli_Tar_uint64_to_field12_2001star_base256(uint64_t val, char *field)
 {
         uint8_t tmp[12];
         int64_t i = 0;
@@ -19130,12 +19199,14 @@ int mli_Tar_uint64_to_field12_2001star_base256(uint64_t val, char *field)
         tmp[0] = (uint8_t)128u;
 
         memcpy(field, tmp, 12);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_field12_to_uint64_2001star_base256(const char *field, uint64_t *val)
+chk_rc mli_Tar_field12_to_uint64_2001star_base256(
+        const char *field,
+        uint64_t *val)
 {
         uint8_t tmp[12];
         uint64_t i = 0u;
@@ -19164,9 +19235,9 @@ int mli_Tar_field12_to_uint64_2001star_base256(const char *field, uint64_t *val)
         for (i = 4; i < 12; i++) {
                 (*val) = (*val) + powers[i - 4] * (uint64_t)tmp[i];
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /*                               raw header                                   */
@@ -19187,19 +19258,19 @@ uint64_t mli_TarRawHeader_checksum(const struct mli_TarRawHeader *rh)
         return res;
 }
 
-int mli_TarRawHeader_is_null(const struct mli_TarRawHeader *rh)
+mli_bool mli_TarRawHeader_is_null(const struct mli_TarRawHeader *rh)
 {
         uint64_t i = 0u;
         unsigned char *p = (unsigned char *)rh;
         for (i = 0; i < sizeof(struct mli_TarRawHeader); i++) {
                 if (p[i] != '\0') {
-                        return 0;
+                        return MLI_FALSE;
                 }
         }
-        return 1;
+        return MLI_TRUE;
 }
 
-int mli_TarRawHeader_from_header(
+chk_rc mli_TarRawHeader_from_header(
         struct mli_TarRawHeader *rh,
         const struct mli_TarHeader *h)
 {
@@ -19243,9 +19314,9 @@ int mli_TarRawHeader_from_header(
         chk_msg(rh->checksum[sizeof(rh->checksum) - 1] == 32,
                 "Last char in checksum must be ' ', i.e. 32(decimal).");
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /*                                  header                                    */
@@ -19264,19 +19335,19 @@ struct mli_TarHeader mli_TarHeader_init(void)
         return h;
 }
 
-int mli_TarHeader_set_directory(struct mli_TarHeader *h, const char *name)
+chk_rc mli_TarHeader_set_directory(struct mli_TarHeader *h, const char *name)
 {
         (*h) = mli_TarHeader_init();
         chk_msg(strlen(name) < sizeof(h->name), "Dirname is too long.");
         memcpy(h->name, name, strlen(name));
         h->type = MLI_TAR_DIRECTORY;
         h->mode = 0775;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_TarHeader_set_normal_file(
+chk_rc mli_TarHeader_set_normal_file(
         struct mli_TarHeader *h,
         const char *name,
         const uint64_t size)
@@ -19287,12 +19358,12 @@ int mli_TarHeader_set_normal_file(
         h->size = size;
         h->type = MLI_TAR_NORMAL_FILE;
         h->mode = 0664;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_TarHeader_from_raw(
+chk_rc mli_TarHeader_from_raw(
         struct mli_TarHeader *h,
         const struct mli_TarRawHeader *rh)
 {
@@ -19325,9 +19396,9 @@ int mli_TarHeader_from_raw(
         memcpy(h->name, rh->name, sizeof(h->name));
         memcpy(h->linkname, rh->linkname, sizeof(h->linkname));
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* tar */
@@ -19345,7 +19416,7 @@ struct mli_Tar mli_Tar_init(void)
 /*                                 read                                       */
 /* ========================================================================== */
 
-int mli_Tar_read_begin(struct mli_Tar *tar, struct mli_IO *stream)
+chk_rc mli_Tar_read_begin(struct mli_Tar *tar, struct mli_IO *stream)
 {
         chk_msg(tar->stream == NULL,
                 "Can't begin reading tar. "
@@ -19353,23 +19424,23 @@ int mli_Tar_read_begin(struct mli_Tar *tar, struct mli_IO *stream)
         (*tar) = mli_Tar_init();
         tar->stream = stream;
         chk_msg(tar->stream, "Can't begin reading tar. Tar->stream is NULL.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_tread(struct mli_Tar *tar, void *data, const uint64_t size)
+chk_rc mli_Tar_tread(struct mli_Tar *tar, void *data, const uint64_t size)
 {
         int64_t res = mli_IO_read(data, 1, size, tar->stream);
         chk_msg(res >= 0, "Failed reading from tar.");
         chk_msg((uint64_t)res == size, "Failed reading from tar.");
         tar->pos += size;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_read_header(struct mli_Tar *tar, struct mli_TarHeader *h)
+chk_rc mli_Tar_read_header(struct mli_Tar *tar, struct mli_TarHeader *h)
 {
         struct mli_TarRawHeader rh;
 
@@ -19378,17 +19449,17 @@ int mli_Tar_read_header(struct mli_Tar *tar, struct mli_TarHeader *h)
 
         if (mli_TarRawHeader_is_null(&rh)) {
                 (*h) = mli_TarHeader_init();
-                return 0;
+                return CHK_FAIL;
         }
 
         chk_msg(mli_TarHeader_from_raw(h, &rh), "Failed to parse raw header.");
         tar->remaining_data = h->size;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_read_data(struct mli_Tar *tar, void *ptr, uint64_t size)
+chk_rc mli_Tar_read_data(struct mli_Tar *tar, void *ptr, uint64_t size)
 {
         chk_msg(tar->remaining_data >= size,
                 "Expect size to be read >= remaining_data");
@@ -19408,12 +19479,12 @@ int mli_Tar_read_data(struct mli_Tar *tar, void *ptr, uint64_t size)
                 }
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_read_finalize(struct mli_Tar *tar)
+chk_rc mli_Tar_read_finalize(struct mli_Tar *tar)
 {
         struct mli_TarHeader h = mli_TarHeader_init();
         chk_msg(mli_Tar_read_header(tar, &h) == 0,
@@ -19425,15 +19496,15 @@ int mli_Tar_read_finalize(struct mli_Tar *tar)
         chk(h.type == 0);
         chk(h.name[0] == '\0');
         chk(h.linkname[0] == '\0');
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /*                                  write                                     */
 /* ========================================================================== */
 
-int mli_Tar_write_begin(struct mli_Tar *tar, struct mli_IO *stream)
+chk_rc mli_Tar_write_begin(struct mli_Tar *tar, struct mli_IO *stream)
 {
         chk_msg(tar->stream == NULL,
                 "Can't begin writing tar. "
@@ -19441,23 +19512,26 @@ int mli_Tar_write_begin(struct mli_Tar *tar, struct mli_IO *stream)
         (*tar) = mli_Tar_init();
         tar->stream = stream;
         chk_msg(tar->stream, "Can't begin writing tar. Tar->stream is NULL.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_twrite(struct mli_Tar *tar, const void *data, const uint64_t size)
+chk_rc mli_Tar_twrite(
+        struct mli_Tar *tar,
+        const void *data,
+        const uint64_t size)
 {
         int64_t res = mli_IO_write(data, 1, size, tar->stream);
         chk_msg(res >= 0, "Failed writing to tar.");
         chk_msg((uint64_t)res == size, "Failed writing to tar.");
         tar->pos += size;
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_write_header(struct mli_Tar *tar, const struct mli_TarHeader *h)
+chk_rc mli_Tar_write_header(struct mli_Tar *tar, const struct mli_TarHeader *h)
 {
         struct mli_TarRawHeader rh;
         chk_msg(mli_TarRawHeader_from_header(&rh, h),
@@ -19465,24 +19539,24 @@ int mli_Tar_write_header(struct mli_Tar *tar, const struct mli_TarHeader *h)
         tar->remaining_data = h->size;
         chk_msg(mli_Tar_twrite(tar, &rh, sizeof(rh)),
                 "Failed to write header.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_write_null_bytes(struct mli_Tar *tar, uint64_t n)
+chk_rc mli_Tar_write_null_bytes(struct mli_Tar *tar, uint64_t n)
 {
         uint64_t i;
         char nul = '\0';
         for (i = 0; i < n; i++) {
                 chk_msg(mli_Tar_twrite(tar, &nul, 1), "Failed to write nulls");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_write_data(struct mli_Tar *tar, const void *data, uint64_t size)
+chk_rc mli_Tar_write_data(struct mli_Tar *tar, const void *data, uint64_t size)
 {
         chk_msg(tar->remaining_data >= size,
                 "Expect tar->remaining_data >= size to be written.");
@@ -19496,19 +19570,19 @@ int mli_Tar_write_data(struct mli_Tar *tar, const void *data, uint64_t size)
                 chk_msg(mli_Tar_write_null_bytes(tar, padding_size),
                         "Failed to write padding zeros.");
         }
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_write_finalize(struct mli_Tar *tar)
+chk_rc mli_Tar_write_finalize(struct mli_Tar *tar)
 {
         chk_msg(mli_Tar_write_null_bytes(
                         tar, sizeof(struct mli_TarRawHeader) * 2),
                 "Failed to write two final null records.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* tar_io */
@@ -19516,7 +19590,7 @@ chk_error:
 
 /* Copyright 2018-2024 Sebastian Achim Mueller */
 
-int mli_Tar_read_data_to_IO(
+chk_rc mli_Tar_read_data_to_IO(
         struct mli_Tar *tar,
         struct mli_IO *buff,
         const uint64_t size)
@@ -19528,12 +19602,12 @@ int mli_Tar_read_data_to_IO(
                 chk(mli_IO_write((void *)(&c), sizeof(unsigned char), 1, buff));
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Tar_write_data_from_IO(
+chk_rc mli_Tar_write_data_from_IO(
         struct mli_Tar *tar,
         struct mli_IO *buff,
         const uint64_t size)
@@ -19546,9 +19620,9 @@ int mli_Tar_write_data_from_IO(
                 chk(mli_Tar_write_data(tar, (void *)(&c), 1));
         }
 
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* thin_lens */
@@ -19987,7 +20061,7 @@ struct mli_Triangle mli_Triangle_set_in_norm_aabb(
         return tri;
 }
 
-int mli_Triangle_has_overlap_aabb(
+mli_bool mli_Triangle_has_overlap_aabb(
         const struct mli_Vec a,
         const struct mli_Vec b,
         const struct mli_Vec c,
@@ -19995,9 +20069,9 @@ int mli_Triangle_has_overlap_aabb(
 {
         struct mli_Triangle tri = mli_Triangle_set_in_norm_aabb(a, b, c, aabb);
         if (mli_Triangle_intersects_norm_aabb(tri) == MLI_TRIANGLE_INSIDE)
-                return 1;
+                return MLI_TRUE;
         else
-                return 0;
+                return MLI_FALSE;
 }
 
 struct mli_AABB mli_Triangle_aabb(
@@ -20091,7 +20165,7 @@ struct mli_triangle_BarycentrigWeights mli_triangle_barycentric_weights(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Ray_intersects_triangle(
+mli_bool mli_Ray_intersects_triangle(
         const struct mli_Ray ray,
         const struct mli_Vec vertex_a,
         const struct mli_Vec vertex_b,
@@ -20109,26 +20183,26 @@ int mli_Ray_intersects_triangle(
         a = mli_Vec_dot(edge1, h);
 
         if (a > -MLI_MATH_EPSILON && a < MLI_MATH_EPSILON)
-                return 0; /* This ray is parallel to this triangle. */
+                return MLI_FALSE; /* This ray is parallel to this triangle. */
         f = 1.0 / a;
         s = mli_Vec_substract(ray.support, vertex_a);
         u = f * mli_Vec_dot(s, h);
         if (u < 0.0 || u > 1.0)
-                return 0;
+                return MLI_FALSE;
         q = mli_Vec_cross(s, edge1);
         v = f * mli_Vec_dot(ray.direction, q);
         if (v < 0.0 || u + v > 1.0)
-                return 0;
+                return MLI_FALSE;
         /* At this stage we can compute t to find out where the intersection */
         /* point is on the line. */
         t = f * mli_Vec_dot(edge2, q);
         if (t > MLI_MATH_EPSILON) {
                 (*intersection_ray_parameter) = t;
-                return 1;
+                return MLI_TRUE;
         } else {
                 /* This means that there is a line intersection but not a */
                 /* ray intersection. */
-                return 0;
+                return MLI_FALSE;
         }
 }
 
@@ -20328,7 +20402,7 @@ struct mli_Vec mli_Vec_mirror(
         return out;
 }
 
-int mli_Vec_equal_margin(
+mli_bool mli_Vec_equal_margin(
         const struct mli_Vec a,
         const struct mli_Vec b,
         const double distance_margin)
@@ -20340,15 +20414,15 @@ int mli_Vec_equal_margin(
         return distance_squared <= distance_margin * distance_margin;
 }
 
-int mli_Vec_equal(const struct mli_Vec a, const struct mli_Vec b)
+mli_bool mli_Vec_equal(const struct mli_Vec a, const struct mli_Vec b)
 {
         if (fabs(a.x - b.x) > DBL_EPSILON)
-                return 0;
+                return MLI_FALSE;
         if (fabs(a.y - b.y) > DBL_EPSILON)
-                return 0;
+                return MLI_FALSE;
         if (fabs(a.z - b.z) > DBL_EPSILON)
-                return 0;
-        return 1;
+                return MLI_FALSE;
+        return MLI_TRUE;
 }
 
 uint32_t mli_Vec_octant(const struct mli_Vec a)
@@ -20371,19 +20445,19 @@ uint32_t mli_Vec_octant(const struct mli_Vec a)
         return 4 * sx + 2 * sy + 1 * sz;
 }
 
-int mli_Vec_sign3_bitmask(const struct mli_Vec a, const double epsilon)
+int64_t mli_Vec_sign3_bitmask(const struct mli_Vec a, const double epsilon)
 {
         /* bits: 7  6  5  4  3  2  1  0  */
         /*             xp yp zp xn yn zn */
 
-        const int xn = a.x < epsilon ? 4 : 0;   /* 2**2 */
-        const int xp = a.x > -epsilon ? 32 : 0; /* 2**5 */
+        const int64_t xn = a.x < epsilon ? 4 : 0;   /* 2**2 */
+        const int64_t xp = a.x > -epsilon ? 32 : 0; /* 2**5 */
 
-        const int yn = a.y < epsilon ? 2 : 0;   /* 2**1 */
-        const int yp = a.y > -epsilon ? 16 : 0; /* 2**4 */
+        const int64_t yn = a.y < epsilon ? 2 : 0;   /* 2**1 */
+        const int64_t yp = a.y > -epsilon ? 16 : 0; /* 2**4 */
 
-        const int zn = a.z < epsilon ? 1 : 0;  /* 2**0 */
-        const int zp = a.z > -epsilon ? 8 : 0; /* 2**3 */
+        const int64_t zn = a.z < epsilon ? 1 : 0;  /* 2**0 */
+        const int64_t zp = a.z > -epsilon ? 8 : 0; /* 2**3 */
 
         return (xn | xp | yn | yp | zn | zp);
 }
@@ -20441,16 +20515,16 @@ double mli_Vec_get(const struct mli_Vec *a, const uint64_t dim)
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Vec_overlap_aabb(
+mli_bool mli_Vec_overlap_aabb(
         const struct mli_Vec a,
         const struct mli_Vec aabb_lower,
         const struct mli_Vec aabb_upper)
 {
         if (a.x >= aabb_lower.x && a.x <= aabb_upper.x && a.y >= aabb_lower.y &&
             a.y <= aabb_upper.y && a.z >= aabb_lower.z && a.z <= aabb_upper.z) {
-                return 1;
+                return MLI_TRUE;
         } else {
-                return 0;
+                return MLI_FALSE;
         }
 }
 
@@ -20459,7 +20533,7 @@ int mli_Vec_overlap_aabb(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-int mli_Vec_from_json_token(
+chk_rc mli_Vec_from_json_token(
         struct mli_Vec *v,
         const struct mli_Json *json,
         const uint64_t token)
@@ -20474,9 +20548,9 @@ int mli_Vec_from_json_token(
                 "Can not parse mli_Vec y-value.");
         chk_msg(mli_Json_double_by_token(json, token + 3, &v->z),
                 "Can not parse mli_Vec z-value.");
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
 /* vec_random */
@@ -20773,9 +20847,11 @@ void mli_viewer_print_help(void)
         printf("    - altitude        [  4  ]     earlier daytime   [  8  ]\n");
         printf("    + altitude        [  5  ]     + latitude        [  7  ]\n");
         printf("                                  - latitude        [  6  ]\n");
-        printf("  Gamma                                                    \n");
-        printf("    + increase        [  x  ]                              \n");
-        printf("    - decrease        [  z  ]                              \n");
+        printf("  Colors                                                   \n");
+        printf("    + gamma           [  x  ]                              \n");
+        printf("    - gamma           [  z  ]                              \n");
+        printf("    + gain            [  .  ]                              \n");
+        printf("    - gain            [  ,  ]                              \n");
         printf("\n");
         mli_version_authors_and_affiliations_fprint(stdout);
 }
@@ -20784,7 +20860,8 @@ void mli_viewer_print_info_line(
         const struct mli_View view,
         const struct mli_viewer_Cursor cursor,
         const struct mli_pathtracer_Config tracer_config,
-        const double gamma)
+        const double gamma,
+        const double gain)
 {
         printf("Help 'h', "
                "Cam: "
@@ -20799,6 +20876,7 @@ void mli_viewer_print_info_line(
                mli_math_rad2deg(view.rotation.z),
                mli_math_rad2deg(view.field_of_view));
         printf("gamma %.2f, ", gamma);
+        printf("gain %.2f, ", gain);
         printf("Sun: lat % 3.0fdeg, %02d:%02dh, alt % 3.1fkm",
                mli_math_rad2deg(tracer_config.atmosphere.sunLatitude),
                (int)(tracer_config.atmosphere.sunHourAngle),
@@ -20825,11 +20903,11 @@ void mli_viewer_timestamp_now_19chars(char *buffer)
                 nowtm->tm_sec);
 }
 
-int mli_viewer_get_key(void)
+mli_key_code mli_viewer_get_key(void)
 {
         /* Waits for keystroke and returns ascii-code.
          */
-        const int key = getchar();
+        const mli_key_code key = getchar();
         if (key == EOF) {
                 /* In case of EOF, return EOF */
                 return key;
@@ -20839,26 +20917,28 @@ int mli_viewer_get_key(void)
         }
 }
 
-int mli_viewer_image_to_path(const struct mli_Image *img, const char *path)
+chk_rc mli_viewer_image_to_path(const struct mli_Image *img, const char *path)
 {
         struct mli_IO f = mli_IO_init();
-        chk_msg(mli_IO__open_file_cstr(&f, path, "w"),
+        chk_msg(mli_IO_open_file_cstr(&f, path, "w"),
                 "Can't open path to write image.");
-        chk_msg(mli_Image_to_io(img, &f), "Can't write image to file.");
+        chk_msg(mli_Image_to_io(img, &f, MLI_IMAGE_PPM_COLOR_DEPTH_16BIT),
+                "Can't write image to file.");
         mli_IO_close(&f);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_IO_close(&f);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_viewer_export_image(
+chk_rc mli_viewer_export_image(
         const struct mli_PathTracer *tracer,
         const struct mli_viewer_Config config,
         const struct mli_View view,
         struct mli_Prng *prng,
         const double object_distance,
         const double gamma,
+        const double gain,
         const char *path)
 {
         struct mli_Image full = mli_Image_init();
@@ -20884,22 +20964,23 @@ int mli_viewer_export_image(
         apcam.image_sensor_width_y = apcam.image_sensor_width_x / image_ratio;
         mli_camera_Aperture_render_image(
                 apcam, camera2root_comp, tracer, &full, prng);
+        mli_Image_multiply(&full, mli_Color_set(gain, gain, gain));
         mli_Image_power(&full, mli_Color_set(gamma, gamma, gamma));
         chk_msg(mli_viewer_image_to_path(&full, path), "Failed to write ppm.");
         mli_Image_free(&full);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_viewer_run_interactive_viewer_try_non_canonical_stdin(
+chk_rc mli_viewer_run_interactive_viewer_try_non_canonical_stdin(
         const struct mli_Scenery *scenery,
         const struct mli_viewer_Config config)
 {
 #ifdef HAVE_TERMIOS_H
         struct termios old_terminal = mli_viewer_non_canonical_stdin();
 #endif
-        int rc = mli_viewer_run_interactive_viewer(scenery, config);
+        chk_rc rc = mli_viewer_run_interactive_viewer(scenery, config);
 
 #ifdef HAVE_TERMIOS_H
         mli_viewer_restore_stdin(&old_terminal);
@@ -20907,7 +20988,7 @@ int mli_viewer_run_interactive_viewer_try_non_canonical_stdin(
         return rc;
 }
 
-int mli_viewer_run_interactive_viewer(
+chk_rc mli_viewer_run_interactive_viewer(
         const struct mli_Scenery *scenery,
         const struct mli_viewer_Config config)
 {
@@ -20917,8 +20998,8 @@ int mli_viewer_run_interactive_viewer(
         struct mli_PathTracer tracer = mli_pathtracer_init();
         struct mli_ColorMaterials color_materials = mli_ColorMaterials_init();
         char path[1024];
-        int key;
-        int super_resolution = 0;
+        mli_key_code key;
+        mli_bool super_resolution = MLI_FALSE;
         struct mli_viewer_Cursor cursor;
         uint64_t num_screenshots = 0;
         uint64_t print_mode = MLI_ASCII_MONOCHROME;
@@ -20928,12 +21009,13 @@ int mli_viewer_run_interactive_viewer(
         struct mli_Image img_gamma = mli_Image_init();
         struct mli_Image img2 = mli_Image_init();
         const double row_over_column_pixel_ratio = 2.0;
-        int update_image = 1;
-        int print_help = 0;
-        int print_scenery_info = 0;
-        int has_probing_intersection = 0;
+        mli_bool update_image = MLI_TRUE;
+        mli_bool print_help = MLI_FALSE;
+        mli_bool print_scenery_info = MLI_FALSE;
+        mli_bool has_probing_intersection = MLI_FALSE;
         struct mli_IntersectionSurfaceNormal probing_intersection;
         double gamma = config.gamma;
+        double gain = config.gain;
 
         chk_msg(mli_ColorMaterials_malloc_from_Materials(
                         &color_materials, &scenery->materials),
@@ -20959,12 +21041,12 @@ int mli_viewer_run_interactive_viewer(
         goto show_image;
 
         while ((key = mli_viewer_get_key()) != MLI_VIEWER_ESCAPE_KEY) {
-                update_image = 1;
-                print_help = 0;
-                print_scenery_info = 0;
+                update_image = MLI_TRUE;
+                print_help = MLI_FALSE;
+                print_scenery_info = MLI_FALSE;
                 if (cursor.active) {
-                        update_image = 0;
-                        super_resolution = 0;
+                        update_image = MLI_FALSE;
+                        super_resolution = MLI_FALSE;
                         switch (key) {
                         case 'i':
                                 mli_viewer_Cursor_move_up(&cursor);
@@ -20982,7 +21064,7 @@ int mli_viewer_run_interactive_viewer(
                                 cursor.active = !cursor.active;
                                 break;
                         case 'h':
-                                print_help = 1;
+                                print_help = MLI_TRUE;
                                 break;
                         case MLI_VIEWER_SPACE_KEY:
                                 sprintf(path,
@@ -20997,8 +21079,9 @@ int mli_viewer_run_interactive_viewer(
                                         &prng,
                                         probing_intersection.distance_of_ray,
                                         gamma,
+                                        gain,
                                         path));
-                                update_image = 0;
+                                update_image = MLI_FALSE;
                                 break;
                         default:
                                 printf("Key Press unknown: %d\n", key);
@@ -21051,15 +21134,15 @@ int mli_viewer_run_interactive_viewer(
                                 view = mli_View_increase_fov(view, 1.05);
                                 break;
                         case 'h':
-                                print_help = 1;
-                                update_image = 0;
+                                print_help = MLI_TRUE;
+                                update_image = MLI_FALSE;
                                 break;
                         case 'b':
                                 super_resolution = !super_resolution;
                                 break;
                         case 'c':
                                 cursor.active = !cursor.active;
-                                update_image = 0;
+                                update_image = MLI_FALSE;
                                 break;
                         case MLI_VIEWER_SPACE_KEY:
                                 printf("Go into cursor-mode first.\n");
@@ -21075,8 +21158,8 @@ int mli_viewer_run_interactive_viewer(
                                 }
                                 break;
                         case 'p':
-                                print_scenery_info = 1;
-                                update_image = 0;
+                                print_scenery_info = MLI_TRUE;
+                                update_image = MLI_FALSE;
                                 break;
 
                         case '4':
@@ -21115,9 +21198,15 @@ int mli_viewer_run_interactive_viewer(
                         case 'z':
                                 gamma *= 0.95;
                                 break;
+                        case '.':
+                                gain *= 1.05;
+                                break;
+                        case ',':
+                                gain *= 0.95;
+                                break;
                         default:
                                 printf("Key Press unknown: %d\n", key);
-                                update_image = 0;
+                                update_image = MLI_FALSE;
                                 break;
                         }
                 }
@@ -21140,6 +21229,8 @@ int mli_viewer_run_interactive_viewer(
                                         &prng);
                         }
                         chk(mli_Image_copy(&img, &img_gamma));
+                        mli_Image_multiply(
+                                &img_gamma, mli_Color_set(gain, gain, gain));
                         mli_Image_power(
                                 &img_gamma, mli_Color_set(gamma, gamma, gamma));
                 }
@@ -21195,7 +21286,8 @@ int mli_viewer_run_interactive_viewer(
                 } else {
                         mli_Image_print(&img_gamma, print_mode);
                 }
-                mli_viewer_print_info_line(view, cursor, tracer_config, gamma);
+                mli_viewer_print_info_line(
+                        view, cursor, tracer_config, gamma, gain);
                 if (cursor.active) {
                         printf("Intersection: ");
                         if (has_probing_intersection) {
@@ -21248,12 +21340,12 @@ int mli_viewer_run_interactive_viewer(
         mli_Image_free(&img);
         mli_Image_free(&img2);
         mli_Image_free(&img_gamma);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_ColorMaterials_free(&color_materials);
         mli_Image_free(&img);
         mli_Image_free(&img2);
         mli_Image_free(&img_gamma);
-        return 0;
+        return CHK_FAIL;
 }
 

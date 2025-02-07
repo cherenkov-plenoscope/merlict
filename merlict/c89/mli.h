@@ -41,8 +41,7 @@ void mli_viewer_Cursor_move_left(struct mli_viewer_Cursor *cursor);
 #define MLI_CORSIKA_EVENTIOHEADER_H_
 
 
-#define MLI_EVENTIO_TOP_LEVEL 1
-#define MLI_EVENTIO_SUB_LEVEL 0
+enum mli_eventio_level { MLI_EVENTIO_TOP_LEVEL = 1, MLI_EVENTIO_SUB_LEVEL = 0 };
 
 struct mliEventIoHeader {
         int is_sync;
@@ -66,6 +65,10 @@ void mliEventIoHeader_fprint(const struct mliEventIoHeader head, FILE *f);
 #ifndef MLI_AVL_TREE_H_
 #define MLI_AVL_TREE_H_
 
+
+#define MLI_AVL_DEPTH_GREW_BY_ONE 1
+#define MLI_AVL_DEPTH_DID_NOT_CHANGE 0
+#define MLI_AVL_DEPTH_SHRUNK_BY_ONE -1
 
 struct mli_Avl {
         struct mli_Avl *left;
@@ -97,6 +100,21 @@ void mli_AvlNode_print(struct mli_Avl *a, int m);
 
 #endif
 
+/* bool */
+/* ---- */
+
+/* Copyright 2018-2020 Sebastian Achim Mueller */
+#ifndef MLI_BOOL_BOOL_H_
+#define MLI_BOOL_BOOL_H_
+
+#define MLI_TRUE 1
+#define MLI_FALSE 0
+#define mli_bool int
+
+char mli_bool_to_char(const mli_bool self);
+
+#endif
+
 /* chk */
 /* --- */
 
@@ -109,6 +127,10 @@ void mli_AvlNode_print(struct mli_Avl *a, int m);
  *  Based on Zed Shawn's awesome Debug Macros from his book:
  *  Learn C the hard way
  */
+
+#define CHK_SUCCESS 1
+#define CHK_FAIL 0
+#define chk_rc int
 
 int chk_eprintf(const char *format, ...);
 
@@ -211,7 +233,7 @@ struct mli_Color {
         float b;
 };
 
-int mli_Color_equal(const struct mli_Color a, const struct mli_Color b);
+mli_bool mli_Color_equal(const struct mli_Color a, const struct mli_Color b);
 struct mli_Color mli_Color_truncate(
         const struct mli_Color color,
         const float start,
@@ -219,12 +241,9 @@ struct mli_Color mli_Color_truncate(
 struct mli_Color mli_Color_mean(
         const struct mli_Color colors[],
         const uint32_t num_colors);
-struct mli_Color mli_Color_mix(
-        const struct mli_Color a,
-        const struct mli_Color b,
-        const float refl);
+
 struct mli_Color mli_Color_set(const float r, const float g, const float b);
-int mli_Color_is_in_range(
+mli_bool mli_Color_is_in_range(
         const struct mli_Color c,
         const float start,
         const float stop);
@@ -234,9 +253,6 @@ struct mli_Color mli_Color_add(
         const struct mli_Color a,
         const struct mli_Color b);
 struct mli_Color mli_Color_multiply(const struct mli_Color c, const double f);
-struct mli_Color mli_Color_multiply_elementwise(
-        const struct mli_Color a,
-        const struct mli_Color b);
 #endif
 
 /* color_spectrum */
@@ -288,11 +304,11 @@ float mli_ColorSpectrum_sum(const struct mli_ColorSpectrum *self);
 
 void mli_ColorSpectrum_set(struct mli_ColorSpectrum *self, const float value);
 
-int mli_ColorSpectrum_set_radiance_of_black_body_W_per_m2_per_sr(
+void mli_ColorSpectrum_set_radiance_of_black_body_W_per_m2_per_sr(
         struct mli_ColorSpectrum *self,
         const double temperature);
 
-int mli_ColorSpectrum_from_func(
+chk_rc mli_ColorSpectrum_from_func(
         struct mli_ColorSpectrum *self,
         const struct mli_ColorSpectrumBinEdges *wavelength_bin_edges,
         const struct mli_Func *func);
@@ -320,17 +336,17 @@ int mli_ColorSpectrum_from_func(
 #define MTL_CSTR_H_
 
 
-int mli_cstr_ends_with(const char *str, const char *sufix);
-int mli_cstr_starts_with(const char *str, const char *prefix);
+mli_bool mli_cstr_ends_with(const char *str, const char *sufix);
+mli_bool mli_cstr_starts_with(const char *str, const char *prefix);
 
-int mli_cstr_is_CRLF(const char *s);
-int mli_cstr_is_CR(const char *s);
-int mli_cstr_assert_only_NUL_LF_TAB_controls(const char *str);
-int mli_cstr_assert_only_NUL_LF_TAB_controls_dbg(
+mli_bool mli_cstr_is_CRLF(const char *s);
+mli_bool mli_cstr_is_CR(const char *s);
+mli_bool mli_cstr_assert_only_NUL_LF_TAB_controls(const char *str);
+mli_bool mli_cstr_assert_only_NUL_LF_TAB_controls__dbg(
         const char *str,
         const int dbg);
 
-int mli_cstr_match_templeate(
+mli_bool mli_cstr_match_templeate(
         const char *s,
         const char *t,
         const char digit_wildcard);
@@ -345,24 +361,24 @@ int mli_cstr_match_templeate(
 #define MTL_CSTR_NUMBERS_H_
 
 
-int mli_cstr_nto_int64(
+chk_rc mli_cstr_nto_int64(
         int64_t *out,
         const char *s,
         const uint64_t base,
         const uint64_t length);
-int mli_cstr_to_int64(int64_t *out, const char *s, const uint64_t base);
+chk_rc mli_cstr_to_int64(int64_t *out, const char *s, const uint64_t base);
 
-int mli_cstr_nto_uint64(
+chk_rc mli_cstr_nto_uint64(
         uint64_t *out,
         const char *s,
         const uint64_t base,
         const uint64_t length);
-int mli_cstr_to_uint64(uint64_t *out, const char *s, const uint64_t base);
+chk_rc mli_cstr_to_uint64(uint64_t *out, const char *s, const uint64_t base);
 
-int mli_cstr_nto_double(double *out, const char *s, const uint64_t length);
-int mli_cstr_to_double(double *out, const char *s);
+chk_rc mli_cstr_nto_double(double *out, const char *s, const uint64_t length);
+chk_rc mli_cstr_to_double(double *out, const char *s);
 
-int mli_cstr_print_uint64(
+chk_rc mli_cstr_print_uint64(
         uint64_t u,
         char *s,
         const uint64_t max_num_chars,
@@ -385,31 +401,20 @@ struct mli_Func {
         double *y;
 };
 
-int mli_Func_equal(const struct mli_Func a, const struct mli_Func b);
-int mli_Func_fold_numeric(
-        const struct mli_Func *a,
-        const struct mli_Func *b,
-        double *fold);
-int mli_Func_fold_numeric_default_closest(
-        const struct mli_Func *a,
-        const struct mli_Func *b,
-        double *fold);
-int mli_Func_evaluate(const struct mli_Func *f, const double xarg, double *out);
-int mli_Func_in_range(const struct mli_Func *f, const double xarg);
-double mli_Func_evaluate_with_default_when_out_of_range(
+mli_bool mli_Func_equal(const struct mli_Func a, const struct mli_Func b);
+
+chk_rc mli_Func_evaluate(
         const struct mli_Func *f,
         const double xarg,
-        const double default_value);
-double mli_Func_evaluate_with_default_closest(
-        const struct mli_Func *f,
-        const double xarg);
-int mli_Func_x_is_strictly_increasing(const struct mli_Func *f);
-int mli_Func_malloc(struct mli_Func *f, const uint64_t num_points);
+        double *out);
+mli_bool mli_Func_in_range(const struct mli_Func *f, const double xarg);
+mli_bool mli_Func_x_is_strictly_increasing(const struct mli_Func *f);
+chk_rc mli_Func_malloc(struct mli_Func *f, const uint64_t num_points);
 void mli_Func_free(struct mli_Func *f);
 struct mli_Func mli_Func_init(void);
-int mli_Func_is_valid(const struct mli_Func *func);
+mli_bool mli_Func_is_valid(const struct mli_Func *func);
 
-int mli_Func_malloc_constant(
+mli_bool mli_Func_malloc_constant(
         struct mli_Func *self,
         const double start,
         const double stop,
@@ -433,7 +438,7 @@ struct mli_Func_fprint_Config {
         int y_num;
 };
 
-int mli_Func_fprint(
+chk_rc mli_Func_fprint(
         FILE *f,
         const struct mli_Func *func,
         struct mli_Func_fprint_Config plot);
@@ -467,12 +472,12 @@ struct mli_Frame;
 struct mli_Geometry;
 struct mli_GeometryToMaterialMap;
 
-int mli_Geometry_set_robjects_and_material_map_from_frame(
+chk_rc mli_Geometry_set_robjects_and_material_map_from_frame(
         const struct mli_Frame *frame,
         struct mli_Geometry *geometry,
         struct mli_GeometryToMaterialMap *geomap);
 
-int mli_Geometry__set_robjects_and_material_map_from_frame_walk(
+chk_rc mli_Geometry__set_robjects_and_material_map_from_frame_walk(
         const struct mli_Frame *frame,
         struct mli_Geometry *geometry,
         struct mli_GeometryToMaterialMap *geomap,
@@ -516,7 +521,7 @@ struct mli_image_Chunk {
 };
 struct mli_image_Chunk mli_image_Chunk_init(void);
 void mli_image_Chunk_free(struct mli_image_Chunk *self);
-int mli_image_Chunk_malloc(
+chk_rc mli_image_Chunk_malloc(
         struct mli_image_Chunk *self,
         const uint64_t edge_size);
 void mli_image_Chunk_set(
@@ -550,7 +555,7 @@ struct mli_image_ChunkGeometry mli_image_ChunkGeometry_set(
         const uint64_t num_rows,
         const uint64_t chunk_edge_size);
 
-int mli_image_ChunkGeometry_equal(
+mli_bool mli_image_ChunkGeometry_equal(
         const struct mli_image_ChunkGeometry a,
         const struct mli_image_ChunkGeometry b);
 
@@ -579,8 +584,8 @@ struct mli_IoMemory {
 };
 
 struct mli_IoMemory mli_IoMemory_init(void);
-int mli_IoMemory_close(struct mli_IoMemory *self);
-int mli_IoMemory_open(struct mli_IoMemory *self);
+chk_rc mli_IoMemory_close(struct mli_IoMemory *self);
+chk_rc mli_IoMemory_open(struct mli_IoMemory *self);
 size_t mli_IoMemory_write(
         const void *ptr,
         const size_t size,
@@ -597,24 +602,24 @@ int64_t mli_IoMemory_seek(
         struct mli_IoMemory *self,
         const int64_t offset,
         const int64_t origin);
-int mli_IoMemory_eof(const struct mli_IoMemory *self);
+int64_t mli_IoMemory_eof(const struct mli_IoMemory *self);
 
 /* internal */
-int mli_IoMemory__malloc(struct mli_IoMemory *self);
-int mli_IoMemory__malloc_capacity(
+chk_rc mli_IoMemory__malloc(struct mli_IoMemory *self);
+chk_rc mli_IoMemory__malloc_capacity(
         struct mli_IoMemory *self,
         const uint64_t capacity);
-int mli_IoMemory__realloc_capacity(
+chk_rc mli_IoMemory__realloc_capacity(
         struct mli_IoMemory *self,
         const uint64_t new_capacity);
-int mli_IoMemory__shrink_to_fit(struct mli_IoMemory *self);
-int mli_IoMemory__write_unsigned_char(
+chk_rc mli_IoMemory__shrink_to_fit(struct mli_IoMemory *self);
+chk_rc mli_IoMemory__write_unsigned_char(
         struct mli_IoMemory *self,
         const unsigned char *c);
-int mli_IoMemory__read_unsigned_char(
+chk_rc mli_IoMemory__read_unsigned_char(
         struct mli_IoMemory *self,
         unsigned char *c);
-int mli_IoMemory__write_cstr(struct mli_IoMemory *self, const char *cstr);
+chk_rc mli_IoMemory__write_cstr(struct mli_IoMemory *self, const char *cstr);
 #endif
 
 /* json_jsmn */
@@ -727,8 +732,8 @@ struct mli_MagicId {
 };
 
 struct mli_MagicId mli_MagicId_init(void);
-int mli_MagicId_set(struct mli_MagicId *magic, const char *word);
-int mli_MagicId_has_word(const struct mli_MagicId *magic, const char *word);
+chk_rc mli_MagicId_set(struct mli_MagicId *magic, const char *word);
+chk_rc mli_MagicId_has_word(const struct mli_MagicId *magic, const char *word);
 void mli_MagicId_warn_version(const struct mli_MagicId *magic);
 #endif
 
@@ -877,7 +882,8 @@ int64_t mli_math_interpret_double_as_int64(double d);
 #ifndef MLI_MATH_QUADRATIC_EQUATION_H_
 #define MLI_MATH_QUADRATIC_EQUATION_H_
 
-int mli_math_quadratic_equation(
+
+chk_rc mli_math_quadratic_equation(
         const double p,
         const double q,
         double *minus_solution,
@@ -899,7 +905,7 @@ struct mli_object_Face {
         uint32_t c;
 };
 
-int mli_object_Face_equal(
+mli_bool mli_object_Face_equal(
         const struct mli_object_Face a,
         const struct mli_object_Face b);
 struct mli_object_Face mli_object_Face_set(
@@ -1028,6 +1034,26 @@ uint32_t mli_prng_pcg_setseq_64_xsh_rr_32_random_r(
 
 #endif
 
+/* surface_type */
+/* ------------ */
+
+/* Copyright 2018-2024 Sebastian Achim Mueller */
+#ifndef MLI_SURFACE_TYPE_H_
+#define MLI_SURFACE_TYPE_H_
+
+struct mli_String;
+
+enum mli_surface_type {
+        MLI_SURFACE_TYPE_NONE = 0,
+        MLI_SURFACE_TYPE_TRANSPARENT = 1000,
+        MLI_SURFACE_TYPE_COOKTORRANCE = 5000
+};
+
+chk_rc mli_Surface_type_to_string(const uint64_t type, struct mli_String *s);
+chk_rc mli_Surface_type_from_string(const struct mli_String *s, uint64_t *id);
+
+#endif
+
 /* testing */
 /* ------- */
 
@@ -1153,8 +1179,8 @@ struct mli_Vec {
 
 void mli_Vec_print(const struct mli_Vec v);
 uint32_t mli_Vec_octant(const struct mli_Vec a);
-int mli_Vec_equal(const struct mli_Vec a, const struct mli_Vec b);
-int mli_Vec_equal_margin(
+mli_bool mli_Vec_equal(const struct mli_Vec a, const struct mli_Vec b);
+mli_bool mli_Vec_equal_margin(
         const struct mli_Vec a,
         const struct mli_Vec b,
         const double distance_margin);
@@ -1173,7 +1199,7 @@ struct mli_Vec mli_Vec_substract(
         const struct mli_Vec b);
 struct mli_Vec mli_Vec_add(const struct mli_Vec a, const struct mli_Vec b);
 struct mli_Vec mli_Vec_init(const double x, const double y, const double z);
-int mli_Vec_sign3_bitmask(const struct mli_Vec a, const double epsilon);
+int64_t mli_Vec_sign3_bitmask(const struct mli_Vec a, const double epsilon);
 struct mli_Vec mli_Vec_mean(
         const struct mli_Vec *vecs,
         const uint64_t num_vecs);
@@ -1189,7 +1215,7 @@ double mli_Vec_get(const struct mli_Vec *a, const uint64_t dim);
 #define MLI_VEC_AABB_H_
 
 
-int mli_Vec_overlap_aabb(
+mli_bool mli_Vec_overlap_aabb(
         const struct mli_Vec a,
         const struct mli_Vec aabb_lower,
         const struct mli_Vec aabb_upper);
@@ -1242,9 +1268,9 @@ int mli_Vec_overlap_aabb(
                 self->capacity = MLI_MATH_MAX2(2, capacity);                   \
                 self->size = 0;                                                \
                 chk_malloc(self->array, PAYLOAD_TYPE, self->capacity);         \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }                                                                      \
                                                                                \
         int NAME##_realloc(struct NAME *self, const uint64_t capacity)         \
@@ -1257,9 +1283,9 @@ int mli_Vec_overlap_aabb(
                 if (self->capacity < self->size) {                             \
                         self->size = self->capacity;                           \
                 }                                                              \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }
 
 #define MLI_VECTOR_IMPLEMENTATION_MALLOC_ZERO_TERMINATION(NAME, PAYLOAD_TYPE)  \
@@ -1272,9 +1298,9 @@ int mli_Vec_overlap_aabb(
                 memset(self->array,                                            \
                        '\0',                                                   \
                        (self->capacity + 1) * sizeof(PAYLOAD_TYPE));           \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }                                                                      \
                                                                                \
         int NAME##_realloc(struct NAME *self, const uint64_t capacity)         \
@@ -1296,9 +1322,9 @@ int mli_Vec_overlap_aabb(
                                '\0',                                           \
                                num_fields_after_size * sizeof(PAYLOAD_TYPE));  \
                 }                                                              \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }
 
 #define MLI_VECTOR_IMPLEMENTATION_PRIMITIVE_FREE(NAME, PAYLOAD_TYPE)           \
@@ -1346,9 +1372,9 @@ int mli_Vec_overlap_aabb(
                 self->array[self->size] = item;                                \
                 self->size += 1;                                               \
                                                                                \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }                                                                      \
                                                                                \
         int NAME##_set(                                                        \
@@ -1356,9 +1382,9 @@ int mli_Vec_overlap_aabb(
         {                                                                      \
                 chk_msg(at < self->size, "Out of range.");                     \
                 self->array[at] = item;                                        \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }                                                                      \
                                                                                \
         int NAME##_get(                                                        \
@@ -1368,9 +1394,9 @@ int mli_Vec_overlap_aabb(
         {                                                                      \
                 chk_msg(at < self->size, "Out of range.");                     \
                 (*item) = self->array[at];                                     \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }                                                                      \
                                                                                \
         int NAME##_copy(struct NAME *dst, const struct NAME *src)              \
@@ -1392,9 +1418,9 @@ int mli_Vec_overlap_aabb(
                        &src->array[start],                                     \
                        length * sizeof(PAYLOAD_TYPE));                         \
                 dst->size = length;                                            \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }
 
 #define MLI_VECTOR_IMPLEMENTATION(NAME, PAYLOAD_TYPE)                          \
@@ -1437,9 +1463,9 @@ int mli_Vec_overlap_aabb(
                 chk(dh->capacity == 0u);                                       \
                 chk(dh->size == 0u);                                           \
                 chk(dh->array == NULL);                                        \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }                                                                      \
                                                                                \
         int NAME##_test_malloc(struct NAME *dh, const uint64_t capacity)       \
@@ -1451,9 +1477,9 @@ int mli_Vec_overlap_aabb(
                         chk(dh->capacity == capacity);                         \
                 }                                                              \
                 chk(dh->array != NULL);                                        \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }                                                                      \
                                                                                \
         int NAME##_test_free(struct NAME *dh) { return NAME##_test_init(dh); }
@@ -1470,7 +1496,7 @@ int mli_Vec_overlap_aabb(
 
 #define MLI_VERSION_MAYOR 2
 #define MLI_VERSION_MINOR 2
-#define MLI_VERSION_PATCH 1
+#define MLI_VERSION_PATCH 3
 
 void mli_version_logo_fprint(FILE *f);
 void mli_version_authors_and_affiliations_fprint(FILE *f);
@@ -1536,6 +1562,7 @@ struct mli_viewer_Config {
         uint64_t export_num_rows;
         double step_length;
         struct mli_View view;
+        double gain;
         double gamma;
 
         double aperture_camera_f_stop_ratio;
@@ -1587,11 +1614,12 @@ struct mli_Vec mli_AABB_center(const struct mli_AABB a);
 struct mli_AABB mli_AABB_outermost(
         const struct mli_AABB a,
         const struct mli_AABB b);
-int mli_AABB_valid(const struct mli_AABB a);
-int mli_AABB_equal(const struct mli_AABB a, const struct mli_AABB b);
-int mli_AABB_overlapp_aabb(const struct mli_AABB a, const struct mli_AABB b);
-int mli_AABB_is_overlapping(const struct mli_AABB a, const struct mli_AABB b);
-int mli_AABB_is_point_inside(
+mli_bool mli_AABB_valid(const struct mli_AABB a);
+mli_bool mli_AABB_equal(const struct mli_AABB a, const struct mli_AABB b);
+mli_bool mli_AABB_is_overlapping(
+        const struct mli_AABB a,
+        const struct mli_AABB b);
+mli_bool mli_AABB_is_point_inside(
         const struct mli_AABB a,
         const struct mli_Vec point);
 #endif
@@ -1634,9 +1662,9 @@ int mli_AABB_is_point_inside(
                 NAME##_free(self);                                             \
                 self->size = size;                                             \
                 chk_malloc(self->array, PAYLOAD_TYPE, self->size);             \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }                                                                      \
                                                                                \
         int NAME##_realloc(struct NAME *self, const uint64_t size)             \
@@ -1646,9 +1674,9 @@ int mli_AABB_is_point_inside(
                 chk_mem(new_array);                                            \
                 self->array = new_array;                                       \
                 self->size = size;                                             \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }
 
 #define MLI_ARRAY_IMPLEMENTATION_MALLOC_ZERO_TERMINATION(NAME, PAYLOAD_TYPE)   \
@@ -1660,9 +1688,9 @@ int mli_AABB_is_point_inside(
                 memset(self->array,                                            \
                        '\0',                                                   \
                        (self->size + 1) * sizeof(PAYLOAD_TYPE));               \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }                                                                      \
                                                                                \
         int NAME##_realloc(struct NAME *self, const uint64_t size)             \
@@ -1676,9 +1704,9 @@ int mli_AABB_is_point_inside(
                 memset(self->array,                                            \
                        '\0',                                                   \
                        (self->size + 1) * sizeof(PAYLOAD_TYPE));               \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }
 
 #define MLI_ARRAY_IMPLEMENTATION_PRIMITIVE_FREE(NAME, PAYLOAD_TYPE)            \
@@ -1715,9 +1743,9 @@ int mli_AABB_is_point_inside(
         {                                                                      \
                 chk_msg(at < self->size, "Out of range.");                     \
                 self->array[at] = item;                                        \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }                                                                      \
                                                                                \
         int NAME##_get(                                                        \
@@ -1727,9 +1755,9 @@ int mli_AABB_is_point_inside(
         {                                                                      \
                 chk_msg(at < self->size, "Out of range.");                     \
                 (*item) = self->array[at];                                     \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }                                                                      \
                                                                                \
         int NAME##_copy(struct NAME *dst, const struct NAME *src)              \
@@ -1750,9 +1778,9 @@ int mli_AABB_is_point_inside(
                 memcpy(dst->array,                                             \
                        &src->array[start],                                     \
                        length * sizeof(PAYLOAD_TYPE));                         \
-                return 1;                                                      \
+                return CHK_SUCCESS;                                            \
         chk_error:                                                             \
-                return 0;                                                      \
+                return CHK_FAIL;                                               \
         }
 
 #define MLI_ARRAY_IMPLEMENTATION(NAME, PAYLOAD_TYPE)                           \
@@ -1803,15 +1831,15 @@ struct mli_AvlDict {
 
 struct mli_AvlDict mli_AvlDict_init(void);
 void mli_AvlDict_free(struct mli_AvlDict *dict);
-int mli_AvlDict_malloc(struct mli_AvlDict *dict, const uint64_t capacity);
+chk_rc mli_AvlDict_malloc(struct mli_AvlDict *dict, const uint64_t capacity);
 
-int mli_AvlDict_set(
+chk_rc mli_AvlDict_set(
         struct mli_AvlDict *dict,
         const int64_t key,
         const int64_t value);
-int mli_AvlDict_pop(struct mli_AvlDict *dict, const int64_t key);
-int mli_AvlDict_has(struct mli_AvlDict *dict, const int64_t key);
-int mli_AvlDict_get(
+chk_rc mli_AvlDict_pop(struct mli_AvlDict *dict, const int64_t key);
+mli_bool mli_AvlDict_has(struct mli_AvlDict *dict, const int64_t key);
+chk_rc mli_AvlDict_get(
         struct mli_AvlDict *dict,
         const int64_t key,
         int64_t *value);
@@ -1859,7 +1887,7 @@ struct mli_Cube {
         double edge_length;
 };
 
-int mli_Cube_equal(const struct mli_Cube a, const struct mli_Cube b);
+mli_bool mli_Cube_equal(const struct mli_Cube a, const struct mli_Cube b);
 struct mli_Cube mli_Cube_octree_child_code(
         const struct mli_Cube cube,
         const uint8_t a);
@@ -1965,7 +1993,7 @@ struct mli_Fresnel mli_Fresnel_init(
 #define MLI_RAYTRACING_FROM_OUTSIDE_TO_INSIDE_H_
 
 
-int mli_raytracing_from_outside_to_inside(
+mli_bool mli_raytracing_from_outside_to_inside(
         const struct mli_Vec ray_direction_local,
         const struct mli_Vec surface_normal_local);
 #endif
@@ -2087,7 +2115,7 @@ struct mli_Mat {
 void mli_Mat_set(struct mli_Mat *a, uint64_t col, uint64_t row, const double v);
 double mli_Mat_get(const struct mli_Mat *a, uint64_t col, uint64_t row);
 struct mli_Mat mli_Mat_unity(void);
-int mli_Mat_equal_margin(
+mli_bool mli_Mat_equal_margin(
         const struct mli_Mat a,
         const struct mli_Mat b,
         const double margin);
@@ -2114,7 +2142,7 @@ void mli_Mat_qr_decompose(
         const struct mli_Mat m,
         struct mli_Mat *q,
         struct mli_Mat *r);
-int mli_Mat_has_shurform(const struct mli_Mat m, const double margin);
+mli_bool mli_Mat_has_shurform(const struct mli_Mat m, const double margin);
 void mli_Mat_find_eigenvalues(
         const struct mli_Mat a,
         double *e0,
@@ -2122,12 +2150,12 @@ void mli_Mat_find_eigenvalues(
         double *e2,
         const double margin,
         const uint64_t max_num_iterations);
-int mli_Mat_find_eigenvector_for_eigenvalue(
+chk_rc mli_Mat_find_eigenvector_for_eigenvalue(
         struct mli_Mat a,
         const double eigen_value,
         struct mli_Vec *eigen_vector,
         const double tolerance);
-int mli_Mat_lup_decompose(
+chk_rc mli_Mat_lup_decompose(
         struct mli_Mat *A,
         int *pivots,
         const double tolerance);
@@ -2269,11 +2297,11 @@ struct mli_Quaternion mli_Quaternion_product(
         const struct mli_Quaternion q);
 struct mli_Quaternion mli_Quaternion_complex_conjugate(
         const struct mli_Quaternion q);
-int mli_Quaternion_equal_margin(
+mli_bool mli_Quaternion_equal_margin(
         const struct mli_Quaternion a,
         const struct mli_Quaternion b,
         const double margin);
-int mli_Quaternion_equal(
+mli_bool mli_Quaternion_equal(
         const struct mli_Quaternion a,
         const struct mli_Quaternion b);
 struct mli_Quaternion mli_Quaternion_set(
@@ -2304,7 +2332,7 @@ struct mli_Vec mli_Ray_at(const struct mli_Ray *ray, const double t);
 struct mli_Ray mli_Ray_set(
         const struct mli_Vec support,
         const struct mli_Vec direction);
-int mli_Ray_sphere_intersection(
+chk_rc mli_Ray_sphere_intersection(
         const struct mli_Vec support,
         const struct mli_Vec direction,
         const double radius,
@@ -2325,10 +2353,10 @@ void mli_Ray_aabb_intersections(
         const struct mli_AABB aabb,
         double *t_near,
         double *t_far);
-int mli_Ray_aabb_intersections_is_valid_given_near_and_far(
+mli_bool mli_Ray_aabb_intersections_is_valid_given_near_and_far(
         const double t_near,
         const double t_far);
-int mli_Ray_has_overlap_aabb(
+mli_bool mli_Ray_has_overlap_aabb(
         const struct mli_Ray ray,
         const struct mli_AABB aabb);
 
@@ -2344,42 +2372,44 @@ int mli_Ray_has_overlap_aabb(
 
 MLI_VECTOR_DEFINITON(mli_String, char)
 
-int mli_String_from_vargs(
+chk_rc mli_String_from_vargs(
         struct mli_String *self,
         const char *format,
         va_list args);
-int mli_String_from_cstr_fromat(
+chk_rc mli_String_from_cstr_fromat(
         struct mli_String *self,
         const char *format,
         ...);
-int mli_String_from_cstr(struct mli_String *self, const char *s);
+chk_rc mli_String_from_cstr(struct mli_String *self, const char *s);
 
-int mli_String_equal_cstr(const struct mli_String *self, const char *cstr);
+mli_bool mli_String_equal_cstr(const struct mli_String *self, const char *cstr);
 
-int mli_String_equal(
+mli_bool mli_String_equal(
         const struct mli_String *self,
         const struct mli_String *other);
 
-int mli_String_ends_with(
+mli_bool mli_String_ends_with(
         const struct mli_String *self,
         const struct mli_String *suffix);
-int mli_String_ends_with_cstr(const struct mli_String *self, const char *cstr);
-
-int mli_String_starts_with(
-        const struct mli_String *self,
-        const struct mli_String *prefix);
-int mli_String_starts_with_cstr(
+mli_bool mli_String_ends_with_cstr(
         const struct mli_String *self,
         const char *cstr);
 
-int mli_String_has_prefix_suffix(
+mli_bool mli_String_starts_with(
+        const struct mli_String *self,
+        const struct mli_String *prefix);
+mli_bool mli_String_starts_with_cstr(
+        const struct mli_String *self,
+        const char *cstr);
+
+mli_bool mli_String_has_prefix_suffix(
         const struct mli_String *self,
         const struct mli_String *prefix,
         const struct mli_String *suffix);
 
 int64_t mli_String_rfind(const struct mli_String *self, const char c);
 int64_t mli_String_find(const struct mli_String *self, const char c);
-int mli_String_strip(const struct mli_String *src, struct mli_String *dst);
+chk_rc mli_String_strip(const struct mli_String *src, struct mli_String *dst);
 uint64_t mli_String_countn(
         const struct mli_String *self,
         const char c,
@@ -2387,14 +2417,14 @@ uint64_t mli_String_countn(
 int64_t mli_String_compare(
         const struct mli_String *s1,
         const struct mli_String *s2);
-int mli_String_convert_line_break_CRLF_CR_to_LF(
+chk_rc mli_String_convert_line_break_CRLF_CR_to_LF(
         struct mli_String *dst,
         const struct mli_String *src);
 
 int64_t mli_String__discover_size(const struct mli_String *self);
-int mli_String_valid(const struct mli_String *self, const size_t min_size);
+mli_bool mli_String_valid(const struct mli_String *self, const size_t min_size);
 
-int mli_String__find_idx_with_cstr(
+chk_rc mli_String__find_idx_with_cstr(
         const struct mli_String *names,
         const uint64_t num_names,
         const char *key,
@@ -2409,36 +2439,38 @@ int mli_String__find_idx_with_cstr(
 #ifndef MTL_STRING_NUMBERS_H_
 #define MTL_STRING_NUMBERS_H_
 
-int mli_String_nto_double(
+chk_rc mli_String_nto_double(
         double *out,
         const struct mli_String *str,
         const uint64_t expected_num_chars);
-int mli_String_to_double(double *out, const struct mli_String *str);
-int mli_String_nto_int64(
+chk_rc mli_String_to_double(double *out, const struct mli_String *str);
+chk_rc mli_String_nto_int64(
         int64_t *out,
         const struct mli_String *str,
         const uint64_t base,
         const uint64_t expected_num_chars);
-int mli_String_to_int64(
+chk_rc mli_String_to_int64(
         int64_t *out,
         const struct mli_String *str,
         const uint64_t base);
-int mli_String_nto_uint64(
+chk_rc mli_String_nto_uint64(
         uint64_t *out,
         const struct mli_String *str,
         const uint64_t base,
         const uint64_t expected_num_chars);
-int mli_String_to_uint64(
+chk_rc mli_String_to_uint64(
         uint64_t *out,
         const struct mli_String *str,
         const uint64_t base);
 
-int mli_String_print_uint64(
+chk_rc mli_String_print_uint64(
         const uint64_t u,
         struct mli_String *str,
         const uint64_t base,
         const uint64_t min_num_digits,
         const char leading_char);
+
+chk_rc mli_String_to_uint32(uint32_t *out, const struct mli_String *str);
 
 #endif
 
@@ -2480,7 +2512,7 @@ struct mli_AABB mli_Triangle_aabb(
         const struct mli_Vec a,
         const struct mli_Vec b,
         const struct mli_Vec c);
-int mli_Triangle_has_overlap_aabb(
+mli_bool mli_Triangle_has_overlap_aabb(
         const struct mli_Vec a,
         const struct mli_Vec b,
         const struct mli_Vec c,
@@ -2541,7 +2573,7 @@ struct mli_Vec mli_Triangle_interpolate_surface_normal(
         const struct mli_Vec vertex_normal_c,
         const struct mli_triangle_BarycentrigWeights weights);
 
-int mli_Ray_intersects_triangle(
+mli_bool mli_Ray_intersects_triangle(
         const struct mli_Ray ray,
         const struct mli_Vec vertex_a,
         const struct mli_Vec vertex_b,
@@ -2668,19 +2700,19 @@ MLI_VECTOR_DEFINITON(
 
 struct mli_corsika_Histogram2d mli_corsika_Histogram2d_init(void);
 
-int mli_corsika_Histogram2d_malloc(
+chk_rc mli_corsika_Histogram2d_malloc(
         struct mli_corsika_Histogram2d *hist,
         const uint64_t capacity);
 
 void mli_corsika_Histogram2d_free(struct mli_corsika_Histogram2d *hist);
 
-int mli_corsika_Histogram2d_assign(
+chk_rc mli_corsika_Histogram2d_assign(
         struct mli_corsika_Histogram2d *hist,
         const int32_t x,
         const int32_t y,
         const double weight);
 
-int mli_corsika_Histogram2d_flatten(
+chk_rc mli_corsika_Histogram2d_flatten(
         const struct mli_corsika_Histogram2d *hist,
         struct mliDynCorsikaHistogram2dBin *dump);
 
@@ -2698,7 +2730,7 @@ uint64_t mli_corsika_Histogram2d_len(
 #define MLI_ARGS_H_
 
 
-int mli_StringVector_from_argc_argv(
+chk_rc mli_StringVector_from_argc_argv(
         struct mli_StringVector *self,
         int argc,
         char *argv[]);
@@ -2775,14 +2807,14 @@ void mli_Ray_fprint(FILE *f, struct mli_Ray *ray);
  * specific wavelength of light.
  */
 
-int mli_cie1931_spectral_matching_curve_x(struct mli_Func *self);
-int mli_cie1931_spectral_matching_curve_y(struct mli_Func *self);
-int mli_cie1931_spectral_matching_curve_z(struct mli_Func *self);
+chk_rc mli_cie1931_spectral_matching_curve_x(struct mli_Func *self);
+chk_rc mli_cie1931_spectral_matching_curve_y(struct mli_Func *self);
+chk_rc mli_cie1931_spectral_matching_curve_z(struct mli_Func *self);
 
 struct mli_Mat mli_cie1931_spectral_matching_xyz_to_rgb(void);
 struct mli_Mat mli_cie1931_spectral_matching_rgb_to_xyz(void);
 
-int mli_cie1931_spectral_radiance_of_black_body_W_per_m2_per_sr_per_m(
+chk_rc mli_cie1931_spectral_radiance_of_black_body_W_per_m2_per_sr_per_m(
         struct mli_Func *self,
         const double wavelength_start,
         const double wavelength_stop,
@@ -2816,7 +2848,7 @@ struct mli_HomTraComp mli_HomTraComp_set(
 struct mli_HomTraComp mli_HomTraComp_sequence(
         const struct mli_HomTraComp a,
         const struct mli_HomTraComp b);
-int mli_HomTraComp_equal(
+mli_bool mli_HomTraComp_equal(
         const struct mli_HomTraComp a,
         const struct mli_HomTraComp b);
 struct mli_Vec mli_HomTraComp_dir_inverse(
@@ -2880,18 +2912,18 @@ struct mli_Image mli_Image_init(void);
 
 void mli_Image_free(struct mli_Image *self);
 
-int mli_Image_malloc(
+chk_rc mli_Image_malloc(
         struct mli_Image *self,
         const uint32_t num_cols,
         const uint32_t num_rows);
 
-int mli_Image_malloc_same_size(
+chk_rc mli_Image_malloc_same_size(
         struct mli_Image *self,
         const struct mli_Image *other);
 
-int mli_Image_copy(const struct mli_Image *src, struct mli_Image *dst);
+chk_rc mli_Image_copy(const struct mli_Image *src, struct mli_Image *dst);
 
-int mli_Image__malloc(
+chk_rc mli_Image__malloc(
         struct mli_Image *self,
         const uint32_t num_cols,
         const uint32_t num_rows);
@@ -2929,25 +2961,20 @@ struct mli_Color mli_Image_get_by_col_row(
         const uint32_t col,
         const uint32_t row);
 
-int mli_image_PixelVector_malloc_from_image_above_threshold(
-        struct mli_image_PixelVector *pixels,
-        const struct mli_Image *image,
-        const float threshold);
-
-int mli_image_PixelVector_above_threshold(
+chk_rc mli_image_PixelVector_above_threshold(
         const struct mli_Image *to_do_image,
         const float threshold,
         struct mli_image_PixelVector *pixels);
 
-int mli_Image_luminance_threshold_dilatation(
+chk_rc mli_Image_luminance_threshold_dilatation(
         const struct mli_Image *self,
         const float threshold,
         const struct mli_Color marker,
         struct mli_Image *out);
 
-int mli_Image_sobel(const struct mli_Image *src, struct mli_Image *dst);
+chk_rc mli_Image_sobel(const struct mli_Image *src, struct mli_Image *dst);
 
-int mli_Image_scale_down_twice(
+chk_rc mli_Image_scale_down_twice(
         const struct mli_Image *source,
         struct mli_Image *destination);
 
@@ -2958,7 +2985,7 @@ void mli_image_PixelVector_push_back_all_from_image(
         struct mli_image_PixelVector *pixels,
         const struct mli_Image *image);
 
-int mli_Image_fabs_difference(
+chk_rc mli_Image_fabs_difference(
         const struct mli_Image *a,
         const struct mli_Image *b,
         struct mli_Image *out);
@@ -2976,7 +3003,7 @@ struct mli_Color mli_Image_max(const struct mli_Image *img);
 void mli_Image_multiply(struct mli_Image *img, const struct mli_Color color);
 void mli_Image_power(struct mli_Image *self, const struct mli_Color power);
 
-int mli_Image_divide_pixelwise(
+chk_rc mli_Image_divide_pixelwise(
         const struct mli_Image *numerator,
         const struct mli_Image *denominator,
         struct mli_Image *out);
@@ -3034,12 +3061,12 @@ struct mli_IoFile {
 };
 
 struct mli_IoFile mli_IoFile_init(void);
-int mli_IoFile_close(struct mli_IoFile *self);
-int mli_IoFile_open(
+chk_rc mli_IoFile_close(struct mli_IoFile *self);
+chk_rc mli_IoFile_open(
         struct mli_IoFile *self,
         const struct mli_String *filename,
         const struct mli_String *mode);
-int mli_IoFile_adopt_cfile(struct mli_IoFile *self, FILE *cfile);
+chk_rc mli_IoFile_adopt_cfile(struct mli_IoFile *self, FILE *cfile);
 size_t mli_IoFile_write(
         const void *ptr,
         const size_t size,
@@ -3056,10 +3083,11 @@ int64_t mli_IoFile_seek(
         struct mli_IoFile *self,
         const int64_t offset,
         const int64_t origin);
-int mli_IoFile_eof(const struct mli_IoFile *self);
-int mli_IoFile_flush(struct mli_IoFile *self);
+int64_t mli_IoFile_eof(const struct mli_IoFile *self);
+int64_t mli_IoFile_flush(struct mli_IoFile *self);
 
-int mli_IoFile__cfile_is_stdin_or_stdout_stderr(const struct mli_IoFile *self);
+mli_bool mli_IoFile__cfile_is_stdin_or_stdout_stderr(
+        const struct mli_IoFile *self);
 #endif
 
 /* map */
@@ -3083,18 +3111,18 @@ struct mli_Map {
 
 struct mli_Map mli_Map_init(void);
 void mli_Map_free(struct mli_Map *map);
-int mli_Map_malloc(struct mli_Map *map);
+chk_rc mli_Map_malloc(struct mli_Map *map);
 uint64_t mli_Map_size(const struct mli_Map *map);
-int mli_Map_has(const struct mli_Map *map, const struct mli_String *key);
-int mli_Map_insert(
+mli_bool mli_Map_has(const struct mli_Map *map, const struct mli_String *key);
+chk_rc mli_Map_insert(
         struct mli_Map *map,
         const struct mli_String *key,
         uint64_t value);
-int mli_Map_find(
+chk_rc mli_Map_find(
         const struct mli_Map *map,
         const struct mli_String *key,
         uint64_t *idx);
-int mli_Map_get(
+chk_rc mli_Map_get(
         const struct mli_Map *map,
         const struct mli_String *key,
         uint64_t *value);
@@ -3116,7 +3144,7 @@ struct mli_materials_Names {
         struct mli_Map boundary_layers;
 };
 struct mli_materials_Names mli_materials_Names_init(void);
-int mli_materials_Names_malloc(struct mli_materials_Names *namemap);
+chk_rc mli_materials_Names_malloc(struct mli_materials_Names *namemap);
 void mli_materials_Names_free(struct mli_materials_Names *namemap);
 
 #endif
@@ -3142,16 +3170,18 @@ struct mli_Medium mli_Medium_init(void);
 
 void mli_Medium_free(struct mli_Medium *self);
 
-int mli_Medium_valid_wrt_materials(
+mli_bool mli_Medium_valid_wrt_materials(
         const struct mli_Medium *self,
         const struct mli_Materials *materials);
 
-int mli_Medium_equal(const struct mli_Medium *a, const struct mli_Medium *b);
+mli_bool mli_Medium_equal(
+        const struct mli_Medium *a,
+        const struct mli_Medium *b);
 
-int mli_Medium_to_io(const struct mli_Medium *self, struct mli_IO *f);
-int mli_Medium_from_io(struct mli_Medium *self, struct mli_IO *f);
+chk_rc mli_Medium_to_io(const struct mli_Medium *self, struct mli_IO *f);
+chk_rc mli_Medium_from_io(struct mli_Medium *self, struct mli_IO *f);
 
-int mli_Medium_from_json_string_and_name(
+chk_rc mli_Medium_from_json_string_and_name(
         struct mli_Medium *self,
         const struct mli_Map *spectra_names,
         const struct mli_String *json_string,
@@ -3193,7 +3223,7 @@ struct mli_Object {
         struct mli_String *material_names;
 };
 
-int mli_Object_malloc(
+chk_rc mli_Object_malloc(
         struct mli_Object *obj,
         const uint64_t num_vertices,
         const uint64_t num_vertex_normals,
@@ -3201,7 +3231,9 @@ int mli_Object_malloc(
         const uint64_t num_materials);
 void mli_Object_free(struct mli_Object *obj);
 struct mli_Object mli_Object_init(void);
-int mli_Object_equal(const struct mli_Object *a, const struct mli_Object *b);
+mli_bool mli_Object_equal(
+        const struct mli_Object *a,
+        const struct mli_Object *b);
 uint32_t mli_Object_resolve_material_idx(
         const struct mli_Object *obj,
         const uint32_t face_idx);
@@ -3215,7 +3247,7 @@ uint32_t mli_Object_resolve_material_idx(
 #define MLI_OBJECT_AABB_H_
 
 
-int mli_Object_has_overlap_aabb(
+mli_bool mli_Object_has_overlap_aabb(
         const struct mli_Object *obj,
         const struct mli_HomTra local2root,
         const struct mli_AABB aabb);
@@ -3224,12 +3256,12 @@ struct mli_AABB mli_Object_aabb(
         const struct mli_Object *obj,
         const struct mli_HomTra local2root);
 
-int mli_Object_face_in_local_frame_has_overlap_aabb(
+mli_bool mli_Object_face_in_local_frame_has_overlap_aabb(
         const struct mli_Object *obj,
         const uint64_t face_idx,
         const struct mli_AABB aabb);
 
-int mli_Object_face_in_local_frame_has_overlap_aabb_void(
+mli_bool mli_Object_face_in_local_frame_has_overlap_aabb_void(
         const void *obj,
         const uint32_t face_idx,
         const struct mli_AABB aabb);
@@ -3246,14 +3278,14 @@ struct mli_AABB mli_Object_aabb_in_local_frame(const struct mli_Object *obj);
 #define MLI_OBJECT_VALID_H_
 
 
-int mli_Object_is_valid(const struct mli_Object *obj);
-int mli_Object_has_valid_vertices(const struct mli_Object *obj);
-int mli_Object_has_valid_faces(const struct mli_Object *obj);
-int mli_Object_has_valid_normals(
+mli_bool mli_Object_is_valid(const struct mli_Object *obj);
+mli_bool mli_Object_has_valid_vertices(const struct mli_Object *obj);
+mli_bool mli_Object_has_valid_faces(const struct mli_Object *obj);
+mli_bool mli_Object_has_valid_normals(
         const struct mli_Object *obj,
         const double epsilon);
-int mli_Object_has_valid_materials(const struct mli_Object *obj);
-int mli_Object_num_unused(
+mli_bool mli_Object_has_valid_materials(const struct mli_Object *obj);
+chk_rc mli_Object_num_unused(
         const struct mli_Object *obj,
         uint32_t *num_unused_vertices,
         uint32_t *num_unused_vertex_normals,
@@ -3267,11 +3299,11 @@ int mli_Object_num_unused(
 #ifndef MLI_PATH_H_
 #define MLI_PATH_H_
 
-int mli_path_strip_this_dir(
+chk_rc mli_path_strip_this_dir(
         const struct mli_String *src,
         struct mli_String *dst);
-int mli_path_basename(const struct mli_String *src, struct mli_String *dst);
-int mli_path_splitext(
+chk_rc mli_path_basename(const struct mli_String *src, struct mli_String *dst);
+chk_rc mli_path_splitext(
         const struct mli_String *src,
         struct mli_String *dst,
         struct mli_String *ext);
@@ -3706,7 +3738,7 @@ struct mli_camera_Aperture {
 
 struct mli_camera_Aperture mli_camera_Aperture_init(void);
 
-int mli_camera_Aperture_render_image(
+chk_rc mli_camera_Aperture_render_image(
         const struct mli_camera_Aperture self,
         const struct mli_HomTraComp camera2root_comp,
         const struct mli_PathTracer *pathtracer,
@@ -3757,20 +3789,20 @@ struct mli_Frame {
 void mli_Frame_set_frame2root(struct mli_Frame *f);
 void mli_Frame_print(struct mli_Frame *f);
 void mli_Frame_print_walk(const struct mli_Frame *f, const uint64_t indention);
-int mli_frame_string_to_type(const char *s, uint64_t *type);
-int mli_frame_type_to_string(const uint64_t type, char *s);
+chk_rc mli_frame_string_to_type(const char *s, uint64_t *type);
+chk_rc mli_frame_type_to_string(const uint64_t type, char *s);
 struct mli_Frame *mli_Frame_add(struct mli_Frame *mother, const uint64_t type);
-int mli_Frame_set_mother_and_child(
+chk_rc mli_Frame_set_mother_and_child(
         struct mli_Frame *mother,
         struct mli_Frame *child);
-int mli_Frame_malloc(struct mli_Frame *f, const uint64_t type);
+chk_rc mli_Frame_malloc(struct mli_Frame *f, const uint64_t type);
 void mli_Frame_free(struct mli_Frame *f);
 struct mli_Frame mli_Frame_init(void);
-int mli_Frame_estimate_num_robjects_and_total_num_boundary_layers(
+chk_rc mli_Frame_estimate_num_robjects_and_total_num_boundary_layers(
         const struct mli_Frame *frame,
         uint64_t *num_robjects,
         uint64_t *total_num_boundary_layers);
-int mli_Frame_estimate_num_robjects_and_total_num_boundary_layers_walk(
+chk_rc mli_Frame_estimate_num_robjects_and_total_num_boundary_layers_walk(
         const struct mli_Frame *frame,
         uint64_t *num_robjects,
         uint64_t *total_num_boundary_layers);
@@ -3786,7 +3818,7 @@ int mli_Frame_estimate_num_robjects_and_total_num_boundary_layers_walk(
 
 struct mli_Archive;
 struct mli_Geometry;
-int mli_Geometry_from_archive(
+chk_rc mli_Geometry_from_archive(
         struct mli_Geometry *geometry,
         struct mli_Map *object_names,
         const struct mli_Archive *archive);
@@ -3800,29 +3832,31 @@ int mli_Geometry_from_archive(
 #define MLI_STREAM_H_
 
 
-#define MLI_IO_TYPE_VOID 0
-#define MLI_IO_TYPE_FILE 10
-#define MLI_IO_TYPE_MEMORY 20
+enum mli_io_type_code {
+        MLI_IO_TYPE_VOID = 0,
+        MLI_IO_TYPE_FILE = 10,
+        MLI_IO_TYPE_MEMORY = 20
+};
 
-union mli_IoType {
+union mli_io_Type {
         struct mli_IoFile file;
         struct mli_IoMemory memory;
 };
 
 struct mli_IO {
-        int type;
-        union mli_IoType data;
+        enum mli_io_type_code type;
+        union mli_io_Type data;
 };
 
 struct mli_IO mli_IO_init(void);
-int mli_IO_close(struct mli_IO *self);
-int mli_IO_open_memory(struct mli_IO *self);
-int mli_IO_open_file(
+chk_rc mli_IO_close(struct mli_IO *self);
+chk_rc mli_IO_open_memory(struct mli_IO *self);
+chk_rc mli_IO_open_file(
         struct mli_IO *self,
         const struct mli_String *filename,
         const struct mli_String *mode);
-int mli_IO_adopt_file(struct mli_IO *self, FILE *cfile);
-int mli_IO__open_file_cstr(
+chk_rc mli_IO_adopt_file(struct mli_IO *self, FILE *cfile);
+chk_rc mli_IO_open_file_cstr(
         struct mli_IO *self,
         const char *filename,
         const char *mode);
@@ -3842,8 +3876,8 @@ int64_t mli_IO_seek(
         struct mli_IO *self,
         const int64_t offset,
         const int64_t origin);
-int mli_IO_eof(const struct mli_IO *self);
-int mli_IO_flush(struct mli_IO *self);
+int64_t mli_IO_eof(const struct mli_IO *self);
+int64_t mli_IO_flush(struct mli_IO *self);
 
 #define chk_IO_write(PTR, SIZE_OF_TYPE, NUM, IO)                               \
         {                                                                      \
@@ -3869,21 +3903,26 @@ int mli_IO_flush(struct mli_IO *self);
 #define MLI_IO_TEXT_H_
 
 
-int mli_IO_text_getc(struct mli_IO *self);
-int mli_IO_text_putc(struct mli_IO *self, const char c);
+int64_t mli_IO_text_getc(struct mli_IO *self);
+chk_rc mli_IO_text_putc(struct mli_IO *self, const char c);
 
-int mli_IO_text_write_cstr(struct mli_IO *self, const char *cstr);
-int mli_IO_text_write_cstr_format(struct mli_IO *self, const char *format, ...);
+chk_rc mli_IO_text_write_cstr(struct mli_IO *self, const char *cstr);
+chk_rc mli_IO_text_write_cstr_format(
+        struct mli_IO *self,
+        const char *format,
+        ...);
 
-int mli_IO_text_read_string(struct mli_IO *self, struct mli_String *str);
-int mli_IO_text_read_line(
+chk_rc mli_IO_text_read_string(struct mli_IO *self, struct mli_String *str);
+chk_rc mli_IO_text_read_line(
         struct mli_IO *self,
         struct mli_String *line,
         const char delimiter);
 
-int mli_IO_text_write_String(struct mli_IO *self, const struct mli_String *str);
+chk_rc mli_IO_text_write_String(
+        struct mli_IO *self,
+        const struct mli_String *str);
 
-int mli_IO_text_write_multi_line_debug_view(
+chk_rc mli_IO_text_write_multi_line_debug_view(
         struct mli_IO *self,
         const struct mli_String *text,
         const uint64_t line_number,
@@ -3905,17 +3944,19 @@ struct mli_Json {
         struct jsmntok_t *tokens;
 };
 
-int mli_Json_from_string(struct mli_Json *self, const struct mli_String *str);
-int mli_Json_from_io(struct mli_Json *self, struct mli_IO *io);
+chk_rc mli_Json_from_string(
+        struct mli_Json *self,
+        const struct mli_String *str);
+chk_rc mli_Json_from_io(struct mli_Json *self, struct mli_IO *io);
 void mli_Json_free(struct mli_Json *self);
 struct mli_Json mli_Json_init(void);
 
-int mli_Json_debug_to_io(const struct mli_Json *self, struct mli_IO *io);
-int mli_Json_debug_token_to_io(
+chk_rc mli_Json_debug_to_io(const struct mli_Json *self, struct mli_IO *io);
+chk_rc mli_Json_debug_token_to_io(
         const struct mli_Json *self,
         const uint64_t token,
         struct mli_IO *io);
-int mli_Json_debug_token_fprint(
+chk_rc mli_Json_debug_token_fprint(
         FILE *f,
         const struct mli_Json *self,
         const uint64_t token);
@@ -3924,65 +3965,65 @@ uint64_t mli_Json__token_by_index_unsafe(
         const struct mli_Json *json,
         const uint64_t start_token_idx,
         const uint64_t child_idx);
-int mli_Json_token_by_key(
+chk_rc mli_Json_token_by_key(
         const struct mli_Json *json,
         const uint64_t token,
         const char *key,
         uint64_t *key_token);
-int mli_Json_token_by_idx(
+chk_rc mli_Json_token_by_idx(
         const struct mli_Json *json,
         const uint64_t token,
         const uint64_t idx,
         uint64_t *idx_token);
 
-int mli_Json_token_by_key_eprint(
+chk_rc mli_Json_token_by_key_eprint(
         const struct mli_Json *json,
         const uint64_t token,
         const char *key,
         uint64_t *key_token);
-int mli_Json_double_by_token(
+chk_rc mli_Json_double_by_token(
         const struct mli_Json *json,
         const uint64_t token,
         double *val);
-int mli_Json_double_by_key(
+chk_rc mli_Json_double_by_key(
         const struct mli_Json *json,
         const uint64_t token,
         double *val,
         const char *key);
-int mli_Json_int64_by_token(
+chk_rc mli_Json_int64_by_token(
         const struct mli_Json *json,
         const uint64_t token,
         int64_t *return_int64);
-int mli_Json_uint64_by_token(
+chk_rc mli_Json_uint64_by_token(
         const struct mli_Json *json,
         const uint64_t token,
         uint64_t *return_uint64);
-int mli_Json_cstr_by_token(
+chk_rc mli_Json_cstr_by_token(
         const struct mli_Json *json,
         const uint64_t token,
         char *return_string,
         const uint64_t return_string_size);
-int mli_Json_string_by_token(
+chk_rc mli_Json_string_by_token(
         const struct mli_Json *json,
         const uint64_t token,
         struct mli_String *return_string);
-int mli_Json_int64_by_key(
+chk_rc mli_Json_int64_by_key(
         const struct mli_Json *json,
         const uint64_t token,
         int64_t *val,
         const char *key);
-int mli_Json_uint64_by_key(
+chk_rc mli_Json_uint64_by_key(
         const struct mli_Json *json,
         const uint64_t token,
         uint64_t *val,
         const char *key);
-int mli_Json_cstrcmp(
+mli_bool mli_Json_cstrcmp(
         const struct mli_Json *json,
         const uint64_t token,
         const char *str);
 
-int mli_Json__malloc_tokens(struct mli_Json *json);
-int mli_Json__parse_tokens(struct mli_Json *json);
+chk_rc mli_Json__malloc_tokens(struct mli_Json *json);
+chk_rc mli_Json__parse_tokens(struct mli_Json *json);
 #endif
 
 /* json_walk */
@@ -4002,20 +4043,20 @@ struct mli_JsonWalk mli_JsonWalk_init(void);
 struct mli_JsonWalk mli_JsonWalk_set(const struct mli_Json *json);
 struct mli_JsonWalk mli_JsonWalk_copy(const struct mli_JsonWalk *self);
 
-int mli_JsonWalk_to_key(struct mli_JsonWalk *self, const char *key);
-int mli_JsonWalk_to_idx(struct mli_JsonWalk *self, const uint64_t idx);
+chk_rc mli_JsonWalk_to_key(struct mli_JsonWalk *self, const char *key);
+chk_rc mli_JsonWalk_to_idx(struct mli_JsonWalk *self, const uint64_t idx);
 void mli_JsonWalk_to_root(struct mli_JsonWalk *self);
 
-int mli_JsonWalk_get_array_size(
+chk_rc mli_JsonWalk_get_array_size(
         const struct mli_JsonWalk *self,
         uint64_t *size);
-int mli_JsonWalk_get_string(
+chk_rc mli_JsonWalk_get_string(
         const struct mli_JsonWalk *self,
         struct mli_String *val);
-int mli_JsonWalk_get_int64(const struct mli_JsonWalk *self, int64_t *val);
-int mli_JsonWalk_get_double(const struct mli_JsonWalk *self, double *val);
+chk_rc mli_JsonWalk_get_int64(const struct mli_JsonWalk *self, int64_t *val);
+chk_rc mli_JsonWalk_get_double(const struct mli_JsonWalk *self, double *val);
 
-int mli_JsonWalk__type(const struct mli_JsonWalk *self);
+enum jsmntype_t mli_JsonWalk__type(const struct mli_JsonWalk *self);
 
 #endif
 
@@ -4046,12 +4087,12 @@ struct mli_Vec mli_lambertian_cosine_law_draw_direction_wrt_z(
 #define MLI_MAP_JSON_H_
 
 
-int mli_Map_get_value_for_string_from_json(
+chk_rc mli_Map_get_value_for_string_from_json(
         const struct mli_Map *map,
         const struct mli_Json *json,
         const uint64_t token_name,
         uint32_t *out_value);
-int mli_Map_insert_key_from_json(
+chk_rc mli_Map_insert_key_from_json(
         struct mli_Map *map,
         const struct mli_Json *json,
         const uint64_t token_name,
@@ -4069,12 +4110,45 @@ int mli_Map_insert_key_from_json(
 
 struct mli_Materials;
 struct mli_Archive;
+struct mli_BoundaryLayer;
 
-int mli_Materials__key_from_filename(
+chk_rc mli_Materials__key_from_filename(
         struct mli_String *key,
         const struct mli_String *filename);
 
-int mli_Materials_from_Archive(
+chk_rc mli_Materials_from_Archive__set_spectra(
+        struct mli_Materials *materials,
+        struct mli_materials_Names *names,
+        const struct mli_Archive *archive);
+
+chk_rc mli_Materials_from_Archive__set_media(
+        struct mli_Materials *materials,
+        struct mli_materials_Names *names,
+        const struct mli_Archive *archive);
+
+chk_rc mli_Materials_from_Archive__set_surfaces(
+        struct mli_Materials *materials,
+        struct mli_materials_Names *names,
+        const struct mli_Archive *archive);
+
+chk_rc mli_BoundaryLayer_from_json_string_and_name(
+        struct mli_BoundaryLayer *self,
+        const struct mli_Map *surface_names,
+        const struct mli_Map *media_names,
+        const struct mli_String *json_string,
+        const struct mli_String *name);
+
+chk_rc mli_Materials_from_Archive__set_boundary_layers(
+        struct mli_Materials *materials,
+        struct mli_materials_Names *names,
+        const struct mli_Archive *archive);
+
+chk_rc mli_Materials_from_Archive__set_default_medium(
+        struct mli_Materials *materials,
+        struct mli_materials_Names *names,
+        const struct mli_Archive *archive);
+
+chk_rc mli_Materials_from_Archive(
         struct mli_Materials *materials,
         struct mli_materials_Names *names,
         const struct mli_Archive *archive);
@@ -4088,8 +4162,8 @@ int mli_Materials_from_Archive(
 #define MLI_OBJECT_SERIALIZE_H_
 
 
-int mli_Object_to_io(const struct mli_Object *obj, struct mli_IO *f);
-int mli_Object_from_io(struct mli_Object *obj, struct mli_IO *f);
+chk_rc mli_Object_to_io(const struct mli_Object *obj, struct mli_IO *f);
+chk_rc mli_Object_from_io(struct mli_Object *obj, struct mli_IO *f);
 #endif
 
 /* object_wavefront */
@@ -4100,17 +4174,19 @@ int mli_Object_from_io(struct mli_Object *obj, struct mli_IO *f);
 #define MLI_OBJECT_WAVEFRONT_H_
 
 
-int mli_Object_malloc_from_wavefront(struct mli_Object *obj, struct mli_IO *io);
-int mli_Object_fprint_to_wavefront(
+chk_rc mli_Object_malloc_from_wavefront(
+        struct mli_Object *obj,
+        struct mli_IO *io);
+chk_rc mli_Object_fprint_to_wavefront(
         struct mli_IO *f,
         const struct mli_Object *obj);
-int mli_Object_parse_face_line(
+chk_rc mli_Object_parse_face_line(
         const struct mli_String *line,
         struct mli_object_Face *faces_vertices,
         struct mli_object_Face *faces_texture_points,
         struct mli_object_Face *faces_vertex_normals,
         int *line_mode);
-int mli_Object_parse_three_float_line(
+chk_rc mli_Object_parse_three_float_line(
         const struct mli_String *line,
         struct mli_Vec *v);
 #endif
@@ -4123,13 +4199,13 @@ int mli_Object_parse_three_float_line(
 #define MLI_PHOTON_SOURCE_H_
 
 
-int mli_photon_source_point_like_opening_cone_towards_z(
+chk_rc mli_photon_source_point_like_opening_cone_towards_z(
         struct mli_PhotonVector *out_photons,
         const double wavelength,
         const double opening_angle,
         const uint64_t num_photons,
         struct mli_Prng *prng);
-int mli_photon_source_parallel_towards_z_from_xy_disc(
+chk_rc mli_photon_source_parallel_towards_z_from_xy_disc(
         struct mli_PhotonVector *out_photons,
         const double wavelength,
         const double radius,
@@ -4145,19 +4221,19 @@ int mli_photon_source_parallel_towards_z_from_xy_disc(
 #define MLI_QUATERNION_JSON_H_
 
 
-int mli_Quaternion_tait_bryan_from_json(
+chk_rc mli_Quaternion_tait_bryan_from_json(
         struct mli_Quaternion *quat,
         const struct mli_Json *json,
         const uint64_t token);
-int mli_Quaternion_axis_angle_from_json(
+chk_rc mli_Quaternion_axis_angle_from_json(
         struct mli_Quaternion *quat,
         const struct mli_Json *json,
         const uint64_t token);
-int mli_Quaternion_quaternion_from_json(
+chk_rc mli_Quaternion_quaternion_from_json(
         struct mli_Quaternion *quat,
         const struct mli_Json *json,
         const uint64_t token);
-int mli_Quaternion_from_json(
+chk_rc mli_Quaternion_from_json(
         struct mli_Quaternion *quat,
         const struct mli_Json *json,
         const uint64_t token);
@@ -4192,8 +4268,8 @@ void mli_corsika_overlap_of_ray_with_voxels(
 #define MLI_STRING_SERIALIZE_H_
 
 
-int mli_String_to_io(const struct mli_String *self, struct mli_IO *f);
-int mli_String_from_io(struct mli_String *self, struct mli_IO *f);
+chk_rc mli_String_to_io(const struct mli_String *self, struct mli_IO *f);
+chk_rc mli_String_from_io(struct mli_String *self, struct mli_IO *f);
 
 #endif
 
@@ -4204,11 +4280,10 @@ int mli_String_from_io(struct mli_String *self, struct mli_IO *f);
 #ifndef MLI_SURFACE_COOKTORRANCE_H_
 #define MLI_SURFACE_COOKTORRANCE_H_
 
+
 struct mli_Map;
 struct mli_String;
 struct mli_Materials;
-
-#define MLI_SURFACE_TYPE_COOKTORRANCE 5000
 
 struct mli_Surface_CookTorrance {
         uint64_t reflection_spectrum;
@@ -4217,23 +4292,23 @@ struct mli_Surface_CookTorrance {
         double roughness;
 };
 
-int mli_Surface_CookTorrance_equal(
+mli_bool mli_Surface_CookTorrance_equal(
         const struct mli_Surface_CookTorrance *a,
         const struct mli_Surface_CookTorrance *b);
 
-int mli_Surface_CookTorrance_to_io(
+chk_rc mli_Surface_CookTorrance_to_io(
         const struct mli_Surface_CookTorrance *self,
         struct mli_IO *f);
-int mli_Surface_CookTorrance_from_io(
+chk_rc mli_Surface_CookTorrance_from_io(
         struct mli_Surface_CookTorrance *self,
         struct mli_IO *f);
 
-int mli_Surface_CookTorrance_from_json_string(
+chk_rc mli_Surface_CookTorrance_from_json_string(
         struct mli_Surface_CookTorrance *self,
         const struct mli_Map *spectra_names,
         const struct mli_String *json_string);
 
-int mli_Surface_CookTorrance_valid_wrt_materials(
+chk_rc mli_Surface_CookTorrance_valid_wrt_materials(
         const struct mli_Surface_CookTorrance *self,
         const struct mli_Materials *materials);
 
@@ -4246,33 +4321,32 @@ int mli_Surface_CookTorrance_valid_wrt_materials(
 #ifndef MLI_SURFACE_TRANSPARENT_H_
 #define MLI_SURFACE_TRANSPARENT_H_
 
+
 struct mli_Map;
 struct mli_String;
 struct mli_Materials;
-
-#define MLI_SURFACE_TYPE_TRANSPARENT 1000
 
 struct mli_Surface_Transparent {
         uint64_t nothing;
 };
 
-int mli_Surface_Transparent_equal(
+mli_bool mli_Surface_Transparent_equal(
         const struct mli_Surface_Transparent *a,
         const struct mli_Surface_Transparent *b);
 
-int mli_Surface_Transparent_to_io(
+chk_rc mli_Surface_Transparent_to_io(
         const struct mli_Surface_Transparent *self,
         struct mli_IO *f);
-int mli_Surface_Transparent_from_io(
+chk_rc mli_Surface_Transparent_from_io(
         struct mli_Surface_Transparent *self,
         struct mli_IO *f);
 
-int mli_Surface_Transparent_from_json_string(
+chk_rc mli_Surface_Transparent_from_json_string(
         struct mli_Surface_Transparent *self,
         const struct mli_Map *spectra_names,
         const struct mli_String *json_string);
 
-int mli_Surface_Transparent_valid_wrt_materials(
+chk_rc mli_Surface_Transparent_valid_wrt_materials(
         const struct mli_Surface_Transparent *self,
         const struct mli_Materials *materials);
 
@@ -4330,16 +4404,16 @@ int mli_Surface_Transparent_valid_wrt_materials(
 /* basics */
 /* ====== */
 uint64_t mli_Tar_round_up(uint64_t n, uint64_t incr);
-int mli_Tar_field_to_uint(
+chk_rc mli_Tar_field_to_uint(
         uint64_t *out,
         const char *field,
         const uint64_t fieldsize);
-int mli_Tar_uint_to_field(
+chk_rc mli_Tar_uint_to_field(
         const uint64_t value,
         char *field,
         const uint64_t fieldsize);
-int mli_Tar_uint64_to_field12_2001star_base256(uint64_t val, char *field);
-int mli_Tar_field12_to_uint64_2001star_base256(
+chk_rc mli_Tar_uint64_to_field12_2001star_base256(uint64_t val, char *field);
+chk_rc mli_Tar_field12_to_uint64_2001star_base256(
         const char *field,
         uint64_t *val);
 
@@ -4369,18 +4443,18 @@ struct mli_TarHeader {
 };
 
 uint64_t mli_TarRawHeader_checksum(const struct mli_TarRawHeader *rh);
-int mli_TarRawHeader_is_null(const struct mli_TarRawHeader *rh);
-int mli_TarRawHeader_from_header(
+mli_bool mli_TarRawHeader_is_null(const struct mli_TarRawHeader *rh);
+chk_rc mli_TarRawHeader_from_header(
         struct mli_TarRawHeader *rh,
         const struct mli_TarHeader *h);
 
 struct mli_TarHeader mli_TarHeader_init(void);
-int mli_TarHeader_set_directory(struct mli_TarHeader *h, const char *name);
-int mli_TarHeader_set_normal_file(
+chk_rc mli_TarHeader_set_directory(struct mli_TarHeader *h, const char *name);
+chk_rc mli_TarHeader_set_normal_file(
         struct mli_TarHeader *h,
         const char *name,
         const uint64_t size);
-int mli_TarHeader_from_raw(
+chk_rc mli_TarHeader_from_raw(
         struct mli_TarHeader *h,
         const struct mli_TarRawHeader *rh);
 
@@ -4394,15 +4468,15 @@ struct mli_Tar {
 
 struct mli_Tar mli_Tar_init(void);
 
-int mli_Tar_read_begin(struct mli_Tar *tar, struct mli_IO *stream);
-int mli_Tar_read_header(struct mli_Tar *tar, struct mli_TarHeader *h);
-int mli_Tar_read_data(struct mli_Tar *tar, void *ptr, uint64_t size);
-int mli_Tar_read_finalize(struct mli_Tar *tar);
+chk_rc mli_Tar_read_begin(struct mli_Tar *tar, struct mli_IO *stream);
+chk_rc mli_Tar_read_header(struct mli_Tar *tar, struct mli_TarHeader *h);
+chk_rc mli_Tar_read_data(struct mli_Tar *tar, void *ptr, uint64_t size);
+chk_rc mli_Tar_read_finalize(struct mli_Tar *tar);
 
-int mli_Tar_write_begin(struct mli_Tar *tar, struct mli_IO *stream);
-int mli_Tar_write_header(struct mli_Tar *tar, const struct mli_TarHeader *h);
-int mli_Tar_write_data(struct mli_Tar *tar, const void *data, uint64_t size);
-int mli_Tar_write_finalize(struct mli_Tar *tar);
+chk_rc mli_Tar_write_begin(struct mli_Tar *tar, struct mli_IO *stream);
+chk_rc mli_Tar_write_header(struct mli_Tar *tar, const struct mli_TarHeader *h);
+chk_rc mli_Tar_write_data(struct mli_Tar *tar, const void *data, uint64_t size);
+chk_rc mli_Tar_write_finalize(struct mli_Tar *tar);
 
 #endif
 
@@ -4414,11 +4488,11 @@ int mli_Tar_write_finalize(struct mli_Tar *tar);
 #define MLITARIO_H_
 
 
-int mli_Tar_read_data_to_IO(
+chk_rc mli_Tar_read_data_to_IO(
         struct mli_Tar *tar,
         struct mli_IO *buff,
         const uint64_t size);
-int mli_Tar_write_data_from_IO(
+chk_rc mli_Tar_write_data_from_IO(
         struct mli_Tar *tar,
         struct mli_IO *buff,
         const uint64_t size);
@@ -4432,7 +4506,7 @@ int mli_Tar_write_data_from_IO(
 #define MLI_VEC_JSON_H_
 
 
-int mli_Vec_from_json_token(
+chk_rc mli_Vec_from_json_token(
         struct mli_Vec *v,
         const struct mli_Json *json,
         const uint64_t token);
@@ -4594,17 +4668,17 @@ struct mli_Archive {
 struct mli_Archive mli_Archive_init(void);
 
 void mli_Archive_free(struct mli_Archive *self);
-int mli_Archive_malloc(struct mli_Archive *self);
-int mli_Archive_from_io(struct mli_Archive *self, struct mli_IO *f);
-int mli_Archive__from_path_cstr(struct mli_Archive *self, const char *path);
-int mli_Archive_push_back(
+chk_rc mli_Archive_malloc(struct mli_Archive *self);
+chk_rc mli_Archive_from_io(struct mli_Archive *self, struct mli_IO *f);
+chk_rc mli_Archive__from_path_cstr(struct mli_Archive *self, const char *path);
+chk_rc mli_Archive_push_back(
         struct mli_Archive *self,
         const struct mli_String *filename,
         const struct mli_String *payload);
-int mli_Archive_has(
+mli_bool mli_Archive_has(
         const struct mli_Archive *self,
         const struct mli_String *filename);
-int mli_Archive_get(
+chk_rc mli_Archive_get(
         const struct mli_Archive *self,
         const struct mli_String *filename,
         struct mli_String **str);
@@ -4638,14 +4712,16 @@ struct mli_BoundaryLayer {
 void mli_BoundaryLayer_free(struct mli_BoundaryLayer *self);
 struct mli_BoundaryLayer mli_BoundaryLayer_init(void);
 
-int mli_BoundaryLayer_equal(
+mli_bool mli_BoundaryLayer_equal(
         const struct mli_BoundaryLayer *a,
         const struct mli_BoundaryLayer *b);
 
-int mli_BoundaryLayer_to_io(
+chk_rc mli_BoundaryLayer_to_io(
         const struct mli_BoundaryLayer *self,
         struct mli_IO *f);
-int mli_BoundaryLayer_from_io(struct mli_BoundaryLayer *self, struct mli_IO *f);
+chk_rc mli_BoundaryLayer_from_io(
+        struct mli_BoundaryLayer *self,
+        struct mli_IO *f);
 
 #endif
 
@@ -4669,7 +4745,7 @@ MLI_ARRAY_DEFINITON(mli_BoundaryLayerArray, struct mli_BoundaryLayer)
 
 struct mli_Object;
 struct mli_Frame;
-int mli_Frame_from_Archive(
+chk_rc mli_Frame_from_Archive(
         struct mli_Frame *root,
         const struct mli_Archive *archive,
         const struct mli_Map *object_names,
@@ -4685,33 +4761,33 @@ int mli_Frame_from_Archive(
 #define MLI_FRAME_JSON_H_
 
 
-int mli_Frame_from_json(
+chk_rc mli_Frame_from_json(
         struct mli_Frame *mother,
         const struct mli_Json *json,
         const uint64_t token_children,
         const struct mli_Map *object_names,
         const struct mli_Object *objects,
         const struct mli_Map *boundary_layer_names);
-int mli_Frame_id_from_json_token(
+chk_rc mli_Frame_id_from_json_token(
         uint32_t *id,
         const struct mli_Json *json,
         const uint64_t token);
-int mli_Frame_pos_rot_from_json_token(
+chk_rc mli_Frame_pos_rot_from_json_token(
         struct mli_HomTraComp *frame2mother,
         const struct mli_Json *json,
         const uint64_t token);
-int mli_Frame_type_from_json_token(
+chk_rc mli_Frame_type_from_json_token(
         uint64_t *type,
         const struct mli_Json *json,
         const uint64_t token);
-int mli_Frame_boundary_layers_form_json_token(
+chk_rc mli_Frame_boundary_layers_form_json_token(
         struct mli_Uint32Vector *boundary_layers,
         const uint32_t object_idx,
         const struct mli_Object *objects,
         const struct mli_Map *boundary_layer_names,
         const struct mli_Json *json,
         const uint64_t token);
-int mli_Frame_object_reference_form_json_token(
+chk_rc mli_Frame_object_reference_form_json_token(
         uint32_t *object_reference,
         const struct mli_Json *json,
         const uint64_t token,
@@ -4726,7 +4802,7 @@ int mli_Frame_object_reference_form_json_token(
 #define MLI_FUNC_CSV_H_
 
 
-int mli_Func_from_csv(
+chk_rc mli_Func_from_csv(
         struct mli_Func *func,
         struct mli_String *xname,
         struct mli_String *yname,
@@ -4749,13 +4825,13 @@ struct mli_FuncInfo {
 
 struct mli_FuncInfo mli_FuncInfo_init(void);
 void mli_FuncInfo_free(struct mli_FuncInfo *self);
-int mli_FuncInfo_malloc(struct mli_FuncInfo *self);
+chk_rc mli_FuncInfo_malloc(struct mli_FuncInfo *self);
 
-int mli_FuncInfo_equal(
+mli_bool mli_FuncInfo_equal(
         const struct mli_FuncInfo *a,
         const struct mli_FuncInfo *b);
-int mli_FuncInfo_to_io(const struct mli_FuncInfo *self, struct mli_IO *f);
-int mli_FuncInfo_from_io(struct mli_FuncInfo *self, struct mli_IO *f);
+chk_rc mli_FuncInfo_to_io(const struct mli_FuncInfo *self, struct mli_IO *f);
+chk_rc mli_FuncInfo_from_io(struct mli_FuncInfo *self, struct mli_IO *f);
 #endif
 
 /* func_serialize */
@@ -4766,8 +4842,8 @@ int mli_FuncInfo_from_io(struct mli_FuncInfo *self, struct mli_IO *f);
 #define MLI_FUNC_SERIALIZE_H_
 
 
-int mli_Func_from_io(struct mli_Func *func, struct mli_IO *f);
-int mli_Func_to_io(const struct mli_Func *func, struct mli_IO *f);
+chk_rc mli_Func_from_io(struct mli_Func *func, struct mli_IO *f);
+chk_rc mli_Func_to_io(const struct mli_Func *func, struct mli_IO *f);
 #endif
 
 /* image_ppm */
@@ -4778,8 +4854,30 @@ int mli_Func_to_io(const struct mli_Func *func, struct mli_IO *f);
 #define MLI_IMAGE_PPM_H_
 
 
-int mli_Image_to_io(const struct mli_Image *img, struct mli_IO *f);
-int mli_Image_from_io(struct mli_Image *img, struct mli_IO *f);
+enum mli_image_ppm_color_depth {
+        MLI_IMAGE_PPM_COLOR_DEPTH_8BIT = 8,
+        MLI_IMAGE_PPM_COLOR_DEPTH_16BIT = 16
+};
+
+chk_rc mli_Image_to_io(
+        const struct mli_Image *img,
+        struct mli_IO *f,
+        const uint64_t color_depth_num_bit);
+chk_rc mli_Image_from_io(struct mli_Image *img, struct mli_IO *f);
+
+chk_rc mli_image_ppm__read_color_8bit(
+        struct mli_Color *color,
+        struct mli_IO *f);
+chk_rc mli_image_ppm__write_color_8bit(
+        const struct mli_Color color,
+        struct mli_IO *f);
+
+chk_rc mli_image_ppm__read_color_16bit(
+        struct mli_Color *color,
+        struct mli_IO *f);
+chk_rc mli_image_ppm__write_color_16bit(
+        const struct mli_Color color,
+        struct mli_IO *f);
 
 #endif
 
@@ -4798,14 +4896,16 @@ struct mli_Spectrum {
 };
 void mli_Spectrum_free(struct mli_Spectrum *self);
 struct mli_Spectrum mli_Spectrum_init(void);
-int mli_Spectrum_equal(
+mli_bool mli_Spectrum_equal(
         const struct mli_Spectrum *a,
         const struct mli_Spectrum *b);
 
-int mli_Spectrum_to_io(const struct mli_Spectrum *self, struct mli_IO *f);
-int mli_Spectrum_from_io(struct mli_Spectrum *self, struct mli_IO *f);
+chk_rc mli_Spectrum_to_io(const struct mli_Spectrum *self, struct mli_IO *f);
+chk_rc mli_Spectrum_from_io(struct mli_Spectrum *self, struct mli_IO *f);
 
-int mli_Spectrum_print_to_io(const struct mli_Spectrum *self, struct mli_IO *f);
+chk_rc mli_Spectrum_print_to_io(
+        const struct mli_Spectrum *self,
+        struct mli_IO *f);
 
 #endif
 
@@ -4830,8 +4930,6 @@ struct mli_IO;
 struct mli_Map;
 struct mli_Materials;
 
-#define MLI_SURFACE_TYPE_NONE 0
-
 union mli_SurfaceData {
         struct mli_Surface_Transparent transparent;
         struct mli_Surface_CookTorrance cooktorrance;
@@ -4846,21 +4944,20 @@ struct mli_Surface mli_Surface_init(void);
 
 void mli_Surface_free(struct mli_Surface *self);
 
-int mli_Surface_equal(const struct mli_Surface *a, const struct mli_Surface *b);
+mli_bool mli_Surface_equal(
+        const struct mli_Surface *a,
+        const struct mli_Surface *b);
 
-int mli_Surface_type_to_string(const uint64_t type, struct mli_String *s);
-int mli_Surface_type_from_string(const struct mli_String *s, uint64_t *id);
+chk_rc mli_Surface_to_io(const struct mli_Surface *self, struct mli_IO *f);
+chk_rc mli_Surface_from_io(struct mli_Surface *self, struct mli_IO *f);
 
-int mli_Surface_to_io(const struct mli_Surface *self, struct mli_IO *f);
-int mli_Surface_from_io(struct mli_Surface *self, struct mli_IO *f);
-
-int mli_Surface_from_json_string_and_name(
+chk_rc mli_Surface_from_json_string_and_name(
         struct mli_Surface *self,
         const struct mli_Map *spectra_names,
         const struct mli_String *json_string,
         const struct mli_String *name);
 
-int mli_Surface_valid_wrt_materials(
+chk_rc mli_Surface_valid_wrt_materials(
         const struct mli_Surface *self,
         const struct mli_Materials *materials);
 
@@ -4902,17 +4999,17 @@ struct mli_Materials {
         uint64_t default_medium;
 };
 
-int mli_Materials_malloc(
+chk_rc mli_Materials_malloc(
         struct mli_Materials *self,
         const struct mli_MaterialsCapacity rescap);
 void mli_Materials_free(struct mli_Materials *self);
 struct mli_Materials mli_Materials_init(void);
-int mli_Materials_info_fprint(FILE *f, const struct mli_Materials *self);
+chk_rc mli_Materials_info_fprint(FILE *f, const struct mli_Materials *self);
 
-int mli_Materials__has_surface_name_cstr(
+mli_bool mli_Materials__has_surface_name_cstr(
         const struct mli_Materials *self,
         const char *name);
-int mli_Materials__has_medium_name_cstr(
+mli_bool mli_Materials__has_medium_name_cstr(
         const struct mli_Materials *self,
         const char *name);
 
@@ -4926,22 +5023,22 @@ int mli_Materials__has_medium_name_cstr(
 #define MLI_MATERIALS_EQUAL_H_
 
 
-int mli_Materials_equal(
+mli_bool mli_Materials_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b);
-int mli_Materials_spectra_equal(
+mli_bool mli_Materials_spectra_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b);
-int mli_Materials_surfaces_equal(
+mli_bool mli_Materials_surfaces_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b);
-int mli_Materials_media_equal(
+mli_bool mli_Materials_media_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b);
-int mli_Materials_boundary_layers_equal(
+mli_bool mli_Materials_boundary_layers_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b);
-int mli_Materials_default_medium_equal(
+mli_bool mli_Materials_default_medium_equal(
         const struct mli_Materials *a,
         const struct mli_Materials *b);
 #endif
@@ -4954,8 +5051,8 @@ int mli_Materials_default_medium_equal(
 #define MLI_MATERIALS_SERIALIZE_H_
 
 
-int mli_Materials_to_io(const struct mli_Materials *self, struct mli_IO *f);
-int mli_Materials_from_io(struct mli_Materials *self, struct mli_IO *f);
+chk_rc mli_Materials_to_io(const struct mli_Materials *self, struct mli_IO *f);
+chk_rc mli_Materials_from_io(struct mli_Materials *self, struct mli_IO *f);
 #endif
 
 /* materials_valid */
@@ -4966,12 +5063,12 @@ int mli_Materials_from_io(struct mli_Materials *self, struct mli_IO *f);
 #define MLI_MATERIALS_VALID_H_
 
 
-int mli_Materials_valid(const struct mli_Materials *self);
-int mli_Materials_valid_default_medium(const struct mli_Materials *self);
-int mli_Materials_valid_spectra(const struct mli_Materials *self);
-int mli_Materials_valid_surfaces(const struct mli_Materials *self);
-int mli_Materials_valid_media(const struct mli_Materials *self);
-int mli_Materials_valid_boundary_layers(const struct mli_Materials *self);
+mli_bool mli_Materials_valid(const struct mli_Materials *self);
+mli_bool mli_Materials_valid_default_medium(const struct mli_Materials *self);
+mli_bool mli_Materials_valid_spectra(const struct mli_Materials *self);
+mli_bool mli_Materials_valid_surfaces(const struct mli_Materials *self);
+mli_bool mli_Materials_valid_media(const struct mli_Materials *self);
+mli_bool mli_Materials_valid_boundary_layers(const struct mli_Materials *self);
 #endif
 
 /* photon_interaction */
@@ -5005,12 +5102,12 @@ struct mli_PhotonInteraction {
         int32_t type;
 };
 
-int mli_photon_time_of_flight(
+chk_rc mli_photon_time_of_flight(
         const struct mli_Materials *materials,
         const struct mli_PhotonInteraction *phisec,
         const double wavelength,
         double *time_of_flight);
-int mli_photon_interaction_type_to_string(const int32_t type, char *s);
+chk_rc mli_photon_interaction_type_to_string(const int32_t type, char *s);
 #endif
 
 /* color_materials */
@@ -5038,12 +5135,12 @@ struct mli_Vec mli_ColorMaterials_ColorSpectrum_to_xyz(
         const struct mli_ColorSpectrum *spectrum);
 
 struct mli_ColorMaterials mli_ColorMaterials_init(void);
-int mli_ColorMaterials_malloc(
+chk_rc mli_ColorMaterials_malloc(
         struct mli_ColorMaterials *self,
         const uint64_t num_spectra);
-int mli_ColorMaterials_set_observer_cie1931(struct mli_ColorMaterials *self);
+chk_rc mli_ColorMaterials_set_observer_cie1931(struct mli_ColorMaterials *self);
 
-int mli_ColorMaterials_malloc_from_Materials(
+chk_rc mli_ColorMaterials_malloc_from_Materials(
         struct mli_ColorMaterials *self,
         const struct mli_Materials *materials);
 
@@ -5069,14 +5166,14 @@ struct mli_Geometry {
         struct mli_HomTraComp *robject2root;
 };
 
-int mli_Geometry_malloc(
+chk_rc mli_Geometry_malloc(
         struct mli_Geometry *self,
         const uint32_t num_objects,
         const uint32_t num_robjects);
-int mli_Geometry_malloc_references(
+chk_rc mli_Geometry_malloc_references(
         struct mli_Geometry *self,
         const uint32_t num_robjects);
-int mli_Geometry_malloc_objects(
+chk_rc mli_Geometry_malloc_objects(
         struct mli_Geometry *self,
         const uint32_t num_objects);
 
@@ -5092,7 +5189,7 @@ void mli_Geometry_info_fprint(FILE *f, const struct mli_Geometry *self);
 struct mli_BoundaryLayer mli_Geometry_object_surfaces(
         const struct mli_Geometry *self,
         const uint32_t object_idx);
-int mli_Geometry_warn_objects(const struct mli_Geometry *self);
+chk_rc mli_Geometry_warn_objects(const struct mli_Geometry *self);
 #endif
 
 /* geometry_equal */
@@ -5103,13 +5200,13 @@ int mli_Geometry_warn_objects(const struct mli_Geometry *self);
 #define MLIGEOMETRY_EQUAL_H_
 
 
-int mli_Geometry_equal(
+mli_bool mli_Geometry_equal(
         const struct mli_Geometry *a,
         const struct mli_Geometry *b);
-int mli_Geometry_objects_equal(
+mli_bool mli_Geometry_objects_equal(
         const struct mli_Geometry *a,
         const struct mli_Geometry *b);
-int mli_Geometry_object_references_equal(
+mli_bool mli_Geometry_object_references_equal(
         const struct mli_Geometry *a,
         const struct mli_Geometry *b);
 #endif
@@ -5122,8 +5219,8 @@ int mli_Geometry_object_references_equal(
 #define MLI_GEOMETRY_SERIALIZE_H_
 
 
-int mli_Geometry_to_io(const struct mli_Geometry *scenery, struct mli_IO *f);
-int mli_Geometry_from_io(struct mli_Geometry *scenery, struct mli_IO *f);
+chk_rc mli_Geometry_to_io(const struct mli_Geometry *scenery, struct mli_IO *f);
+chk_rc mli_Geometry_from_io(struct mli_Geometry *scenery, struct mli_IO *f);
 #endif
 
 /* geometry_valid */
@@ -5134,10 +5231,12 @@ int mli_Geometry_from_io(struct mli_Geometry *scenery, struct mli_IO *f);
 #define MLI_GEOMETRY_VALID_H_
 
 
-int mli_Geometry_valid(const struct mli_Geometry *geometry);
-int mli_Geometry_valid_objects(const struct mli_Geometry *geometry);
-int mli_Geometry_valid_robjects_HomTras(const struct mli_Geometry *geometry);
-int mli_Geometry_valid_object_references(const struct mli_Geometry *geometry);
+mli_bool mli_Geometry_valid(const struct mli_Geometry *geometry);
+mli_bool mli_Geometry_valid_objects(const struct mli_Geometry *geometry);
+mli_bool mli_Geometry_valid_robjects_HomTras(
+        const struct mli_Geometry *geometry);
+mli_bool mli_Geometry_valid_object_references(
+        const struct mli_Geometry *geometry);
 #endif
 
 /* geometrytomaterialmap */
@@ -5156,7 +5255,7 @@ struct mli_GeometryToMaterialMap {
 };
 
 struct mli_GeometryToMaterialMap mli_GeometryToMaterialMap_init(void);
-int mli_GeometryToMaterialMap_malloc(
+chk_rc mli_GeometryToMaterialMap_malloc(
         struct mli_GeometryToMaterialMap *map,
         const uint32_t num_robjects,
         const uint32_t total_num_boundary_layers);
@@ -5194,7 +5293,7 @@ void mli_GeometryToMaterialMap_info_fprint(
 #define MLI_GEOMETRYTOMATERIALMAP_EQUAL_H_
 
 
-int mli_GeometryToMaterialMap_equal(
+mli_bool mli_GeometryToMaterialMap_equal(
         const struct mli_GeometryToMaterialMap *a,
         const struct mli_GeometryToMaterialMap *b);
 #endif
@@ -5207,10 +5306,10 @@ int mli_GeometryToMaterialMap_equal(
 #define MLI_GEOMETRYTOMATERIALMAP_SERIALIZE_H_
 
 
-int mli_GeometryToMaterialMap_from_io(
+chk_rc mli_GeometryToMaterialMap_from_io(
         struct mli_GeometryToMaterialMap *geomap,
         struct mli_IO *f);
-int mli_GeometryToMaterialMap_to_io(
+chk_rc mli_GeometryToMaterialMap_to_io(
         const struct mli_GeometryToMaterialMap *geomap,
         struct mli_IO *f);
 #endif
@@ -5223,13 +5322,13 @@ int mli_GeometryToMaterialMap_to_io(
 #define MLI_GEOMETRYTOMATERIALMAP_EQUAL_H_
 
 
-int mli_GeometryToMaterialMap_valid(
+mli_bool mli_GeometryToMaterialMap_valid(
         const struct mli_GeometryToMaterialMap *geomap);
 
-int mli_GeometryToMaterialMap_valid_wrt_Geometry(
+mli_bool mli_GeometryToMaterialMap_valid_wrt_Geometry(
         const struct mli_GeometryToMaterialMap *geomap,
         const struct mli_Geometry *geometry);
-int mli_GeometryToMaterialMap_valid_wrt_Materials(
+mli_bool mli_GeometryToMaterialMap_valid_wrt_Materials(
         const struct mli_GeometryToMaterialMap *geomap,
         const struct mli_Materials *materials);
 #endif
@@ -5262,7 +5361,7 @@ struct mli_octree_TmpNode {
         int32_t leaf_index;
 };
 
-int mli_octree_TmpNode_malloc(
+chk_rc mli_octree_TmpNode_malloc(
         struct mli_octree_TmpNode *n,
         const uint32_t num_objects);
 void mli_octree_TmpNode_free(struct mli_octree_TmpNode *n);
@@ -5283,26 +5382,26 @@ void mli_octree_TmpNode_set_flat_index_walk(
         int32_t *flat_index,
         int32_t *node_index,
         int32_t *leaf_index);
-int mli_octree_TmpNode_exists_and_has_objects(
+mli_bool mli_octree_TmpNode_exists_and_has_objects(
         const struct mli_octree_TmpNode *node);
 void mli_octree_TmpNode_print(
         const struct mli_octree_TmpNode *node,
         const uint32_t indent,
         const uint32_t child);
-int mli_octree_TmpNode_num_children(const struct mli_octree_TmpNode *node);
-int mli_octree_TmpNode_malloc_tree_from_bundle(
+uint32_t mli_octree_TmpNode_num_children(const struct mli_octree_TmpNode *node);
+chk_rc mli_octree_TmpNode_malloc_tree_from_bundle(
         struct mli_octree_TmpNode *root_node,
         const void *bundle,
         const uint32_t num_items_in_bundle,
-        int (*item_in_bundle_has_overlap_aabb)(
+        mli_bool (*item_in_bundle_has_overlap_aabb)(
                 const void *,
                 const uint32_t,
                 const struct mli_AABB),
         const struct mli_Cube bundle_cube);
-int mli_octree_TmpNode_add_children(
+chk_rc mli_octree_TmpNode_add_children(
         struct mli_octree_TmpNode *node,
         const void *bundle,
-        int (*item_in_bundle_has_overlap_aabb)(
+        mli_bool (*item_in_bundle_has_overlap_aabb)(
                 const void *,
                 const uint32_t,
                 const struct mli_AABB),
@@ -5324,11 +5423,11 @@ struct mli_octree_TmpOcTree {
         struct mli_octree_TmpNode root;
 };
 
-int mli_octree_TmpOcTree_malloc_from_bundle(
+chk_rc mli_octree_TmpOcTree_malloc_from_bundle(
         struct mli_octree_TmpOcTree *octree,
         const void *bundle,
         const uint32_t num_items_in_bundle,
-        int (*item_in_bundle_has_overlap_aabb)(
+        mli_bool (*item_in_bundle_has_overlap_aabb)(
                 const void *,
                 const uint32_t,
                 const struct mli_AABB),
@@ -5361,11 +5460,6 @@ struct mli_Atmosphere {
 
         double Height_Rayleigh;
         double Height_Mie;
-
-        /*
-        struct mli_Color beta_Rayleigh;
-        struct mli_Color beta_Mie;
-        */
 
         struct mli_ColorSpectrum beta_Rayleigh_spectrum;
         struct mli_ColorSpectrum beta_Mie_spectrum;
@@ -5438,7 +5532,7 @@ struct mli_ColorSpectrum mli_Atmosphere_compute_depth(
 #define MLI_ATMOSPHERE_JSON_H_
 
 
-int mli_Atmosphere_from_json_token(
+chk_rc mli_Atmosphere_from_json_token(
         struct mli_Atmosphere *atm,
         const struct mli_Json *json,
         const uint64_t tkn);
@@ -5453,9 +5547,11 @@ int mli_Atmosphere_from_json_token(
 #define MLI_OCTREE_H_
 
 
-#define MLI_OCTREE_TYPE_NONE 0
-#define MLI_OCTREE_TYPE_NODE 1
-#define MLI_OCTREE_TYPE_LEAF 2
+enum mli_octree_type {
+        MLI_OCTREE_TYPE_NONE = 0,
+        MLI_OCTREE_TYPE_NODE = 1,
+        MLI_OCTREE_TYPE_LEAF = 2
+};
 
 struct mli_octree_LeafAddress {
         uint32_t first_object_link;
@@ -5489,10 +5585,10 @@ void mli_OcTree_print_walk(
         const uint8_t node_type,
         const uint32_t indent,
         const uint32_t child);
-int mli_OcTree_equal_payload(
+mli_bool mli_OcTree_equal_payload(
         const struct mli_OcTree *tree,
         const struct mli_octree_TmpOcTree *tmp_octree);
-int mli_OcTree_equal_payload_walk(
+mli_bool mli_OcTree_equal_payload_walk(
         const struct mli_OcTree *tree,
         const int32_t node_idx,
         const int32_t node_type,
@@ -5521,7 +5617,7 @@ void mli_OcTree_set_leaf(
 void mli_OcTree_set_node(
         struct mli_OcTree *tree,
         const struct mli_octree_TmpNode *dynnode);
-int mli_OcTree_malloc(
+chk_rc mli_OcTree_malloc(
         struct mli_OcTree *tree,
         const uint64_t num_nodes,
         const uint64_t num_leafs,
@@ -5529,7 +5625,7 @@ int mli_OcTree_malloc(
 void mli_OcTree_free(struct mli_OcTree *tree);
 struct mli_OcTree mli_OcTree_init(void);
 struct mli_octree_Node mli_octree_Node_init(void);
-int mli_octree_LeafArray_malloc(
+chk_rc mli_octree_LeafArray_malloc(
         struct mli_octree_LeafArray *leafs,
         const uint64_t num_leafs,
         const uint64_t num_object_links);
@@ -5537,12 +5633,12 @@ void mli_octree_LeafArray_free(struct mli_octree_LeafArray *leafs);
 struct mli_octree_LeafArray mli_octree_LeafArray_init(void);
 struct mli_octree_LeafAddress mli_octree_LeafAddress_init(void);
 
-int mli_OcTree_malloc_from_object_wavefront(
+chk_rc mli_OcTree_malloc_from_object_wavefront(
         struct mli_OcTree *octree,
         const struct mli_Object *object);
 
 struct mli_GeometryAndAccelerator;
-int mli_OcTree_malloc_from_Geometry(
+chk_rc mli_OcTree_malloc_from_Geometry(
         struct mli_OcTree *octree,
         const struct mli_GeometryAndAccelerator *accgeo,
         const struct mli_AABB outermost_aabb);
@@ -5557,7 +5653,9 @@ int mli_OcTree_malloc_from_Geometry(
 #define MLI_OCTREE_EQUAL_H_
 
 
-int mli_OcTree_equal(const struct mli_OcTree *a, const struct mli_OcTree *b);
+mli_bool mli_OcTree_equal(
+        const struct mli_OcTree *a,
+        const struct mli_OcTree *b);
 #endif
 
 /* octree_serialize */
@@ -5568,8 +5666,8 @@ int mli_OcTree_equal(const struct mli_OcTree *a, const struct mli_OcTree *b);
 #define MLI_OCTREE_SERIALIZE_H_
 
 
-int mli_OcTree_to_io(const struct mli_OcTree *octree, struct mli_IO *f);
-int mli_OcTree_from_io(struct mli_OcTree *octree, struct mli_IO *f);
+chk_rc mli_OcTree_to_io(const struct mli_OcTree *octree, struct mli_IO *f);
+chk_rc mli_OcTree_from_io(struct mli_OcTree *octree, struct mli_IO *f);
 
 #endif
 
@@ -5581,8 +5679,8 @@ int mli_OcTree_from_io(struct mli_OcTree *octree, struct mli_IO *f);
 #define MLI_OCTREE_VALID_H_
 
 
-int mli_OcTree_valid(const struct mli_OcTree *octree);
-int mli_OcTree_valid_wrt_links(
+mli_bool mli_OcTree_valid(const struct mli_OcTree *octree);
+mli_bool mli_OcTree_valid_wrt_links(
         const struct mli_OcTree *octree,
         const uint32_t num_links);
 #endif
@@ -5713,7 +5811,7 @@ struct mli_pathtracer_Config mli_pathtracer_Config_init(void);
 #define MLI_PATHTRACER_CONFIG_JSON_H_
 
 
-int mli_pathtracer_Config_from_json_token(
+chk_rc mli_pathtracer_Config_from_json_token(
         struct mli_pathtracer_Config *tc,
         const struct mli_Json *json,
         const uint64_t tkn);
@@ -5728,6 +5826,7 @@ int mli_pathtracer_Config_from_json_token(
 
 
 
+#define mli_octree_node int
 #define MLI_RAYTRACING_RAY_OCTREE_TRAVERSAL_EPSILON 1.0e-307
 
 void mli_raytracing_ray_octree_traversal(
@@ -5752,13 +5851,13 @@ void mli_raytracing_ray_octree_traversal_sub(
                 const struct mli_OcTree *,
                 const uint32_t));
 
-int mli_raytracing_ray_octree_traversal_next_octree_node(
+mli_octree_node mli_raytracing_ray_octree_traversal_next_octree_node(
         const struct mli_Vec tm,
-        int x,
-        int y,
-        int z);
+        mli_octree_node x,
+        mli_octree_node y,
+        mli_octree_node z);
 
-int mli_raytracing_ray_octree_traversal_first_octree_node(
+mli_octree_node mli_raytracing_ray_octree_traversal_first_octree_node(
         const struct mli_Vec t0,
         const struct mli_Vec tm);
 
@@ -5786,20 +5885,20 @@ struct mli_Accelerator mli_Accelerator_init(void);
 
 void mli_Accelerator_free(struct mli_Accelerator *self);
 
-int mli_Accelerator_malloc(
+chk_rc mli_Accelerator_malloc(
         struct mli_Accelerator *self,
         const uint32_t num_objects,
         const uint32_t num_robjects);
 
-int mli_Accelerator_malloc_from_Geometry(
+chk_rc mli_Accelerator_malloc_from_Geometry(
         struct mli_Accelerator *self,
         const struct mli_Geometry *geometry);
 
-int mli_Accelerator_set_robject_aabbs(
+chk_rc mli_Accelerator_set_robject_aabbs(
         struct mli_Accelerator *self,
         const struct mli_Geometry *geometry);
 
-int mli_Accelerator_set_object_octrees(
+chk_rc mli_Accelerator_set_object_octrees(
         struct mli_Accelerator *self,
         const struct mli_Geometry *geometry);
 
@@ -5818,7 +5917,7 @@ struct mli_AABB mli_Accelerator_outermost_aabb(
 #define MLI_ACCELERATOR_EQUAL_H_
 
 
-int mli_Accelerator_equal(
+mli_bool mli_Accelerator_equal(
         const struct mli_Accelerator *a,
         const struct mli_Accelerator *b);
 #endif
@@ -5831,8 +5930,10 @@ int mli_Accelerator_equal(
 #define MLI_ACCELERATOR_SERIALIZE_H_
 
 
-int mli_Accelerator_from_io(struct mli_Accelerator *self, struct mli_IO *f);
-int mli_Accelerator_to_io(const struct mli_Accelerator *self, struct mli_IO *f);
+chk_rc mli_Accelerator_from_io(struct mli_Accelerator *self, struct mli_IO *f);
+chk_rc mli_Accelerator_to_io(
+        const struct mli_Accelerator *self,
+        struct mli_IO *f);
 #endif
 
 /* accelerator_valid */
@@ -5843,8 +5944,8 @@ int mli_Accelerator_to_io(const struct mli_Accelerator *self, struct mli_IO *f);
 #define MLI_ACCELERATOR_VALID_H_
 
 
-int mli_Accelerator_valid(const struct mli_Accelerator *self);
-int mli_Accelerator_valid_wrt_Geometry(
+mli_bool mli_Accelerator_valid(const struct mli_Accelerator *self);
+mli_bool mli_Accelerator_valid_wrt_Geometry(
         const struct mli_Accelerator *self,
         const struct mli_Geometry *geometry);
 #endif
@@ -5857,12 +5958,12 @@ int mli_Accelerator_valid_wrt_Geometry(
 #define MLI_GEOMETRY_AABB_H_
 
 
-int mli_Geometry_robject_has_overlap_aabb_void(
+mli_bool mli_Geometry_robject_has_overlap_aabb_void(
         const void *accgeo,
         const uint32_t robject_idx,
         const struct mli_AABB aabb);
 
-int mli_Geometry_robject_has_overlap_aabb(
+mli_bool mli_Geometry_robject_has_overlap_aabb(
         const struct mli_GeometryAndAccelerator *accgeo,
         const uint32_t robject_idx,
         const struct mli_AABB aabb);
@@ -5919,7 +6020,9 @@ uint32_t mli_Scenery_resolve_boundary_layer_idx(
 #define MLI_SCENERY_EQUAL_H_
 
 
-int mli_Scenery_equal(const struct mli_Scenery *a, const struct mli_Scenery *b);
+mli_bool mli_Scenery_equal(
+        const struct mli_Scenery *a,
+        const struct mli_Scenery *b);
 #endif
 
 /* scenery_minimal_object */
@@ -5930,7 +6033,7 @@ int mli_Scenery_equal(const struct mli_Scenery *a, const struct mli_Scenery *b);
 #define MLI_SCENERY_MINIMAL_OBJECT_H_
 
 
-int mli_Scenery_malloc_minimal_from_wavefront(
+chk_rc mli_Scenery_malloc_minimal_from_wavefront(
         struct mli_Scenery *self,
         const char *path);
 #endif
@@ -5943,11 +6046,13 @@ int mli_Scenery_malloc_minimal_from_wavefront(
 #define MLI_SCENERY_SERIALIZE_H_
 
 
-int mli_Scenery_to_io(const struct mli_Scenery *self, struct mli_IO *f);
-int mli_Scenery_from_io(struct mli_Scenery *self, struct mli_IO *f);
+chk_rc mli_Scenery_to_io(const struct mli_Scenery *self, struct mli_IO *f);
+chk_rc mli_Scenery_from_io(struct mli_Scenery *self, struct mli_IO *f);
 
-int mli_Scenery_malloc_from_path(struct mli_Scenery *self, const char *path);
-int mli_Scenery_write_to_path(const struct mli_Scenery *self, const char *path);
+chk_rc mli_Scenery_malloc_from_path(struct mli_Scenery *self, const char *path);
+chk_rc mli_Scenery_write_to_path(
+        const struct mli_Scenery *self,
+        const char *path);
 #endif
 
 /* scenery_tar */
@@ -5958,9 +6063,9 @@ int mli_Scenery_write_to_path(const struct mli_Scenery *self, const char *path);
 #define MLI_SCENERY_TAR_H_
 
 
-int mli_Scenery_from_io_tar(struct mli_Scenery *self, struct mli_IO *f);
-int mli_Scenery__from_path_cstr(struct mli_Scenery *self, const char *path);
-int mli_Scenery_malloc_from_Archive(
+chk_rc mli_Scenery_from_io_tar(struct mli_Scenery *self, struct mli_IO *f);
+chk_rc mli_Scenery__from_path_cstr(struct mli_Scenery *self, const char *path);
+chk_rc mli_Scenery_malloc_from_Archive(
         struct mli_Scenery *self,
         const struct mli_Archive *archive);
 #endif
@@ -5973,7 +6078,7 @@ int mli_Scenery_malloc_from_Archive(
 #define MLI_SCENERY_VALID_H_
 
 
-int mli_Scenery_valid(const struct mli_Scenery *self);
+mli_bool mli_Scenery_valid(const struct mli_Scenery *self);
 #endif
 
 /* viewer */
@@ -5984,8 +6089,11 @@ int mli_Scenery_valid(const struct mli_Scenery *self);
 #define MLI_VIEWER_VIEWER_H_
 
 
+#define mli_key_code int
 #define MLI_VIEWER_ESCAPE_KEY 27
 #define MLI_VIEWER_SPACE_KEY 32
+
+mli_key_code mli_viewer_get_key(void);
 
 void mli_viewer_clear_screen(void);
 
@@ -5995,23 +6103,25 @@ void mli_viewer_print_info_line(
         const struct mli_View view,
         const struct mli_viewer_Cursor cursor,
         const struct mli_pathtracer_Config tracer_config,
-        const double gamma);
+        const double gamma,
+        const double gain);
 
 void mli_viewer_timestamp_now_19chars(char *buffer);
 
-int mli_viewer_export_image(
+chk_rc mli_viewer_export_image(
         const struct mli_PathTracer *tracer,
         const struct mli_viewer_Config config,
         const struct mli_View view,
         struct mli_Prng *prng,
         const double object_distance,
         const double gamma,
+        const double gain,
         const char *path);
 
-int mli_viewer_run_interactive_viewer(
+chk_rc mli_viewer_run_interactive_viewer(
         const struct mli_Scenery *scenery,
         const struct mli_viewer_Config config);
-int mli_viewer_run_interactive_viewer_try_non_canonical_stdin(
+chk_rc mli_viewer_run_interactive_viewer_try_non_canonical_stdin(
         const struct mli_Scenery *scenery,
         const struct mli_viewer_Config config);
 #endif
@@ -6097,7 +6207,7 @@ void mli_PhotonInteractionVector_print(
         const struct mli_PhotonInteractionVector *history,
         const struct mli_Scenery *scenery);
 
-int mli_PhotonInteractionVector_time_of_flight(
+chk_rc mli_PhotonInteractionVector_time_of_flight(
         const struct mli_PhotonInteractionVector *history,
         const struct mli_Scenery *scenery,
         const double wavelength,
@@ -6121,42 +6231,42 @@ struct mli_PhotonPropagation {
         uint64_t max_interactions;
 };
 
-int mli_propagate_photon(
+chk_rc mli_propagate_photon(
         const struct mli_Scenery *scenery,
         struct mli_PhotonInteractionVector *history,
         struct mli_Photon *photon,
         struct mli_Prng *prng,
         const uint64_t max_interactions);
-int mli_propagate_photon_work_on_causal_intersection(
+chk_rc mli_propagate_photon_work_on_causal_intersection(
         struct mli_PhotonPropagation *env);
-int mli_propagate_photon_distance_until_absorption(
+chk_rc mli_propagate_photon_distance_until_absorption(
         const struct mli_Func *absorption_in_medium_passing_through,
         const double wavelength,
         struct mli_Prng *prng,
         double *distance_until_absorption);
-int mli_propagate_photon_interact_with_object(
+chk_rc mli_propagate_photon_interact_with_object(
         struct mli_PhotonPropagation *env,
         const struct mli_IntersectionSurfaceNormal *isec);
-int mli_propagate_photon_fresnel_refraction_and_reflection(
+chk_rc mli_propagate_photon_fresnel_refraction_and_reflection(
         struct mli_PhotonPropagation *env,
         const struct mli_IntersectionSurfaceNormal *isec);
-int mli_propagate_photon_probability_passing_medium_coming_from(
+chk_rc mli_propagate_photon_probability_passing_medium_coming_from(
         const struct mli_Scenery *scenery,
         const struct mli_Photon *photon,
         const struct mli_IntersectionSurfaceNormal *isec,
         double *probability_passing);
-int mli_propagate_photon_pass_boundary_layer(
+chk_rc mli_propagate_photon_pass_boundary_layer(
         struct mli_PhotonPropagation *env,
         const struct mli_IntersectionSurfaceNormal *isec,
         const struct mli_Fresnel fresnel);
-int mli_propagate_photon_phong(
+chk_rc mli_propagate_photon_phong(
         struct mli_PhotonPropagation *env,
         const struct mli_IntersectionSurfaceNormal *isec);
 struct mli_PhotonInteraction mliPhotonInteraction_from_Intersection(
         const int64_t type,
         const struct mli_Scenery *scenery,
         const struct mli_IntersectionSurfaceNormal *isec);
-int mli_propagate_photon_env(struct mli_PhotonPropagation *env);
+chk_rc mli_propagate_photon_env(struct mli_PhotonPropagation *env);
 #endif
 
 /* ray_scenery_query */
@@ -6167,17 +6277,17 @@ int mli_propagate_photon_env(struct mli_PhotonPropagation *env);
 #define MLI_RAYTRACING_RAY_SCENERY_QUERY_H_
 
 
-int mli_raytracing_query_intersection(
+mli_bool mli_raytracing_query_intersection(
         const struct mli_Scenery *scenery,
         const struct mli_Ray ray_root,
         struct mli_Intersection *isec);
 
-int mli_raytracing_query_intersection_with_surface_normal(
+mli_bool mli_raytracing_query_intersection_with_surface_normal(
         const struct mli_Scenery *scenery,
         const struct mli_Ray ray_root,
         struct mli_IntersectionSurfaceNormal *isecsrf);
 
-int mli_raytracing_query_object_reference(
+mli_bool mli_raytracing_query_object_reference(
         const struct mli_Object *object,
         const struct mli_OcTree *object_octree,
         const struct mli_HomTraComp local2root_comp,
@@ -6188,7 +6298,7 @@ struct mli_raytracing_QueryInnerWork {
         struct mli_Intersection *intersection;
         const struct mli_Object *object;
         struct mli_Ray ray_object;
-        int has_intersection;
+        mli_bool has_intersection;
 };
 
 struct mli_raytracing_QueryOuterWork {

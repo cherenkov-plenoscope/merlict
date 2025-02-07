@@ -110,6 +110,7 @@ cdef extern from "mli.h":
         stdint.uint64_t export_num_rows
         double step_length
         mli_View view
+        double gain
         double gamma
 
         double aperture_camera_f_stop_ratio

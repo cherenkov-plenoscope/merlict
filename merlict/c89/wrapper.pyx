@@ -61,6 +61,7 @@ cdef _mli_viewer_Config_init(
     aperture_camera_f_stop_ratio,
     aperture_camera_image_sensor_width,
     random_seed,
+    gain,
     gamma
 ):
     assert step_length > 0
@@ -85,6 +86,7 @@ cdef _mli_viewer_Config_init(
         rotation=view_rotation_tait_bryan_xyz,
         field_of_view=float(field_of_view),
     )
+    _c.gain = float(gain)
     _c.gamma = float(gamma)
     _c.aperture_camera_f_stop_ratio = float(aperture_camera_f_stop_ratio)
     _c.aperture_camera_image_sensor_width = float(
@@ -193,6 +195,7 @@ cdef class Merlict:
         aperture_camera_f_stop_ratio=2.0,
         aperture_camera_image_sensor_width=24e-3,
         random_seed=0,
+        gain=0.1,
         gamma=1.0,
     ):
         """
@@ -231,6 +234,8 @@ cdef class Merlict:
         aperture_camera_image_sensor_width : float
             Physical width (along the columns) of the image sensor in the
             camera rendering the high-res image.
+        gain : float
+            Color and image gain.
         gamma : float
             Color values in the output image are raised to the power of gamma
             in order to compensate for different illumination levels.
@@ -249,6 +254,7 @@ cdef class Merlict:
             aperture_camera_f_stop_ratio=aperture_camera_f_stop_ratio,
             aperture_camera_image_sensor_width=aperture_camera_image_sensor_width,
             random_seed=random_seed,
+            gain=gain,
             gamma=gamma)
 
         fd = sys.stdin.fileno()
