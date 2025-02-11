@@ -1,4 +1,5 @@
 import numpy as np
+from . import interaction
 from .. import utils
 
 
@@ -15,7 +16,7 @@ def dtype():
     ]
 
 
-def isphotons(r):
+def is_photons(r):
     return utils.recarray.isdtype(r=r, dtype=dtype())
 
 

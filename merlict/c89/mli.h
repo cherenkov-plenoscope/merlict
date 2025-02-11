@@ -1212,13 +1212,13 @@ struct mli_Vec mli_Vec_substract(
         const struct mli_Vec a,
         const struct mli_Vec b);
 struct mli_Vec mli_Vec_add(const struct mli_Vec a, const struct mli_Vec b);
-struct mli_Vec mli_Vec_init(const double x, const double y, const double z);
+struct mli_Vec mli_Vec_set(const double x, const double y, const double z);
 int64_t mli_Vec_sign3_bitmask(const struct mli_Vec a, const double epsilon);
 struct mli_Vec mli_Vec_mean(
         const struct mli_Vec *vecs,
         const uint64_t num_vecs);
-void mli_Vec_set(struct mli_Vec *a, const uint64_t dim, const double val);
-double mli_Vec_get(const struct mli_Vec *a, const uint64_t dim);
+void mli_Vec_set_dim(struct mli_Vec *a, const uint64_t dim, const double val);
+double mli_Vec_get_dim(const struct mli_Vec *a, const uint64_t dim);
 #endif
 
 /* vec_AABB */
@@ -1510,7 +1510,7 @@ mli_bool mli_Vec_overlap_aabb(
 
 #define MLI_VERSION_MAYOR 2
 #define MLI_VERSION_MINOR 2
-#define MLI_VERSION_PATCH 5
+#define MLI_VERSION_PATCH 6
 
 void mli_version_logo_fprint(FILE *f);
 void mli_version_authors_and_affiliations_fprint(FILE *f);
@@ -6286,9 +6286,6 @@ chk_rc mli_propagate_photon_pass_boundary_layer(
         struct mli_PhotonPropagation *env,
         const struct mli_IntersectionSurfaceNormal *isec,
         const struct mli_Fresnel fresnel);
-chk_rc mli_propagate_photon_phong(
-        struct mli_PhotonPropagation *env,
-        const struct mli_IntersectionSurfaceNormal *isec);
 struct mli_PhotonInteraction mliPhotonInteraction_from_Intersection(
         const int64_t type,
         const struct mli_Scenery *scenery,

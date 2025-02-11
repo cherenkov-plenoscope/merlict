@@ -11,8 +11,13 @@ import termios
 import sys
 import numpy as np
 from .. import ray as _ray
+from .. import photon as _photon
 from .. import intersection as _intersection
 from .. import intersectionSurfaceNormal as _intersectionSurfaceNormal
+
+
+cdef _chk_msg(rc, msg):
+    assert rc == CHK_SUCCESS, msg
 
 
 cdef _mli_Vec2py(mli_Vec mliv):
@@ -114,14 +119,13 @@ cdef _mli_Archive_push_back_path_and_payload(
     cdef char* _cpath = _py_path
     cdef char* _cpayload = _py_payload
 
-    rc = mli_Archive_push_back_cstr(
+    _chk_msg(mli_Archive_push_back_cstr(
         archive,
         _cpath,
         path_length,
         _cpayload,
         payload_length
-    )
-    assert rc == CHK_SUCCESS
+    ), "Failed to push back cstr into mli_Archive.")
     return
 
 
@@ -277,10 +281,10 @@ cdef class Merlict:
 
         cdef mli_Archive archive = mli_Archive_init()
         try:
-            rc = mli_Archive__from_path_cstr(&archive, _cpath)
-            assert rc == CHK_SUCCESS
-            rc = mli_Scenery_malloc_from_Archive(&self.scenery, &archive)
-            assert rc == CHK_SUCCESS
+            _chk_msg(mli_Archive__from_path_cstr(&archive, _cpath),
+                "Failed to read mli_Archive from path.")
+            _chk_msg(mli_Scenery_malloc_from_Archive(&self.scenery, &archive),
+                "Failed to make mli_Scenery from mli_Archive.")
         finally:
             mli_Archive_free(&archive)
 
@@ -303,8 +307,8 @@ cdef class Merlict:
         _path = str(path)
         cdef bytes _py_path = _path.encode()
         cdef char* _cpath = _py_path
-        rc = mli_Scenery_malloc_from_path(&self.scenery, _cpath)
-        assert rc == CHK_SUCCESS
+        _chk_msg(mli_Scenery_malloc_from_path(&self.scenery, _cpath),
+            "Failed to malloc scenery from dump in path.")
 
     def dump(self, path):
         """
@@ -329,8 +333,8 @@ cdef class Merlict:
         _path = str(path)
         cdef bytes _py_path = _path.encode()
         cdef char* _cpath = _py_path
-        rc = mli_Scenery_write_to_path(&self.scenery, _cpath)
-        assert rc == CHK_SUCCESS
+        _chk_msg(mli_Scenery_write_to_path(&self.scenery, _cpath),
+            "Failed to dump mli_Scenery into path.")
 
     def dumps(self):
         """
@@ -346,19 +350,18 @@ cdef class Merlict:
         cdef bytes pyout
 
         try:
-            rc = mli_IO_open_memory(&buff)
-            assert rc == CHK_SUCCESS, "Failed to open buffer."
+            _chk_msg(mli_IO_open_memory(&buff), "Failed to open buffer.")
             assert buff.type == MLI_IO_TYPE_MEMORY
             assert buff.data.memory.size == 0
 
-            rc = mli_Scenery_to_io(&self.scenery, &buff)
-            assert rc == CHK_SUCCESS, "Failed to serialize scenery to buffer."
+            _chk_msg(mli_Scenery_to_io(&self.scenery, &buff),
+                "Failed to serialize scenery to buffer.")
 
             pyout = buff.data.memory.cstr[:buff.data.memory.size]
 
         finally:
-            rc = mli_IO_close(&buff)
-            assert rc == CHK_SUCCESS, "Failed to close buffer."
+            _chk_msg(mli_IO_close(&buff),
+                "Failed to close buffer.")
 
         return pyout
 
@@ -372,18 +375,16 @@ cdef class Merlict:
         Only use your own merlict_c89 dumps.
         """
         cdef bytes _dump = _make_sure_bytes(dump)
-        cdef int rc
         cdef mli_IO buff = mli_IO_init()
         cdef stdint.uint64_t size = len(_dump)
 
         try:
-            rc = mli_IO_open_memory(&buff)
-            assert rc == CHK_SUCCESS, "Failed to open buffer."
+            _chk_msg(mli_IO_open_memory(&buff), "Failed to open buffer.")
             assert buff.type == MLI_IO_TYPE_MEMORY
             assert buff.data.memory.size == 0
 
-            rc = mli_IoMemory__malloc_capacity(&buff.data.memory, size)
-            assert rc == CHK_SUCCESS, "Failed to malloc buffer from dump."
+            _chk_msg(mli_IoMemory__malloc_capacity(&buff.data.memory, size),
+                "Failed to malloc buffer from dump.")
 
             assert buff.data.memory.capacity == size
             assert buff.data.memory.pos == 0
@@ -396,18 +397,16 @@ cdef class Merlict:
             # string.memcpy(buff.data.memory.cstr, &_dump[0], size)
             # buff.data.memory.cstr[0:size] = _dump[0:size]
 
-            rc = mli_Scenery_from_io(&self.scenery, &buff)
-            assert rc == CHK_SUCCESS, "Failed to load scenery from buffer."
+            _chk_msg(mli_Scenery_from_io(&self.scenery, &buff),
+                "Failed to load scenery from buffer.")
         finally:
-            rc = mli_IO_close(&buff)
-            assert rc == CHK_SUCCESS, "Failed to close buffer."
+            _chk_msg(mli_IO_close(&buff), "Failed to close buffer.")
 
     def init_from_sceneryStr(self, sceneryStr):
-        cdef int rc
         cdef mli_Archive tmp_archive = mli_Archive_init()
         try:
-            rc = mli_Archive_malloc(&tmp_archive)
-            assert rc == CHK_SUCCESS
+            _chk_msg(mli_Archive_malloc(&tmp_archive),
+                "Failed to malloc mli_Archive")
 
             for item in sceneryStr:
                 filename, payload = item
@@ -416,13 +415,14 @@ cdef class Merlict:
                     filename,
                     payload)
 
-            rc = mli_Scenery_malloc_from_Archive(&self.scenery, &tmp_archive)
-            assert rc == CHK_SUCCESS
+            _chk_msg(mli_Scenery_malloc_from_Archive(
+                    &self.scenery,
+                    &tmp_archive),
+                "Failed to malloc mli_Scenery from mli_Archive.")
         finally:
             mli_Archive_free(&tmp_archive)
 
     def query_intersection(self, rays):
-        cdef int rc
         assert _ray.israys(rays)
         cdef stdint.uint64_t num_ray = rays.shape[0]
         isecs = _intersection.init(size=num_ray)
@@ -456,7 +456,6 @@ cdef class Merlict:
         return isecs_mask, isecs
 
     def query_intersectionSurfaceNormal(self, rays):
-        cdef int rc
         assert _ray.israys(rays)
         cdef stdint.uint64_t num_ray = rays.shape[0]
         isecs = _intersectionSurfaceNormal.init(size=num_ray)

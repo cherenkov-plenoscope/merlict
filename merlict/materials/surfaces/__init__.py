@@ -16,7 +16,7 @@ def list_resources():
     )
 
 
-def init(key="perfect_absorber"):
+def init_from_resources(key="perfect_absorber"):
     """
     Returns the surface's properties from merlict's own library-resources.
     If `key` is followed by a pattern such as `key/rgb_R_G_B`, then the
@@ -28,26 +28,9 @@ def init(key="perfect_absorber"):
         The key of the surface in merlict's own library. Default is
         `perfect_absorber`.
     """
-    RGB = "/" in key
-    basic_key = os.path.dirname(key) if RGB else key
-    path = os.path.join(get_resources_path(), basic_key + ".json")
+    path = os.path.join(get_resources_path(), key + ".json")
 
-    try:
-        with open(path, "rt") as f:
-            c = json_numpy.loads(f.read())
-    except FileNotFoundError as e:
-        print(
-            "Unknown surface {:s}. Known surfaces are: {:s}".format(
-                key, str(list_resources())
-            )
-        )
-        raise e
+    with open(path, "rt") as f:
+        c = json_numpy.loads(f.read())
 
-    if RGB:
-        rgb_key = os.path.basename(key)
-        rgb = str.split(rgb_key, "_")
-        assert rgb[0] == "rgb"
-        assert len(rgb) == 4
-        rgb = rgb[1:]
-        c["color"] = [int(i) for i in rgb]
     return c

@@ -1,5 +1,5 @@
 import os
-import json
+import json_numpy
 from ... import utils
 from .. import spectra
 
@@ -17,10 +17,15 @@ def list_resources():
     )
 
 
-def add_to_materials_from_resources(materials, key):
+def init_from_resources(key):
     path = os.path.join(get_resources_path(), key + ".json")
     with open(path, "rt") as f:
-        medium = json.loads(f.read())
+        c = json_numpy.loads(f.read())
+    return c
+
+
+def add_to_materials_from_resources(materials, key):
+    medium = init_from_resources(key=key)
     speckeys = [medium["refraction_spectrum"], medium["absorption_spectrum"]]
     for spckey in speckeys:
         if spckey not in materials["spectra"]:

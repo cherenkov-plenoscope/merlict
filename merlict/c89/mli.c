@@ -180,13 +180,13 @@ struct mli_Vec mli_corsika_photon_direction_of_motion(
           down towards the observation-plane.
   */
         const double z = sqrt(1.0 - bunch.ux * bunch.ux - bunch.vy * bunch.vy);
-        return mli_Vec_init(bunch.ux, bunch.vy, -z);
+        return mli_Vec_set(bunch.ux, bunch.vy, -z);
 }
 
 struct mli_Vec mli_corsika_photon_support_on_observation_level(
         const struct mli_corsika_PhotonBunch bunch)
 {
-        return mli_Vec_init(
+        return mli_Vec_set(
                 (double)bunch.x_cm * 1e-2, (double)bunch.y_cm * 1e-2, 0.0);
 }
 
@@ -1698,8 +1698,7 @@ chk_rc mli_Accelerator_malloc(
         chk_malloc(self->robject_aabbs, struct mli_AABB, self->num_robjects);
         for (rob = 0; rob < self->num_robjects; rob++) {
                 self->robject_aabbs[rob] = mli_AABB_set(
-                        mli_Vec_init(0.0, 0.0, 0.0),
-                        mli_Vec_init(0.0, 0.0, 0.0));
+                        mli_Vec_set(0.0, 0.0, 0.0), mli_Vec_set(0.0, 0.0, 0.0));
         }
 
         return CHK_SUCCESS;
@@ -1825,9 +1824,9 @@ struct mli_AABB mli_Accelerator_outermost_aabb(
         struct mli_AABB aabb;
         if (self->num_robjects == 0) {
                 aabb.lower =
-                        mli_Vec_init(MLI_MATH_NAN, MLI_MATH_NAN, MLI_MATH_NAN);
+                        mli_Vec_set(MLI_MATH_NAN, MLI_MATH_NAN, MLI_MATH_NAN);
                 aabb.upper =
-                        mli_Vec_init(MLI_MATH_NAN, MLI_MATH_NAN, MLI_MATH_NAN);
+                        mli_Vec_set(MLI_MATH_NAN, MLI_MATH_NAN, MLI_MATH_NAN);
                 return aabb;
         }
         aabb.lower = self->robject_aabbs[0].lower;
@@ -2074,7 +2073,7 @@ struct mli_Vec mli_camera_Aperture_get_object_point(
                 mli_thin_lens_get_object_given_focal_and_image(
                         focal_length, -1.0 * pixel_support.z);
         const double scaleing = object_distance / pixel_support.z;
-        return mli_Vec_init(
+        return mli_Vec_set(
                 scaleing * pixel_support.x,
                 scaleing * pixel_support.y,
                 object_distance);
@@ -2622,16 +2621,16 @@ void mli_Atmosphere_set_sun_direction(
                         2.0 * MLI_MATH_PI * self->sunHourAngle / 24.0;
 
                 const struct mli_HomTraComp tc_latitude = mli_HomTraComp_set(
-                        mli_Vec_init(0.0, 0.0, 0.0),
+                        mli_Vec_set(0.0, 0.0, 0.0),
                         mli_Quaternion_set_tait_bryan(
                                 self->sunLatitude, 0.0, 0.0));
                 const struct mli_HomTraComp tc_hour = mli_HomTraComp_set(
-                        mli_Vec_init(0.0, 0.0, 0.0),
+                        mli_Vec_set(0.0, 0.0, 0.0),
                         mli_Quaternion_set_tait_bryan(0.0, hours_rad, 0.0));
                 const struct mli_HomTraComp tc =
                         mli_HomTraComp_sequence(tc_latitude, tc_hour);
                 const struct mli_HomTra t = mli_HomTraComp_from_compact(tc);
-                const struct mli_Vec zenith = mli_Vec_init(0.0, 0.0, 1.0);
+                const struct mli_Vec zenith = mli_Vec_set(0.0, 0.0, 1.0);
                 self->sunDirection = mli_HomTraComp_dir(&t, zenith);
         }
 }
@@ -3604,11 +3603,11 @@ struct mli_Vec mli_AxisAlignedGridTraversal_first_plane(
         const struct mli_Idx3 voxel,
         const struct mli_Vec ray_direction)
 {
-        struct mli_Vec voxel_lower = mli_Vec_init(
+        struct mli_Vec voxel_lower = mli_Vec_set(
                 grid->bounds.lower.x + (double)voxel.x * grid->bin_width.x,
                 grid->bounds.lower.y + (double)voxel.y * grid->bin_width.y,
                 grid->bounds.lower.z + (double)voxel.z * grid->bin_width.z);
-        struct mli_Vec voxel_upper = mli_Vec_init(
+        struct mli_Vec voxel_upper = mli_Vec_set(
                 grid->bounds.lower.x +
                         (double)(voxel.x + 1) * grid->bin_width.x,
                 grid->bounds.lower.y +
@@ -4841,7 +4840,7 @@ struct mli_Vec mli_Cube_upper(const struct mli_Cube a)
 {
         return mli_Vec_add(
                 a.lower,
-                mli_Vec_init(a.edge_length, a.edge_length, a.edge_length));
+                mli_Vec_set(a.edge_length, a.edge_length, a.edge_length));
 }
 
 struct mli_AABB mli_Cube_to_aabb(const struct mli_Cube a)
@@ -4854,7 +4853,7 @@ struct mli_AABB mli_Cube_to_aabb(const struct mli_Cube a)
 
 struct mli_Vec mli_Cube_center(const struct mli_Cube a)
 {
-        return mli_Vec_init(
+        return mli_Vec_set(
                 a.lower.x + a.edge_length * .5,
                 a.lower.y + a.edge_length * .5,
                 a.lower.z + a.edge_length * .5);
@@ -4969,7 +4968,7 @@ struct mli_Frame mli_Frame_init(void)
         struct mli_Frame f;
         f.type = MLI_FRAME_TYPE_FRAME;
         f.id = 0u;
-        f.frame2mother.translation = mli_Vec_init(0., 0., 0.);
+        f.frame2mother.translation = mli_Vec_set(0., 0., 0.);
         f.frame2mother.rotation = mli_Quaternion_set_tait_bryan(0., 0., 0.);
         f.frame2root = f.frame2mother;
         f.mother = NULL;
@@ -8336,7 +8335,7 @@ struct mli_Intersection mli_Intersection_init(void)
 {
         struct mli_Intersection psec;
         psec.geometry_id = mli_GeometryId_init();
-        psec.position_local = mli_Vec_init(0.0, 0.0, 0.0);
+        psec.position_local = mli_Vec_set(0.0, 0.0, 0.0);
         psec.distance_of_ray = DBL_MAX;
         return psec;
 }
@@ -8467,10 +8466,10 @@ struct mli_IntersectionSurfaceNormal mli_IntersectionSurfaceNormal_init(void)
 {
         struct mli_IntersectionSurfaceNormal isec;
         isec.geometry_id = mli_GeometryId_init();
-        isec.position = mli_Vec_init(0.0, 0.0, 0.0);
-        isec.surface_normal = mli_Vec_init(0.0, 0.0, 1.0);
-        isec.position_local = mli_Vec_init(0.0, 0.0, 0.0);
-        isec.surface_normal_local = mli_Vec_init(0.0, 0.0, 1.0);
+        isec.position = mli_Vec_set(0.0, 0.0, 0.0);
+        isec.surface_normal = mli_Vec_set(0.0, 0.0, 1.0);
+        isec.position_local = mli_Vec_set(0.0, 0.0, 0.0);
+        isec.surface_normal_local = mli_Vec_set(0.0, 0.0, 1.0);
         isec.distance_of_ray = DBL_MAX;
         isec.from_outside_to_inside = 1;
         return isec;
@@ -10092,7 +10091,7 @@ struct mli_Vec mli_lambertian_cosine_law_draw_direction_wrt_z(
         azimuth = MLI_MATH_2PI * mli_Prng_uniform(prng);
         sin_theta = mli_Prng_uniform(prng);
         cos_theta = sqrt(1.0 - sin_theta * sin_theta);
-        return mli_Vec_init(
+        return mli_Vec_set(
                 sin_theta * cos(azimuth), sin_theta * sin(azimuth), cos_theta);
 }
 
@@ -10100,7 +10099,7 @@ struct mli_Vec mli_lambertian_cosine_law_draw_direction_wrt_surface_normal(
         struct mli_Prng *prng,
         const struct mli_Vec surface_normal)
 {
-        const struct mli_Vec z = mli_Vec_init(0, 0, 1);
+        const struct mli_Vec z = mli_Vec_set(0, 0, 1);
         const struct mli_Vec lambertian_wrt_z =
                 mli_lambertian_cosine_law_draw_direction_wrt_z(prng);
         const double rho = mli_Vec_angle_between(z, surface_normal);
@@ -10742,13 +10741,13 @@ void mli_Mat_qr_decompose(
         /* column 0 */
         /* -------- */
         z = mli_Mat_minor(z, 0);
-        x = mli_Vec_init(z.r00, z.r10, z.r20);
+        x = mli_Vec_set(z.r00, z.r10, z.r20);
         xnorm = mli_Vec_norm(x);
         if (m.r00 > 0) {
                 xnorm = -xnorm;
         };
 
-        e = mli_Vec_init(xnorm, 0.0, 0.0);
+        e = mli_Vec_set(xnorm, 0.0, 0.0);
         e = mli_Vec_add(x, e);
         e = mli_Vec_normalized(e);
 
@@ -10758,13 +10757,13 @@ void mli_Mat_qr_decompose(
         /* column 1 */
         /* -------- */
         z = mli_Mat_minor(z, 1);
-        x = mli_Vec_init(z.r01, z.r11, z.r21);
+        x = mli_Vec_set(z.r01, z.r11, z.r21);
         xnorm = mli_Vec_norm(x);
         if (m.r11 > 0) {
                 xnorm = -xnorm;
         };
 
-        e = mli_Vec_init(0.0, xnorm, 0.0);
+        e = mli_Vec_set(0.0, xnorm, 0.0);
         e = mli_Vec_add(x, e);
         e = mli_Vec_normalized(e);
 
@@ -10961,12 +10960,12 @@ void mli_Mat_lup_solve(
         const uint64_t N = 3;
         uint64_t i, k, idown;
         for (i = 0; i < N; i++) {
-                mli_Vec_set(x, i, mli_Vec_get(b, P[i]));
+                mli_Vec_set_dim(x, i, mli_Vec_get_dim(b, P[i]));
                 for (k = 0; k < i; k++) {
                         const double tmp =
-                                (mli_Vec_get(x, i) -
-                                 mli_Mat_get(A, i, k) * mli_Vec_get(x, k));
-                        mli_Vec_set(x, i, tmp);
+                                (mli_Vec_get_dim(x, i) -
+                                 mli_Mat_get(A, i, k) * mli_Vec_get_dim(x, k));
+                        mli_Vec_set_dim(x, i, tmp);
                 }
         }
 
@@ -10975,12 +10974,12 @@ void mli_Mat_lup_solve(
                 double tmp;
                 for (k = i + 1; k < N; k++) {
                         const double tmp =
-                                (mli_Vec_get(x, i) -
-                                 mli_Mat_get(A, i, k) * mli_Vec_get(x, k));
-                        mli_Vec_set(x, i, tmp);
+                                (mli_Vec_get_dim(x, i) -
+                                 mli_Mat_get(A, i, k) * mli_Vec_get_dim(x, k));
+                        mli_Vec_set_dim(x, i, tmp);
                 }
-                tmp = mli_Vec_get(x, i) / mli_Mat_get(A, i, i);
-                mli_Vec_set(x, i, tmp);
+                tmp = mli_Vec_get_dim(x, i) / mli_Mat_get(A, i, i);
+                mli_Vec_set_dim(x, i, tmp);
                 i--;
         }
 }
@@ -12395,9 +12394,9 @@ struct mli_AABB mli_Object_aabb(
 
         if (obj->num_faces == 0) {
                 aabb.lower =
-                        mli_Vec_init(MLI_MATH_NAN, MLI_MATH_NAN, MLI_MATH_NAN);
+                        mli_Vec_set(MLI_MATH_NAN, MLI_MATH_NAN, MLI_MATH_NAN);
                 aabb.upper =
-                        mli_Vec_init(MLI_MATH_NAN, MLI_MATH_NAN, MLI_MATH_NAN);
+                        mli_Vec_set(MLI_MATH_NAN, MLI_MATH_NAN, MLI_MATH_NAN);
                 return aabb;
         }
 
@@ -12450,7 +12449,7 @@ struct mli_AABB mli_Object_aabb(
 struct mli_AABB mli_Object_aabb_in_local_frame(const struct mli_Object *obj)
 {
         struct mli_HomTra unity;
-        unity.translation = mli_Vec_init(0.0, 0.0, 0.0);
+        unity.translation = mli_Vec_set(0.0, 0.0, 0.0);
         unity.rotation = mli_Mat_unity();
         return mli_Object_aabb(obj, unity);
 }
@@ -13602,7 +13601,7 @@ struct mli_octree_Node mli_octree_Node_init(void)
 struct mli_OcTree mli_OcTree_init(void)
 {
         struct mli_OcTree tree;
-        tree.cube.lower = mli_Vec_init(0., 0., 0.);
+        tree.cube.lower = mli_Vec_set(0., 0., 0.);
         tree.cube.edge_length = 0.;
         tree.num_nodes = 0u;
         tree.nodes = NULL;
@@ -14487,7 +14486,7 @@ void mli_octree_TmpNode_num_nodes_leafs_objects(
 struct mli_octree_TmpOcTree mli_octree_TmpOcTree_init(void)
 {
         struct mli_octree_TmpOcTree octree;
-        octree.cube.lower = mli_Vec_init(0., 0., 0.);
+        octree.cube.lower = mli_Vec_set(0., 0., 0.);
         octree.cube.edge_length = 0.;
         octree.root = mli_octree_TmpNode_init();
         return octree;
@@ -15822,7 +15821,7 @@ chk_rc mli_photon_source_parallel_towards_z_from_xy_disc(
         struct mli_Prng *prng)
 {
         uint64_t i;
-        const struct mli_Vec direction = mli_Vec_init(0., 0., 1.);
+        const struct mli_Vec direction = mli_Vec_set(0., 0., 1.);
         for (i = 0; i < num_photons; i++) {
                 struct mli_Photon ph;
                 ph.ray.support = mli_Vec_random_position_on_disc(radius, prng);
@@ -15853,7 +15852,7 @@ chk_rc mli_photon_source_point_like_opening_cone_towards_z(
                         mli_Vec_random_draw_direction_in_zenith_azimuth_range(
                                 zenith, azimuth, prng);
                 struct mli_Photon ph;
-                ph.ray.support = mli_Vec_init(0., 0., 0.);
+                ph.ray.support = mli_Vec_set(0., 0., 0.);
                 ph.ray.direction = direction;
                 ph.wavelength = wavelength;
                 ph.id = i;
@@ -15910,9 +15909,9 @@ struct mli_camera_PinHole mli_camera_PinHole_set(
         assert(field_of_view > 0.);
         assert(field_of_view < mli_math_deg2rad(180.));
 
-        out.optical_axis = mli_Vec_init(0.0, 0.0, 1.0);
-        out.col_axis = mli_Vec_init(1.0, 0.0, 0.0);
-        out.row_axis = mli_Vec_init(0.0, row_over_column_pixel_ratio, 0.0);
+        out.optical_axis = mli_Vec_set(0.0, 0.0, 1.0);
+        out.col_axis = mli_Vec_set(1.0, 0.0, 0.0);
+        out.row_axis = mli_Vec_set(0.0, row_over_column_pixel_ratio, 0.0);
 
         out.distance_to_principal_point =
                 ((0.5 * mli_Image_num_cols(image)) / tan(0.5 * field_of_view));
@@ -15927,7 +15926,7 @@ struct mli_Ray mli_camera_PinHole_ray_at_row_col(
         const uint32_t row,
         const uint32_t col)
 {
-        const struct mli_Vec pin_hole_position = mli_Vec_init(0.0, 0.0, 0.0);
+        const struct mli_Vec pin_hole_position = mli_Vec_set(0.0, 0.0, 0.0);
         int row_idx_on_sensor = row - mli_Image_num_rows(image) / 2;
         int col_idx_on_sensor = col - mli_Image_num_cols(image) / 2;
         struct mli_Vec s_row =
@@ -16407,8 +16406,8 @@ struct mli_Quaternion mli_Quaternion_product(
         const struct mli_Quaternion q)
 {
         struct mli_Quaternion pq;
-        const struct mli_Vec P = mli_Vec_init(p.x, p.y, p.z);
-        const struct mli_Vec Q = mli_Vec_init(q.x, q.y, q.z);
+        const struct mli_Vec P = mli_Vec_set(p.x, p.y, p.z);
+        const struct mli_Vec Q = mli_Vec_set(q.x, q.y, q.z);
         const struct mli_Vec P_cross_Q = mli_Vec_cross(P, Q);
         pq.w = p.w * q.w - mli_Vec_dot(P, Q);
         pq.x = p.w * Q.x + q.w * P.x + P_cross_Q.x;
@@ -16475,12 +16474,12 @@ struct mli_Quaternion mli_Quaternion_set_tait_bryan(
         const double ry,
         const double rz)
 {
-        const struct mli_Quaternion qz = mli_Quaternion_set_rotaxis_and_angle(
-                mli_Vec_init(0, 0, 1), -rz);
-        const struct mli_Quaternion qy = mli_Quaternion_set_rotaxis_and_angle(
-                mli_Vec_init(0, 1, 0), -ry);
-        const struct mli_Quaternion qx = mli_Quaternion_set_rotaxis_and_angle(
-                mli_Vec_init(1, 0, 0), -rx);
+        const struct mli_Quaternion qz =
+                mli_Quaternion_set_rotaxis_and_angle(mli_Vec_set(0, 0, 1), -rz);
+        const struct mli_Quaternion qy =
+                mli_Quaternion_set_rotaxis_and_angle(mli_Vec_set(0, 1, 0), -ry);
+        const struct mli_Quaternion qx =
+                mli_Quaternion_set_rotaxis_and_angle(mli_Vec_set(1, 0, 0), -rx);
         const struct mli_Quaternion qz_qy = mli_Quaternion_product(qz, qy);
         return mli_Quaternion_product(qz_qy, qx);
 }
@@ -16834,8 +16833,8 @@ void mli_raytracing_ray_octree_traversal_sub(
         do {
                 switch (proc_node) {
                 case 0: {
-                        nt0 = mli_Vec_init(t0.x, t0.y, t0.z);
-                        nt1 = mli_Vec_init(tm.x, tm.y, tm.z);
+                        nt0 = mli_Vec_set(t0.x, t0.y, t0.z);
+                        nt1 = mli_Vec_set(tm.x, tm.y, tm.z);
                         mli_raytracing_ray_octree_traversal_sub(
                                 nt0,
                                 nt1,
@@ -16851,8 +16850,8 @@ void mli_raytracing_ray_octree_traversal_sub(
                         break;
                 }
                 case 1: {
-                        nt0 = mli_Vec_init(t0.x, t0.y, tm.z);
-                        nt1 = mli_Vec_init(tm.x, tm.y, t1.z);
+                        nt0 = mli_Vec_set(t0.x, t0.y, tm.z);
+                        nt1 = mli_Vec_set(tm.x, tm.y, t1.z);
                         mli_raytracing_ray_octree_traversal_sub(
                                 nt0,
                                 nt1,
@@ -16869,8 +16868,8 @@ void mli_raytracing_ray_octree_traversal_sub(
                         break;
                 }
                 case 2: {
-                        nt0 = mli_Vec_init(t0.x, tm.y, t0.z);
-                        nt1 = mli_Vec_init(tm.x, t1.y, tm.z);
+                        nt0 = mli_Vec_set(t0.x, tm.y, t0.z);
+                        nt1 = mli_Vec_set(tm.x, t1.y, tm.z);
                         mli_raytracing_ray_octree_traversal_sub(
                                 nt0,
                                 nt1,
@@ -16887,8 +16886,8 @@ void mli_raytracing_ray_octree_traversal_sub(
                         break;
                 }
                 case 3: {
-                        nt0 = mli_Vec_init(t0.x, tm.y, tm.z);
-                        nt1 = mli_Vec_init(tm.x, t1.y, t1.z);
+                        nt0 = mli_Vec_set(t0.x, tm.y, tm.z);
+                        nt1 = mli_Vec_set(tm.x, t1.y, t1.z);
                         mli_raytracing_ray_octree_traversal_sub(
                                 nt0,
                                 nt1,
@@ -16905,8 +16904,8 @@ void mli_raytracing_ray_octree_traversal_sub(
                         break;
                 }
                 case 4: {
-                        nt0 = mli_Vec_init(tm.x, t0.y, t0.z);
-                        nt1 = mli_Vec_init(t1.x, tm.y, tm.z);
+                        nt0 = mli_Vec_set(tm.x, t0.y, t0.z);
+                        nt1 = mli_Vec_set(t1.x, tm.y, tm.z);
                         mli_raytracing_ray_octree_traversal_sub(
                                 nt0,
                                 nt1,
@@ -16923,8 +16922,8 @@ void mli_raytracing_ray_octree_traversal_sub(
                         break;
                 }
                 case 5: {
-                        nt0 = mli_Vec_init(tm.x, t0.y, tm.z);
-                        nt1 = mli_Vec_init(t1.x, tm.y, t1.z);
+                        nt0 = mli_Vec_set(tm.x, t0.y, tm.z);
+                        nt1 = mli_Vec_set(t1.x, tm.y, t1.z);
                         mli_raytracing_ray_octree_traversal_sub(
                                 nt0,
                                 nt1,
@@ -16941,8 +16940,8 @@ void mli_raytracing_ray_octree_traversal_sub(
                         break;
                 }
                 case 6: {
-                        nt0 = mli_Vec_init(tm.x, tm.y, t0.z);
-                        nt1 = mli_Vec_init(t1.x, t1.y, tm.z);
+                        nt0 = mli_Vec_set(tm.x, tm.y, t0.z);
+                        nt1 = mli_Vec_set(t1.x, t1.y, tm.z);
                         mli_raytracing_ray_octree_traversal_sub(
                                 nt0,
                                 nt1,
@@ -16959,8 +16958,8 @@ void mli_raytracing_ray_octree_traversal_sub(
                         break;
                 }
                 case 7: {
-                        nt0 = mli_Vec_init(tm.x, tm.y, tm.z);
-                        nt1 = mli_Vec_init(t1.x, t1.y, t1.z);
+                        nt0 = mli_Vec_set(tm.x, tm.y, tm.z);
+                        nt1 = mli_Vec_set(t1.x, t1.y, t1.z);
                         mli_raytracing_ray_octree_traversal_sub(
                                 nt0,
                                 nt1,
@@ -17524,7 +17523,7 @@ void mli_corsika_overlap_of_ray_with_voxels(
 {
         double support[3];
         double direction[3];
-        struct mli_Vec _direction = mli_Vec_init(0.0, 0.0, 0.0);
+        struct mli_Vec _direction = mli_Vec_set(0.0, 0.0, 0.0);
 
         unsigned int number_overlaps = 0u;
         unsigned int x_range[2];
@@ -17752,7 +17751,7 @@ chk_rc mli_Scenery_malloc_minimal_from_wavefront(
         self->geometry.robjects[0] = 0u;
         self->geometry.robject_ids[0] = 0u;
         self->geometry.robject2root[0] = mli_HomTraComp_set(
-                mli_Vec_init(0.0, 0.0, 0.0),
+                mli_Vec_set(0.0, 0.0, 0.0),
                 mli_Quaternion_set_tait_bryan(0.0, 0.0, 0.0));
 
         /* materials */
@@ -20257,7 +20256,7 @@ struct mli_Vec mli_Triangle_interpolate_surface_normal(
         const struct mli_Vec vertex_normal_c,
         const struct mli_triangle_BarycentrigWeights weights)
 {
-        return mli_Vec_init(
+        return mli_Vec_set(
                 vertex_normal_a.x * weights.a + vertex_normal_b.x * weights.b +
                         vertex_normal_c.x * weights.c,
 
@@ -20329,7 +20328,7 @@ double mli_corsika_restore_direction_z_component(const double x, const double y)
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-struct mli_Vec mli_Vec_init(const double x, const double y, const double z)
+struct mli_Vec mli_Vec_set(const double x, const double y, const double z)
 {
         struct mli_Vec out;
         out.x = x;
@@ -20510,14 +20509,14 @@ int64_t mli_Vec_sign3_bitmask(const struct mli_Vec a, const double epsilon)
 struct mli_Vec mli_Vec_mean(const struct mli_Vec *vecs, const uint64_t num_vecs)
 {
         uint64_t i;
-        struct mli_Vec mean = mli_Vec_init(0.0, 0.0, 0.0);
+        struct mli_Vec mean = mli_Vec_set(0.0, 0.0, 0.0);
         for (i = 0; i < num_vecs; i++) {
                 mean = mli_Vec_add(mean, vecs[i]);
         }
         return mli_Vec_multiply(mean, (1.0 / num_vecs));
 }
 
-void mli_Vec_set(struct mli_Vec *a, const uint64_t dim, const double v)
+void mli_Vec_set_dim(struct mli_Vec *a, const uint64_t dim, const double v)
 {
         switch (dim) {
         case 0:
@@ -20535,7 +20534,7 @@ void mli_Vec_set(struct mli_Vec *a, const uint64_t dim, const double v)
         }
 }
 
-double mli_Vec_get(const struct mli_Vec *a, const uint64_t dim)
+double mli_Vec_get_dim(const struct mli_Vec *a, const uint64_t dim)
 {
         double o = 0.0;
         switch (dim) {
@@ -20615,7 +20614,7 @@ struct mli_Vec mli_Vec_random_draw_direction_in_zenith_azimuth_range(
         const double az = mli_prng_draw_uniform(azimuth, prng);
         const double zd = mli_prng_draw_zenith(zenith, prng);
         const double sin_zd = sin(zd);
-        return mli_Vec_init(sin_zd * cos(az), sin_zd * sin(az), cos(zd));
+        return mli_Vec_set(sin_zd * cos(az), sin_zd * sin(az), cos(zd));
 }
 
 struct mli_Vec mli_Vec_random_position_on_disc(
@@ -20624,7 +20623,7 @@ struct mli_Vec mli_Vec_random_position_on_disc(
 {
         const double r = sqrt(mli_Prng_uniform(prng)) * radius;
         const double azimuth = mli_Prng_uniform(prng) * MLI_MATH_2PI;
-        return mli_Vec_init(r * cos(azimuth), r * sin(azimuth), 0.0);
+        return mli_Vec_set(r * cos(azimuth), r * sin(azimuth), 0.0);
 }
 
 struct mli_Vec mli_Vec_random_position_inside_unit_sphere(struct mli_Prng *prng)
@@ -20724,21 +20723,21 @@ struct mli_Vec mli_View_optical_axis(const struct mli_View cam)
 {
         struct mli_Mat rotation = mli_Mat_init_tait_bryan(
                 cam.rotation.x, cam.rotation.y, cam.rotation.z);
-        return mli_transform_orientation(&rotation, mli_Vec_init(0., 0., 1.));
+        return mli_transform_orientation(&rotation, mli_Vec_set(0., 0., 1.));
 }
 
 struct mli_Vec mli_View_direction_right(const struct mli_View cam)
 {
         struct mli_Mat rotation = mli_Mat_init_tait_bryan(
                 cam.rotation.x, cam.rotation.y, cam.rotation.z);
-        return mli_transform_orientation(&rotation, mli_Vec_init(1., 0., 0.));
+        return mli_transform_orientation(&rotation, mli_Vec_set(1., 0., 0.));
 }
 
 struct mli_Vec mli_View_direction_up(const struct mli_View cam)
 {
         struct mli_Mat rotation = mli_Mat_init_tait_bryan(
                 cam.rotation.x, cam.rotation.y, cam.rotation.z);
-        return mli_transform_orientation(&rotation, mli_Vec_init(0., 1., 0.));
+        return mli_transform_orientation(&rotation, mli_Vec_set(0., 1., 0.));
 }
 
 struct mli_View mli_View_move_forward(
