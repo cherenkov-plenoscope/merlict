@@ -121,7 +121,7 @@ cdef _mli_Archive_push_back_path_and_payload(
         _cpayload,
         payload_length
     )
-    assert rc != 0
+    assert rc == CHK_SUCCESS
     return
 
 
@@ -278,9 +278,9 @@ cdef class Merlict:
         cdef mli_Archive archive = mli_Archive_init()
         try:
             rc = mli_Archive__from_path_cstr(&archive, _cpath)
-            assert rc != 0
+            assert rc == CHK_SUCCESS
             rc = mli_Scenery_malloc_from_Archive(&self.scenery, &archive)
-            assert rc != 0
+            assert rc == CHK_SUCCESS
         finally:
             mli_Archive_free(&archive)
 
@@ -304,7 +304,7 @@ cdef class Merlict:
         cdef bytes _py_path = _path.encode()
         cdef char* _cpath = _py_path
         rc = mli_Scenery_malloc_from_path(&self.scenery, _cpath)
-        assert rc != 0
+        assert rc == CHK_SUCCESS
 
     def dump(self, path):
         """
@@ -330,7 +330,7 @@ cdef class Merlict:
         cdef bytes _py_path = _path.encode()
         cdef char* _cpath = _py_path
         rc = mli_Scenery_write_to_path(&self.scenery, _cpath)
-        assert rc != 0
+        assert rc == CHK_SUCCESS
 
     def dumps(self):
         """
@@ -347,18 +347,18 @@ cdef class Merlict:
 
         try:
             rc = mli_IO_open_memory(&buff)
-            assert rc != 0, "Failed to open buffer."
-            assert buff.type == 20
+            assert rc == CHK_SUCCESS, "Failed to open buffer."
+            assert buff.type == MLI_IO_TYPE_MEMORY
             assert buff.data.memory.size == 0
 
             rc = mli_Scenery_to_io(&self.scenery, &buff)
-            assert rc != 0, "Failed to serialize scenery to buffer."
+            assert rc == CHK_SUCCESS, "Failed to serialize scenery to buffer."
 
             pyout = buff.data.memory.cstr[:buff.data.memory.size]
 
         finally:
             rc = mli_IO_close(&buff)
-            assert rc != 0, "Failed to close buffer."
+            assert rc == CHK_SUCCESS, "Failed to close buffer."
 
         return pyout
 
@@ -378,12 +378,12 @@ cdef class Merlict:
 
         try:
             rc = mli_IO_open_memory(&buff)
-            assert rc != 0, "Failed to open buffer."
-            assert buff.type == 20
+            assert rc == CHK_SUCCESS, "Failed to open buffer."
+            assert buff.type == MLI_IO_TYPE_MEMORY
             assert buff.data.memory.size == 0
 
             rc = mli_IoMemory__malloc_capacity(&buff.data.memory, size)
-            assert rc != 0, "Failed to malloc buffer from dump."
+            assert rc == CHK_SUCCESS, "Failed to malloc buffer from dump."
 
             assert buff.data.memory.capacity == size
             assert buff.data.memory.pos == 0
@@ -397,17 +397,17 @@ cdef class Merlict:
             # buff.data.memory.cstr[0:size] = _dump[0:size]
 
             rc = mli_Scenery_from_io(&self.scenery, &buff)
-            assert rc != 0, "Failed to load scenery from buffer."
+            assert rc == CHK_SUCCESS, "Failed to load scenery from buffer."
         finally:
             rc = mli_IO_close(&buff)
-            assert rc != 0, "Failed to close buffer."
+            assert rc == CHK_SUCCESS, "Failed to close buffer."
 
     def init_from_sceneryStr(self, sceneryStr):
         cdef int rc
         cdef mli_Archive tmp_archive = mli_Archive_init()
         try:
             rc = mli_Archive_malloc(&tmp_archive)
-            assert rc != 0
+            assert rc == CHK_SUCCESS
 
             for item in sceneryStr:
                 filename, payload = item
@@ -417,7 +417,7 @@ cdef class Merlict:
                     payload)
 
             rc = mli_Scenery_malloc_from_Archive(&self.scenery, &tmp_archive)
-            assert rc != 0
+            assert rc == CHK_SUCCESS
         finally:
             mli_Archive_free(&tmp_archive)
 
@@ -444,14 +444,12 @@ cdef class Merlict:
         )
 
         if num_ray:
-            rc = mli_Bridge_query_many_intersection(
+            mli_Bridge_query_many_intersection(
                 &self.scenery,
                 num_ray,
                 &crays[0],
                 &cisecs[0],
                 &cis_valid_isecs[0])
-
-            assert rc == 1
 
         isecs_mask = cis_valid_isecs.astype(dtype=np.bool_)
 
@@ -480,14 +478,12 @@ cdef class Merlict:
         )
 
         if num_ray:
-            rc = mli_Bridge_query_many_intersectionSurfaceNormal(
+            mli_Bridge_query_many_intersectionSurfaceNormal(
                 &self.scenery,
                 num_ray,
                 &crays[0],
                 &cisecs[0],
                 &cis_valid_isecs[0])
-
-            assert rc == 1
 
         isecs_mask = cis_valid_isecs.astype(dtype=np.bool_)
 

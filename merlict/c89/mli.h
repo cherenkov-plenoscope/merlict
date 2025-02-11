@@ -66,9 +66,11 @@ void mliEventIoHeader_fprint(const struct mliEventIoHeader head, FILE *f);
 #define MLI_AVL_TREE_H_
 
 
-#define MLI_AVL_DEPTH_GREW_BY_ONE 1
-#define MLI_AVL_DEPTH_DID_NOT_CHANGE 0
-#define MLI_AVL_DEPTH_SHRUNK_BY_ONE -1
+enum mli_avltree_depth_changes {
+        MLI_AVL_DEPTH_GREW_BY_ONE = 1,
+        MLI_AVL_DEPTH_DID_NOT_CHANGE = 0,
+        MLI_AVL_DEPTH_SHRUNK_BY_ONE = -1
+};
 
 struct mli_Avl {
         struct mli_Avl *left;
@@ -107,9 +109,9 @@ void mli_AvlNode_print(struct mli_Avl *a, int m);
 #ifndef MLI_BOOL_BOOL_H_
 #define MLI_BOOL_BOOL_H_
 
-#define MLI_TRUE 1
-#define MLI_FALSE 0
 #define mli_bool int
+
+enum mli_bool_states { MLI_FALSE = 0, MLI_TRUE = 1 };
 
 char mli_bool_to_char(const mli_bool self);
 
@@ -128,8 +130,8 @@ char mli_bool_to_char(const mli_bool self);
  *  Learn C the hard way
  */
 
-#define CHK_SUCCESS 1
-#define CHK_FAIL 0
+enum chk_rc_states { CHK_FAIL = 0, CHK_SUCCESS = 1 };
+
 #define chk_rc int
 
 int chk_eprintf(const char *format, ...);
@@ -234,6 +236,10 @@ struct mli_Color {
 };
 
 mli_bool mli_Color_equal(const struct mli_Color a, const struct mli_Color b);
+mli_bool mli_Color_equal_margin(
+        const struct mli_Color a,
+        const struct mli_Color b,
+        const double epsilon);
 struct mli_Color mli_Color_truncate(
         const struct mli_Color color,
         const float start,
@@ -264,9 +270,11 @@ struct mli_Color mli_Color_multiply(const struct mli_Color c, const double f);
 
 struct mli_Func;
 
-#define MLI_COLORSPECTRUM_SIZE 30
-#define MLI_COLORSPECTRUM_WAVELENGTH_START 400e-9
-#define MLI_COLORSPECTRUM_WAVELENGTH_STOP 700e-9
+enum mli_ColorSpectrum_sizes { MLI_COLORSPECTRUM_SIZE = 30 };
+
+double MLI_COLORSPECTRUM_WAVELENGTH_START(void);
+
+double MLI_COLORSPECTRUM_WAVELENGTH_STOP(void);
 
 struct mli_ColorSpectrumBinEdges {
         float values[MLI_COLORSPECTRUM_SIZE + 1];
@@ -938,13 +946,13 @@ struct mli_pathtracer_Path mli_pathtracer_Path_init(void);
 #ifndef MLI_PHYSICS_H_
 #define MLI_PHYSICS_H_
 
-#define MLI_PHYSICS_SPEED_OF_LIGHT_M_PER_S 299792458
-#define MLI_PHYSICS_BOLTZMANN_J_PER_K 1.380649e-23
-#define MLI_PHYSICS_PLANCK_KG_M2_PER_S 6.626e-34
-
 double mli_physics_plancks_spectral_radiance_law_W_per_m2_per_sr_per_m(
         const double wavelength,
         const double temperature);
+
+double MLI_PHYSICS_SPEED_OF_LIGHT_M_PER_S(void);
+double MLI_PHYSICS_BOLTZMANN_J_PER_K(void);
+double MLI_PHYSICS_PLANCK_KG_M2_PER_S(void);
 
 #endif
 
@@ -1144,22 +1152,28 @@ double mli_corsika_restore_direction_z_component(
         const double x,
         const double y);
 
-#define MLI_CORSIKA_HEADER_SIZE_BYTES (sizeof(float) * 273)
-#define MLI_CORSIKA_BUNCH_SIZE_BYTES (sizeof(float) * 8)
+enum mli_corsika_block_sizes {
+        MLI_CORSIKA_HEADER_SIZE_BYTES = (sizeof(float) * 273),
+        MLI_CORSIKA_BUNCH_SIZE_BYTES = (sizeof(float) * 8)
+};
 
-#define MLI_CORSIKA_RUNH_RUN_NUMBER 1
-#define MLI_CORSIKA_RUNH_SLOPE_OF_ENERGY_SPECTRUM 15
-#define MLI_CORSIKA_RUNH_ENERGY_RANGE_START 16
-#define MLI_CORSIKA_RUNH_ENERGY_RANGE_STOP 17
-#define MLI_CORSIKA_RUNH_NUM_OBSERVATION_LEVELS 4
+enum mli_corsika_runh_types {
+        MLI_CORSIKA_RUNH_RUN_NUMBER = 1,
+        MLI_CORSIKA_RUNH_SLOPE_OF_ENERGY_SPECTRUM = 15,
+        MLI_CORSIKA_RUNH_ENERGY_RANGE_START = 16,
+        MLI_CORSIKA_RUNH_ENERGY_RANGE_STOP = 17,
+        MLI_CORSIKA_RUNH_NUM_OBSERVATION_LEVELS = 4
+};
 
-#define MLI_CORSIKA_EVTH_EVENT_NUMBER 1
-#define MLI_CORSIKA_EVTH_RUN_NUMBER 43
-#define MLI_CORSIKA_EVTH_PARTICLE_ID 2
-#define MLI_CORSIKA_EVTH_ENERGY_GEV 3
-#define MLI_CORSIKA_EVTH_ZENITH_RAD 10
-#define MLI_CORSIKA_EVTH_AZIMUTH_RAD 11
-#define MLI_CORSIKA_EVTH_FIRST_INTERACTION_HEIGHT_CM 6
+enum mli_corsika_evth_types {
+        MLI_CORSIKA_EVTH_EVENT_NUMBER = 1,
+        MLI_CORSIKA_EVTH_RUN_NUMBER = 43,
+        MLI_CORSIKA_EVTH_PARTICLE_ID = 2,
+        MLI_CORSIKA_EVTH_ENERGY_GEV = 3,
+        MLI_CORSIKA_EVTH_ZENITH_RAD = 10,
+        MLI_CORSIKA_EVTH_AZIMUTH_RAD = 11,
+        MLI_CORSIKA_EVTH_FIRST_INTERACTION_HEIGHT_CM = 6
+};
 
 #endif
 
@@ -1496,7 +1510,7 @@ mli_bool mli_Vec_overlap_aabb(
 
 #define MLI_VERSION_MAYOR 2
 #define MLI_VERSION_MINOR 2
-#define MLI_VERSION_PATCH 3
+#define MLI_VERSION_PATCH 5
 
 void mli_version_logo_fprint(FILE *f);
 void mli_version_authors_and_affiliations_fprint(FILE *f);
@@ -3017,8 +3031,10 @@ chk_rc mli_Image_divide_pixelwise(
 #define MLI_IMAGE_PRINT_H_
 
 
-#define MLI_ASCII_MONOCHROME 100
-#define MLI_ANSI_ESCAPE_COLOR 101
+enum mli_Image_print_modes {
+        MLI_IMAGE_PRINT_ASCII_MONOCHROME = 100,
+        MLI_IMAGE_PRINT_ASCII_ESCAPE_COLOR = 101
+};
 
 void mli_Image_print(const struct mli_Image *img, const uint64_t print_mode);
 void mli_Image_print_chars(
@@ -3770,8 +3786,10 @@ void mli_camera_Aperture_assign_pixel_colors_to_sum_and_exposure_image(
 #define MLI_FRAME_H_
 
 
-#define MLI_FRAME_TYPE_FRAME 1000u
-#define MLI_FRAME_TYPE_OBJECT 1001u
+enum mli_frame_types {
+        MLI_FRAME_TYPE_FRAME = 1000,
+        MLI_FRAME_TYPE_OBJECT = 1001
+};
 
 struct mli_Frame {
         uint32_t type;
@@ -4389,14 +4407,17 @@ chk_rc mli_Surface_Transparent_valid_wrt_materials(
 #define MLI_TAR_VERSION_MINOR 0
 #define MLI_TAR_VERSION_PATCH 0
 
-#define MLI_TAR_NORMAL_FILE '0'
-#define MLI_TAR_HARD_LINK '1'
-#define MLI_TAR_SYMBOLIC_LINK '2'
-#define MLI_TAR_CHARACTER_SPECIAL '3'
-#define MLI_TAR_BLOCK_SPECIAL '4'
-#define MLI_TAR_DIRECTORY '5'
-#define MLI_TAR_FIFO '6'
-#define MLI_TAR_NAME_LENGTH 100
+enum mli_tar_file_types {
+        MLI_TAR_NORMAL_FILE = '0',
+        MLI_TAR_HARD_LINK = '1',
+        MLI_TAR_SYMBOLIC_LINK = '2',
+        MLI_TAR_CHARACTER_SPECIAL = '3',
+        MLI_TAR_BLOCK_SPECIAL = '4',
+        MLI_TAR_DIRECTORY = '5',
+        MLI_TAR_FIFO = '6'
+};
+
+enum mli_tar_name_lengths { MLI_TAR_NAME_LENGTH = 100 };
 
 #define MLI_TAR_OCTAL 8u
 #define MLI_TAR_MAX_FILESIZE_OCTAL 8589934592lu /* 8^11 */
@@ -4444,6 +4465,7 @@ struct mli_TarHeader {
 
 uint64_t mli_TarRawHeader_checksum(const struct mli_TarRawHeader *rh);
 mli_bool mli_TarRawHeader_is_null(const struct mli_TarRawHeader *rh);
+mli_bool mli_Tar_is_known_file_type(const int file_type);
 chk_rc mli_TarRawHeader_from_header(
         struct mli_TarRawHeader *rh,
         const struct mli_TarHeader *h);
@@ -5079,13 +5101,15 @@ mli_bool mli_Materials_valid_boundary_layers(const struct mli_Materials *self);
 #define MLI_PHOTON_INTERACTION_H_
 
 
-#define MLI_PHOTON_CREATION 101u
-#define MLI_PHOTON_ABSORPTION 102u
-#define MLI_PHOTON_ABSORPTION_MEDIUM 103u
-#define MLI_PHOTON_FRESNEL_REFLECTION 104u
-#define MLI_PHOTON_REFRACTION 105u
-#define MLI_PHOTON_SPECULAR_REFLECTION 106u
-#define MLI_PHOTON_DIFFUSE_REFLECTION 107u
+enum mli_photon_interaction_types {
+        MLI_PHOTON_CREATION = 101u,
+        MLI_PHOTON_ABSORPTION = 102u,
+        MLI_PHOTON_ABSORPTION_MEDIUM = 103u,
+        MLI_PHOTON_FRESNEL_REFLECTION = 104u,
+        MLI_PHOTON_REFRACTION = 105u,
+        MLI_PHOTON_SPECULAR_REFLECTION = 106u,
+        MLI_PHOTON_DIFFUSE_REFLECTION = 107u
+};
 
 struct mli_PhotonInteraction {
         int32_t on_geometry_surface;
@@ -6090,8 +6114,11 @@ mli_bool mli_Scenery_valid(const struct mli_Scenery *self);
 
 
 #define mli_key_code int
-#define MLI_VIEWER_ESCAPE_KEY 27
-#define MLI_VIEWER_SPACE_KEY 32
+
+enum mli_viewer_key_codes {
+        MLI_VIEWER_ESCAPE_KEY = 27,
+        MLI_VIEWER_SPACE_KEY = 32
+};
 
 mli_key_code mli_viewer_get_key(void);
 

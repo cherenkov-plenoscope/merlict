@@ -19,14 +19,14 @@ int mli_Archive_push_back_cstr(
                 "Can not push back filename and payload.");
         mli_String_free(&_filename);
         mli_String_free(&_payload);
-        return 1;
+        return CHK_SUCCESS;
 chk_error:
         mli_String_free(&_filename);
         mli_String_free(&_payload);
-        return 0;
+        return CHK_FAIL;
 }
 
-int mli_Bridge_query_many_intersection(
+void mli_Bridge_query_many_intersection(
         const struct mli_Scenery *scenery,
         const uint64_t num_rays,
         const struct mli_Ray *rays,
@@ -42,18 +42,18 @@ int mli_Bridge_query_many_intersection(
                         ray,
                         &isec
                 );
-                if (is_valid_isec == 1) {
+                if (is_valid_isec == MLI_TRUE) {
+                        is_valid_isecs[i] = MLI_TRUE;
                         isecs[i] = isec;
-                        is_valid_isecs[i] = 1u;
                 } else {
-                        is_valid_isecs[i] = 0u;
+                        is_valid_isecs[i] = MLI_FALSE;
                         isecs[i] = mli_Intersection_init();
                 }
         }
-        return 1;
+        return;
 }
 
-int mli_Bridge_query_many_intersectionSurfaceNormal(
+void mli_Bridge_query_many_intersectionSurfaceNormal(
         const struct mli_Scenery *scenery,
         const uint64_t num_rays,
         const struct mli_Ray *rays,
@@ -69,13 +69,13 @@ int mli_Bridge_query_many_intersectionSurfaceNormal(
                         ray,
                         &isec
                 );
-                if (is_valid_isec == 1) {
+                if (is_valid_isec == MLI_TRUE) {
+                        is_valid_isecs[i] = MLI_TRUE;
                         isecs[i] = isec;
-                        is_valid_isecs[i] = 1u;
                 } else {
-                        is_valid_isecs[i] = 0u;
+                        is_valid_isecs[i] = MLI_FALSE;
                         isecs[i] = mli_IntersectionSurfaceNormal_init();
                 }
         }
-        return 1;
+        return;
 }

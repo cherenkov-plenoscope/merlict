@@ -1,6 +1,6 @@
 #include "mli.h"
 
-int mli_Archive_push_back_cstr(
+chk_rc mli_Archive_push_back_cstr(
         struct mli_Archive *arc,
         const char *filename,
         const uint64_t filename_length,
@@ -8,7 +8,7 @@ int mli_Archive_push_back_cstr(
         const uint64_t payload_length);
 
 
-int mli_Bridge_query_many_intersection(
+void mli_Bridge_query_many_intersection(
         const struct mli_Scenery *scenery,
         const uint64_t num_rays,
         const struct mli_Ray *rays,
@@ -16,7 +16,7 @@ int mli_Bridge_query_many_intersection(
         int64_t *is_valid_isecs);
 
 
-int mli_Bridge_query_many_intersectionSurfaceNormal(
+void mli_Bridge_query_many_intersectionSurfaceNormal(
         const struct mli_Scenery *scenery,
         const uint64_t num_rays,
         const struct mli_Ray *rays,

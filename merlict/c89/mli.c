@@ -103,7 +103,8 @@ struct mli_Photon mli_corsika_PhotonBunch_to_merlict_photon(
                 The photon's id.
         */
 
-        const double vacuum_speed_of_light = MLI_PHYSICS_SPEED_OF_LIGHT_M_PER_S;
+        const double vacuum_speed_of_light =
+                MLI_PHYSICS_SPEED_OF_LIGHT_M_PER_S();
         const struct mli_Vec photon_direction_of_motion =
                 mli_corsika_photon_direction_of_motion(bunch);
 
@@ -3964,6 +3965,20 @@ mli_bool mli_Color_equal(const struct mli_Color a, const struct mli_Color b)
         return MLI_TRUE;
 }
 
+mli_bool mli_Color_equal_margin(
+        const struct mli_Color a,
+        const struct mli_Color b,
+        const double epsilon)
+{
+        if (fabs(a.r - b.r) > epsilon)
+                return MLI_FALSE;
+        if (fabs(a.g - b.g) > epsilon)
+                return MLI_FALSE;
+        if (fabs(a.b - b.b) > epsilon)
+                return MLI_FALSE;
+        return MLI_TRUE;
+}
+
 mli_bool mli_Color_is_in_range(
         const struct mli_Color c,
         const float start,
@@ -4354,12 +4369,16 @@ struct mli_Vec mli_ColorMaterials_ColorSpectrum_to_xyz(
 
 /* Copyright 2018-2024 Sebastian Achim Mueller */
 
+double MLI_COLORSPECTRUM_WAVELENGTH_START(void) { return 400e-9; }
+
+double MLI_COLORSPECTRUM_WAVELENGTH_STOP(void) { return 700e-9; }
+
 struct mli_ColorSpectrumBinEdges mli_ColorSpectrumBinEdges_init(void)
 {
         uint64_t i;
         const uint64_t size = MLI_COLORSPECTRUM_SIZE;
-        const float start = MLI_COLORSPECTRUM_WAVELENGTH_START;
-        const float stop = MLI_COLORSPECTRUM_WAVELENGTH_STOP;
+        const float start = MLI_COLORSPECTRUM_WAVELENGTH_START();
+        const float stop = MLI_COLORSPECTRUM_WAVELENGTH_STOP();
         const float step = (stop - start) / (float)size;
         struct mli_ColorSpectrumBinEdges edges;
         for (i = 0; i < size + 1; i++) {
@@ -7100,7 +7119,7 @@ struct mli_HomTraComp mli_HomTraComp_sequence(
 
 /* Copyright 2018-2020 Sebastian Achim Mueller */
 
-#define MLI_IMAGE_CHUNK_EDGE_SIZE (2u * 3u * 5u)
+enum mli_image_chunk_edge_sizes { MLI_IMAGE_CHUNK_EDGE_SIZE = (2u * 3u * 5u) };
 
 struct mli_Image mli_Image_init(void)
 {
@@ -8199,13 +8218,13 @@ void mli_Image_print_chars(
         const uint64_t num_symbols,
         const uint64_t print_mode)
 {
-        if (print_mode == MLI_ANSI_ESCAPE_COLOR) {
+        if (print_mode == MLI_IMAGE_PRINT_ASCII_ESCAPE_COLOR) {
                 mli_Image_print_ansi_escape_chars(
                         img, symbols, rows, cols, num_symbols);
         } else {
                 mli_Image_print_ascii_chars(
                         img, symbols, rows, cols, num_symbols);
-                if (print_mode != MLI_ASCII_MONOCHROME) {
+                if (print_mode != MLI_IMAGE_PRINT_ASCII_MONOCHROME) {
                         fprintf(stderr,
                                 "Do not know print_mode %u\n",
                                 (uint32_t)print_mode);
@@ -15250,7 +15269,7 @@ chk_rc mli_photon_time_of_flight(
                 "Failed to eval. refraction for wavelength.");
 
         (*time_of_flight) = (refractive_index * phisec->distance_of_ray) /
-                            MLI_PHYSICS_SPEED_OF_LIGHT_M_PER_S;
+                            MLI_PHYSICS_SPEED_OF_LIGHT_M_PER_S();
         return CHK_SUCCESS;
 chk_error:
         return CHK_FAIL;
@@ -15859,9 +15878,9 @@ double mli_physics_plancks_spectral_radiance_law_W_per_m2_per_sr_per_m(
         const double wavelength_m,
         const double temperature_K)
 {
-        const double c = MLI_PHYSICS_SPEED_OF_LIGHT_M_PER_S;
-        const double k = MLI_PHYSICS_BOLTZMANN_J_PER_K;
-        const double h = MLI_PHYSICS_PLANCK_KG_M2_PER_S;
+        const double c = MLI_PHYSICS_SPEED_OF_LIGHT_M_PER_S();
+        const double k = MLI_PHYSICS_BOLTZMANN_J_PER_K();
+        const double h = MLI_PHYSICS_PLANCK_KG_M2_PER_S();
         const double T = temperature_K;
         const double l = wavelength_m;
         const double A = (2.0 * h * pow(c, 2.0)) / pow(l, 5.0);
@@ -15869,6 +15888,12 @@ double mli_physics_plancks_spectral_radiance_law_W_per_m2_per_sr_per_m(
         const double B = (1.0 / _denominator);
         return A * B;
 }
+
+double MLI_PHYSICS_SPEED_OF_LIGHT_M_PER_S(void) { return 299792458.0; }
+
+double MLI_PHYSICS_BOLTZMANN_J_PER_K(void) { return 1.380649e-23; }
+
+double MLI_PHYSICS_PLANCK_KG_M2_PER_S(void) { return 6.626e-34; }
 
 /* pinhole */
 /* ------- */
@@ -19293,7 +19318,11 @@ chk_rc mli_TarRawHeader_from_header(
         }
         chk_msg(mli_Tar_uint_to_field(h->mtime, rh->mtime, sizeof(rh->mtime)),
                 "bad mtime");
-        rh->type = h->type ? h->type : MLI_TAR_NORMAL_FILE;
+        if (mli_Tar_is_known_file_type(h->type)) {
+                rh->type = h->type;
+        } else {
+                rh->type = MLI_TAR_NORMAL_FILE;
+        }
         memcpy(rh->name, h->name, sizeof(rh->name));
         memcpy(rh->linkname, h->linkname, sizeof(rh->linkname));
 
@@ -19583,6 +19612,22 @@ chk_rc mli_Tar_write_finalize(struct mli_Tar *tar)
         return CHK_SUCCESS;
 chk_error:
         return CHK_FAIL;
+}
+
+mli_bool mli_Tar_is_known_file_type(const int file_type)
+{
+        mli_bool outcome = MLI_FALSE;
+        switch (file_type) {
+        case MLI_TAR_NORMAL_FILE:
+        case MLI_TAR_HARD_LINK:
+        case MLI_TAR_SYMBOLIC_LINK:
+        case MLI_TAR_CHARACTER_SPECIAL:
+        case MLI_TAR_BLOCK_SPECIAL:
+        case MLI_TAR_DIRECTORY:
+        case MLI_TAR_FIFO:
+                outcome = MLI_TRUE;
+        };
+        return outcome;
 }
 
 /* tar_io */
@@ -21002,7 +21047,7 @@ chk_rc mli_viewer_run_interactive_viewer(
         mli_bool super_resolution = MLI_FALSE;
         struct mli_viewer_Cursor cursor;
         uint64_t num_screenshots = 0;
-        uint64_t print_mode = MLI_ASCII_MONOCHROME;
+        uint64_t print_mode = MLI_IMAGE_PRINT_ASCII_MONOCHROME;
         char timestamp[20];
         struct mli_View view = config.view;
         struct mli_Image img = mli_Image_init();
@@ -21148,13 +21193,18 @@ chk_rc mli_viewer_run_interactive_viewer(
                                 printf("Go into cursor-mode first.\n");
                                 break;
                         case 'g':
-                                if (print_mode == MLI_ASCII_MONOCHROME) {
-                                        print_mode = MLI_ANSI_ESCAPE_COLOR;
+                                if (print_mode ==
+                                    MLI_IMAGE_PRINT_ASCII_MONOCHROME) {
+                                        print_mode =
+                                                MLI_IMAGE_PRINT_ASCII_ESCAPE_COLOR;
                                 } else if (
-                                        print_mode == MLI_ANSI_ESCAPE_COLOR) {
-                                        print_mode = MLI_ASCII_MONOCHROME;
+                                        print_mode ==
+                                        MLI_IMAGE_PRINT_ASCII_ESCAPE_COLOR) {
+                                        print_mode =
+                                                MLI_IMAGE_PRINT_ASCII_MONOCHROME;
                                 } else {
-                                        print_mode = MLI_ASCII_MONOCHROME;
+                                        print_mode =
+                                                MLI_IMAGE_PRINT_ASCII_MONOCHROME;
                                 }
                                 break;
                         case 'p':

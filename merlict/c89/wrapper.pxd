@@ -2,6 +2,14 @@ from libc cimport stdint
 
 
 cdef extern from "mli.h":
+    cpdef enum mli_bool_states:
+        MLI_FALSE,
+        MLI_TRUE
+
+    cpdef enum chk_rc_states:
+        CHK_FAIL,
+        CHK_SUCCESS
+
     cdef struct mli_Vec:
         double x
         double y
@@ -149,14 +157,14 @@ cdef extern from "mli.h":
         const char *payload,
         const stdint.uint64_t payload_length)
 
-    cdef int mli_Bridge_query_many_intersection(
+    cdef void mli_Bridge_query_many_intersection(
         const mli_Scenery *scenery,
         const stdint.uint64_t num_rays,
         const mli_Ray *rays,
         mli_Intersection *isecs,
         stdint.int64_t *is_valid_isecs)
 
-    cdef int mli_Bridge_query_many_intersectionSurfaceNormal(
+    cdef void mli_Bridge_query_many_intersectionSurfaceNormal(
         const mli_Scenery *scenery,
         const stdint.uint64_t num_rays,
         const mli_Ray *rays,
@@ -165,6 +173,12 @@ cdef extern from "mli.h":
 
     # IO
     # --
+    cpdef enum mli_io_type_code:
+        MLI_IO_TYPE_VOID,
+        MLI_IO_TYPE_FILE,
+        MLI_IO_TYPE_MEMORY
+
+
     cdef struct mli_IoFile:
         pass
 
