@@ -1,5 +1,23 @@
 #include "bridge.h"
 
+
+int mli_String__from_cstr_and_length(
+        struct mli_String *self,
+        const char *cstr,
+        const uint64_t length)
+{
+        chk_msg(mli_String_malloc(self, length),
+                "Can not malloc mli_String to length");
+        strncpy(self->array, cstr, length);
+        self->size = length;
+
+        return CHK_SUCCESS;
+chk_error:
+        mli_String_free(self);
+        return CHK_FAIL;
+}
+
+
 int mli_Archive_push_back_cstr(
         struct mli_Archive *arc,
         const char *filename,
@@ -9,14 +27,17 @@ int mli_Archive_push_back_cstr(
 {
         struct mli_String _filename = mli_String_init();
         struct mli_String _payload = mli_String_init();
-        chk_msg(mli_String_malloc(&_filename, filename_length),
+
+        chk_msg(mli_String__from_cstr_and_length(
+                &_filename, filename, filename_length),
                 "Can not malloc filename.");
-        strncpy(_filename.array, filename, filename_length);
-        chk_msg(mli_String_malloc(&_payload, payload_length),
-                "Can not malloc payload.");
-        strncpy(_payload.array, payload, payload_length);
+        chk_msg(mli_String__from_cstr_and_length(
+                &_payload, payload, payload_length),
+                "Can not malloc filename.");
+
         chk_msg(mli_Archive_push_back(arc, &_filename, &_payload),
                 "Can not push back filename and payload.");
+
         mli_String_free(&_filename);
         mli_String_free(&_payload);
         return CHK_SUCCESS;
