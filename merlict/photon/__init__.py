@@ -21,7 +21,7 @@ def is_photons(r):
 
 
 def init(size):
-    return np.core.records.recarray(shape=size, dtype=dtype())
+    return np.recarray(shape=size, dtype=dtype())
 
 
 def zeros(size):
@@ -29,7 +29,7 @@ def zeros(size):
 
 
 def frombytes(s):
-    return np.core.records.fromstring(s, dtype=dtype())
+    return np.fromstring(s, dtype=dtype())
 
 
 def tobytes(rays):

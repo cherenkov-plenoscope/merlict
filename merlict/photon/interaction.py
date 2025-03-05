@@ -18,7 +18,7 @@ def dtype():
 
 
 def init(size):
-    return np.core.records.recarray(shape=size, dtype=dtype())
+    return np.recarray(shape=size, dtype=dtype())
 
 
 def zeros(size):

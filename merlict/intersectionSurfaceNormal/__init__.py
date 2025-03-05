@@ -23,7 +23,7 @@ def dtype():
 
 
 def init(size):
-    return np.core.records.recarray(
+    return np.recarray(
         shape=size,
         dtype=dtype(),
     )

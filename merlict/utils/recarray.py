@@ -7,7 +7,7 @@ def isdtype(r, dtype):
 
     Parameters
     ----------
-    r : np.core.records.recarray
+    r : numpy.recarray
         Recarray to check
     dtype : list of tuples(str, dtype)
         Expected dtype

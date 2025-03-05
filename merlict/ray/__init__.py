@@ -18,7 +18,7 @@ def israys(r):
 
 
 def init(size):
-    return np.core.records.recarray(
+    return np.recarray(
         shape=size,
         dtype=dtype(),
     )
@@ -29,7 +29,7 @@ def zeros(size):
 
 
 def frombytes(s):
-    return np.core.records.fromstring(s, dtype=dtype())
+    return np.fromstring(s, dtype=dtype())
 
 
 def tobytes(rays):
