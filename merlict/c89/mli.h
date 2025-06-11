@@ -1510,7 +1510,7 @@ mli_bool mli_Vec_overlap_aabb(
 
 #define MLI_VERSION_MAYOR 2
 #define MLI_VERSION_MINOR 2
-#define MLI_VERSION_PATCH 6
+#define MLI_VERSION_PATCH 7
 
 void mli_version_logo_fprint(FILE *f);
 void mli_version_authors_and_affiliations_fprint(FILE *f);
