@@ -29,7 +29,7 @@ def zeros(size):
 
 
 def frombytes(s):
-    return np.fromstring(s, dtype=dtype())
+    return np.frombuffer(s, dtype=dtype())
 
 
 def tobytes(rays):
