@@ -45,6 +45,7 @@ setuptools.setup(
         "merlict.materials.media",
         "merlict.materials.spectra",
         "merlict.materials.colors",
+        "merlict.materials.colors.cie1931",
         "merlict.photon",
         "merlict.c89",
         "merlict.utils",
