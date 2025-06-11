@@ -43,6 +43,8 @@ setuptools.setup(
         "merlict.materials",
         "merlict.materials.surfaces",
         "merlict.materials.media",
+        "merlict.materials.spectra",
+        "merlict.materials.colors",
         "merlict.photon",
         "merlict.c89",
         "merlict.utils",
