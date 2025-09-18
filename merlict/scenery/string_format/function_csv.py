@@ -41,4 +41,4 @@ def loads(text):
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
 
-    return x, y, x_label, y_label
+    return {"x": x, "y": y, "x_label": x_label, "y_label": y_label}

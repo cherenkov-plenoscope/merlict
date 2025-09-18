@@ -8,8 +8,7 @@ def init_from_resources(key):
     path = os.path.join(get_resources_path(), key + ".csv")
 
     with open(path, "rt") as f:
-        x, y, x_label, y_label = function_csv.loads(f.read())
-        spectrum = {"x": x, "y": y, "y_label": y_label, "x_label": x_label}
+        spectrum = function_csv.loads(f.read())
 
     assert_spectrum_is_valid(spectrum=spectrum)
 
