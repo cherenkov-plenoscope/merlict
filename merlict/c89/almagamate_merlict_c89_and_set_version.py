@@ -1,6 +1,7 @@
 """
 Almagamate the merlict_c89 sources and set the version
-This is only ever executed once by the developers.
+This is only ever executed when the merlict_c89 sources change.
+This is not expected to be executed with every pip install.
 
 ```bash
 you@com: merlict/merlict/c89$ python almagamate_merlict_c89_and_set_version.py
@@ -16,16 +17,23 @@ import subprocess
 def rmtree(path):
     try:
         shutil.rmtree(path)
+        print(f"rm -r {path:s}")
     except FileNotFoundError as e:
-        print(e)
+        pass
 
 
 def rm(path):
     try:
         os.remove(path)
+        print(f"rm {path:s}")
     except FileNotFoundError as e:
-        print(e)
+        pass
 
+
+print(
+    "Almagamate the merlict_c89 sources\n"
+    "==================================\n"
+)
 
 # list the libs from within merlict_c89 which will be almagamated.
 merlict_c89_module_paths = glob.glob(
@@ -37,10 +45,12 @@ merlict_c89_source_path = "mli.c"
 # Remove all old installations and caches
 # ---------------------------------------
 
-# uninstall python-package
-subprocess.call(["pip", "uninstall", "merlict"])
+print("1. ) uninstalling merlict python package ...")
+subprocess.call(["pip", "uninstall", "--yes", "merlict"])
 
-# remove old builds, dists, test-caches, and cython-artifacts
+print(
+    "2.1 ) removing old builds, dists, test caches, and cython artifacts ..."
+)
 merlict_dir = os.path.join("..", "..")
 rmtree(os.path.join(merlict_dir, "build"))
 rmtree(os.path.join(merlict_dir, "dist"))
@@ -49,16 +59,15 @@ rmtree(os.path.join(merlict_dir, ".pytest_cache"))
 rmtree(os.path.join(merlict_dir, "merlict", "__pycache__"))
 rmtree(os.path.join(merlict_dir, "merlict", "c89", "__pycache__"))
 
-# remove the old almagamated sources
+print("2.2 ) remove old almagamated sources ...")
 rm(os.path.join(merlict_dir, "merlict", "c89", merlict_c89_header_path))
 rm(os.path.join(merlict_dir, "merlict", "c89", merlict_c89_source_path))
 
-# remove the cython-code
+print("2.3 ) remove old cython code ...")
 rm(os.path.join(merlict_dir, "merlict", "c89", "wrapper.c"))
 
 
-# Almagamate the sources from merlict
-# -----------------------------------
+print("3. ) almagamate the sources from merlict_c89 ...")
 _outdir = "."
 subprocess.call(
     [
@@ -69,9 +78,7 @@ subprocess.call(
     + merlict_c89_module_paths
 )
 
-
-# automatically gather merlict_c89 version
-# ----------------------------------------
+print("4. ) gathering merlict_c89 version from almagamated sources ...")
 MERLICT_C89_VERSION = {
     "MLI_VERSION_MAYOR": -1,
     "MLI_VERSION_MINOR": -1,
@@ -95,11 +102,16 @@ MERLICT_C89_VERSION_STR = "{:d}.{:d}.{:d}".format(
     MERLICT_C89_VERSION["MLI_VERSION_PATCH"],
 )
 
-# write version
-# -------------
+print(
+    f"5. ) writing merlict_c89 version '{MERLICT_C89_VERSION_STR:s}' "
+    "to be parsed by python package ..."
+)
 with open(os.path.join("..", "version_merlict_c89.py"), "wt") as f:
     f.write("# I was written by: ")
     f.write("merlict/c89/almagamate_merlict_c89_and_set_version.py. ")
     f.write("Do not modify me manually.\n")
     f.write('__version__ = "' + MERLICT_C89_VERSION_STR + '"')
     f.write("\n")
+
+print("SUCCESS")
+print("Now you can 'pip install ./merlict'.")
