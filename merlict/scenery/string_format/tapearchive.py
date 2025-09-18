@@ -2,6 +2,8 @@ from . import fileorder
 import tarfile
 import io
 import fnmatch
+import posixpath
+import warnings
 
 
 def write(sceneryStr, path):
@@ -14,27 +16,43 @@ def write(sceneryStr, path):
 def read(path):
     sceneryDS = []
     with tarfile.open(name=path, mode="r") as tar:
-        filepaths = [member.name for member in tar.getmembers()]
-        for filepath in fileorder.list():
-            if "*" in filepath:
-                for ifilepath in fnmatch.filter(names=filepaths, pat=filepath):
-                    payload = _tar_read_str(tar=tar, filepath=ifilepath)
-                    item = (ifilepath, payload)
-                    sceneryDS.append(item)
-            else:
-                payload = _tar_read_str(tar=tar, filepath=filepath)
-                item = (filepath, payload)
+        while True:
+            tar_info = tar.next()
+
+            if tar_info is None:
+                break
+
+            if tar_info.type != tarfile.REGTYPE:
+                continue
+
+            if _is_name_in_expected_name_patterns(name=tar_info.name):
+                payload = _tar_read_str(tar=tar, tar_info=tar_info)
+                item = (posixpath.normpath(tar_info.name), payload)
                 sceneryDS.append(item)
+            else:
+                warnings.warn(
+                    f"Ignoring '{tar_info.name:s}' while reading tarfile."
+                )
+
     return sceneryDS
+
+
+def _is_name_in_expected_name_patterns(name):
+    norm_name = posixpath.normpath(name)
+    for filepath in fileorder.list():
+        out = fnmatch.filter(names=[norm_name], pat=filepath)
+        if len(out) > 0:
+            return True
+    return False
 
 
 def _tar_append_str(tar, filepath, payload):
     with io.BytesIO() as buff:
-        info = tarfile.TarInfo(filepath)
-        info.size = buff.write(str.encode(payload))
+        tar_info = tarfile.TarInfo(filepath)
+        tar_info.size = buff.write(str.encode(payload))
         buff.seek(0)
-        tar.addfile(info, buff)
+        tar.addfile(tar_info, buff)
 
 
-def _tar_read_str(tar, filepath):
-    return bytes.decode(tar.extractfile(filepath).read())
+def _tar_read_str(tar, tar_info):
+    return bytes.decode(tar.extractfile(tar_info).read())

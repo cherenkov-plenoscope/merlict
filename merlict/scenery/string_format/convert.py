@@ -44,7 +44,10 @@ def sceneryPy_to_sceneryStr(sceneryPy, indent=4, relations_indent=0):
 
     for key in sceneryPy["materials"]["spectra"]:
         _path = join("materials", "spectra", f"{key:s}.csv")
-        _payload = function_csv.dumps(**sceneryPy["materials"]["spectra"][key])
+        _fx, _fy, _fx_label, _fy_label = sceneryPy["materials"]["spectra"][key]
+        _payload = function_csv.dumps(
+            x=_fx, y=_fy, x_label=_fx_label, y_label=_fy_label
+        )
         sceneryStr.append((_path, _payload))
 
     for key in sceneryPy["materials"]["media"]:
