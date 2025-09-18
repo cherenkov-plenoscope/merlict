@@ -56,9 +56,6 @@ rm(os.path.join(merlict_dir, "merlict", "c89", merlict_c89_source_path))
 # remove the cython-code
 rm(os.path.join(merlict_dir, "merlict", "c89", "wrapper.c"))
 
-# Set merlict python package's version
-# ------------------------------------
-MERLICT_PYTHON_VERSION_STR = "0.2.4"  # <- set version here.
 
 # Almagamate the sources from merlict
 # -----------------------------------
@@ -98,17 +95,11 @@ MERLICT_C89_VERSION_STR = "{:d}.{:d}.{:d}".format(
     MERLICT_C89_VERSION["MLI_VERSION_PATCH"],
 )
 
-# combine python-version with c89-version
-# ---------------------------------------
-VERSION_STR = "{:s}.{:s}".format(
-    MERLICT_PYTHON_VERSION_STR,
-    MERLICT_C89_VERSION_STR,
-)
-
 # write version
 # -------------
-with open(os.path.join("..", "version.py"), "wt") as f:
+with open(os.path.join("..", "version_merlict_c89.py"), "wt") as f:
     f.write("# I was written by: ")
-    f.write("merlict/c89/almagamate_merlict_c89_and_set_version.py\n")
-    f.write('__version__ = "' + VERSION_STR + '"')
+    f.write("merlict/c89/almagamate_merlict_c89_and_set_version.py. ")
+    f.write("Do not modify me manually.\n")
+    f.write('__version__ = "' + MERLICT_C89_VERSION_STR + '"')
     f.write("\n")

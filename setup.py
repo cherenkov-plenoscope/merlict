@@ -5,16 +5,24 @@ from Cython import Build as _
 import numpy
 
 
+def read_version(path):
+    with open(path, "rt") as f:
+        txt = f.read()
+        last_line = txt.splitlines()[-1]
+        version_string = last_line.split()[-1]
+        return version_string.strip("\"'")
+
+
 with open("README.rst", "r", encoding="utf-8") as f:
     long_description = f.read()
 
-
-with open(os.path.join("merlict", "version.py")) as f:
-    txt = f.read()
-    last_line = txt.splitlines()[-1]
-    version_string = last_line.split()[-1]
-    version = version_string.strip("\"'")
-
+_python_part_version = read_version(
+    os.path.join("merlict", "version_python.py")
+)
+_merlict_c89_part_version = read_version(
+    os.path.join("merlict", "version_merlict_c89.py")
+)
+version = f"{_python_part_version:s}.{_merlict_c89_part_version:s}"
 
 extensions = [
     setuptools.Extension(

@@ -1,4 +1,8 @@
-from .version import __version__
+from .version_python import __version__ as __python_part_version__
+from .version_merlict_c89 import __version__ as __merlict_c89_part_version__
+
+__version__ = f"{__python_part_version__:s}.{__merlict_c89_part_version__:s}"
+
 from . import c89
 from . import materials
 from . import scenery
