@@ -5824,9 +5824,8 @@ chk_rc mli_Func_fprint(
                         if (mli_Func_in_range(func, x)) {
                                 chk(mli_Func_evaluate(func, x, &y));
                                 jy = (y - cfg.y_start) / y_step;
-                                jy_sub =
-                                        (int)(NUM_Y_SUB_STEPS *
-                                              (jy - floor(jy)));
+                                jy_sub = (int)(NUM_Y_SUB_STEPS *
+                                               (jy - floor(jy)));
                                 if (iy == (int)(jy)) {
                                         switch (jy_sub) {
                                         case 0:
@@ -11179,33 +11178,6 @@ chk_error:
         return CHK_FAIL;
 }
 
-mli_bool mli_Materials__has_surface_name_cstr(
-        const struct mli_Materials *self,
-        const char *name)
-{
-        uint64_t i;
-        for (i = 0; i < self->surfaces.size; i++) {
-                if (mli_String_equal_cstr(
-                            &self->surfaces.array[i].name, name)) {
-                        return MLI_TRUE;
-                }
-        }
-        return MLI_FALSE;
-}
-
-mli_bool mli_Materials__has_medium_name_cstr(
-        const struct mli_Materials *self,
-        const char *name)
-{
-        uint64_t i;
-        for (i = 0; i < self->media.size; i++) {
-                if (mli_String_equal_cstr(&self->media.array[i].name, name)) {
-                        return MLI_TRUE;
-                }
-        }
-        return MLI_FALSE;
-}
-
 /* materials_equal */
 /* --------------- */
 
@@ -12193,10 +12165,36 @@ chk_error:
 /* ------------ */
 
 /* Copyright 2018-2024 Sebastian Achim Mueller */
+
 MLI_ARRAY_IMPLEMENTATION_FREE(
         mli_MediumArray,
         struct mli_Medium,
         mli_Medium_free)
+
+mli_bool mli_MediumArray_has_name_cstr(
+        const struct mli_MediumArray *self,
+        const char *name)
+{
+        int64_t i = mli_MediumArray_get_index_by_name_cstr(self, name);
+        if (i >= 0) {
+                return MLI_TRUE;
+        } else {
+                return MLI_FALSE;
+        }
+}
+
+int64_t mli_MediumArray_get_index_by_name_cstr(
+        const struct mli_MediumArray *self,
+        const char *name)
+{
+        uint64_t i;
+        for (i = 0; i < self->size; i++) {
+                if (mli_String_equal_cstr(&self->array[i].name, name)) {
+                        return (int64_t)i;
+                }
+        }
+        return -1;
+}
 
 /* object */
 /* ------ */
@@ -13419,7 +13417,10 @@ chk_rc mli_Object_fprint_to_wavefront(
         struct mli_IO *f,
         const struct mli_Object *obj)
 {
-        uint32_t i, mtl, face;
+        uint32_t i, face;
+        int64_t mtl = -1;
+        mli_bool is_next_mtl;
+
         chk(mli_IO_text_write_cstr_format(f, "# vertices\n"));
         for (i = 0; i < obj->num_vertices; i++) {
                 chk(mli_IO_text_write_cstr_format(
@@ -13442,8 +13443,15 @@ chk_rc mli_Object_fprint_to_wavefront(
 
         chk(mli_IO_text_write_cstr_format(f, "# faces\n"));
         for (face = 0; face < obj->num_faces; face++) {
-                if ((face == 0) || (mtl != obj->faces_materials[face])) {
-                        mtl = obj->faces_materials[face];
+                if (face == 0) {
+                        is_next_mtl = MLI_TRUE;
+                } else {
+                        is_next_mtl =
+                                mtl != (int64_t)obj->faces_materials[face];
+                }
+
+                if (is_next_mtl) {
+                        mtl = (int64_t)obj->faces_materials[face];
                         chk(mli_IO_text_write_cstr_format(
                                 f,
                                 "usemtl %s\n",
@@ -18909,10 +18917,36 @@ chk_error:
 /* ------------- */
 
 /* Copyright 2018-2024 Sebastian Achim Mueller */
+
 MLI_ARRAY_IMPLEMENTATION_FREE(
         mli_SurfaceArray,
         struct mli_Surface,
         mli_Surface_free)
+
+mli_bool mli_SurfaceArray_has_name_cstr(
+        const struct mli_SurfaceArray *self,
+        const char *name)
+{
+        int64_t i = mli_SurfaceArray_get_index_by_name_cstr(self, name);
+        if (i >= 0) {
+                return MLI_TRUE;
+        } else {
+                return MLI_FALSE;
+        }
+}
+
+int64_t mli_SurfaceArray_get_index_by_name_cstr(
+        const struct mli_SurfaceArray *self,
+        const char *name)
+{
+        uint64_t i;
+        for (i = 0; i < self->size; i++) {
+                if (mli_String_equal_cstr(&self->array[i].name, name)) {
+                        return (int64_t)i;
+                }
+        }
+        return -1;
+}
 
 /* surface_cooktorrance */
 /* -------------------- */

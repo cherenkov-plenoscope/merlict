@@ -150,27 +150,6 @@ cdef extern from "mli.h":
         double power
         double altitude
 
-    cdef int mli_Archive_push_back_cstr(
-        mli_Archive *arc,
-        const char *filename,
-        const stdint.uint64_t filename_length,
-        const char *payload,
-        const stdint.uint64_t payload_length)
-
-    cdef void mli_Bridge_query_many_intersection(
-        const mli_Scenery *scenery,
-        const stdint.uint64_t num_rays,
-        const mli_Ray *rays,
-        mli_Intersection *isecs,
-        stdint.int64_t *is_valid_isecs)
-
-    cdef void mli_Bridge_query_many_intersectionSurfaceNormal(
-        const mli_Scenery *scenery,
-        const stdint.uint64_t num_rays,
-        const mli_Ray *rays,
-        mli_IntersectionSurfaceNormal *isecs,
-        stdint.int64_t *is_valid_isecs)
-
     # IO
     # --
     cpdef enum mli_io_type_code:
@@ -206,3 +185,26 @@ cdef extern from "mli.h":
 
     cdef int mli_Scenery_to_io(const mli_Scenery *self, mli_IO *f)
     cdef int mli_Scenery_from_io(mli_Scenery *self, mli_IO *f)
+
+
+cdef extern from "bridge.h":
+    cdef int mli_Archive_push_back_cstr(
+        mli_Archive *arc,
+        const char *filename,
+        const stdint.uint64_t filename_length,
+        const char *payload,
+        const stdint.uint64_t payload_length)
+
+    cdef void mli_Bridge_query_many_intersection(
+        const mli_Scenery *scenery,
+        const stdint.uint64_t num_rays,
+        const mli_Ray *rays,
+        mli_Intersection *isecs,
+        stdint.int64_t *is_valid_isecs)
+
+    cdef void mli_Bridge_query_many_intersectionSurfaceNormal(
+        const mli_Scenery *scenery,
+        const stdint.uint64_t num_rays,
+        const mli_Ray *rays,
+        mli_IntersectionSurfaceNormal *isecs,
+        stdint.int64_t *is_valid_isecs)

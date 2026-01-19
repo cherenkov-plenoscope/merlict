@@ -762,7 +762,7 @@ void mli_MagicId_warn_version(const struct mli_MagicId *magic);
 #define MLI_MATH_MAX2(a, b) (((a) > (b)) ? (a) : (b))
 #define MLI_MATH_ROUND(num) (num - floor(num) > 0.5) ? ceil(num) : floor(num)
 #define MLI_MATH_NEAR_INT(x)                                                   \
-        ((x) > 0 ? (int64_t)((x) + 0.5) : (int64_t)((x)-0.5))
+        ((x) > 0 ? (int64_t)((x) + 0.5) : (int64_t)((x) - 0.5))
 
 #define MLI_MATH_SIGN(x) ((x) == 0 ? 0 : ((x) > 0 ? 1 : -1))
 
@@ -1509,8 +1509,8 @@ mli_bool mli_Vec_overlap_aabb(
 
 
 #define MLI_VERSION_MAYOR 2
-#define MLI_VERSION_MINOR 2
-#define MLI_VERSION_PATCH 8
+#define MLI_VERSION_MINOR 3
+#define MLI_VERSION_PATCH 1
 
 void mli_version_logo_fprint(FILE *f);
 void mli_version_authors_and_affiliations_fprint(FILE *f);
@@ -3213,6 +3213,14 @@ chk_rc mli_Medium_from_json_string_and_name(
 #define MLI_MEDIUM_ARRAY_H_
 
 MLI_ARRAY_DEFINITON(mli_MediumArray, struct mli_Medium)
+
+mli_bool mli_MediumArray_has_name_cstr(
+        const struct mli_MediumArray *self,
+        const char *name);
+int64_t mli_MediumArray_get_index_by_name_cstr(
+        const struct mli_MediumArray *self,
+        const char *name);
+
 #endif
 
 /* object */
@@ -4993,6 +5001,14 @@ chk_rc mli_Surface_valid_wrt_materials(
 #define MLI_SURFACE_ARRAY_H_
 
 MLI_ARRAY_DEFINITON(mli_SurfaceArray, struct mli_Surface)
+
+mli_bool mli_SurfaceArray_has_name_cstr(
+        const struct mli_SurfaceArray *self,
+        const char *name);
+int64_t mli_SurfaceArray_get_index_by_name_cstr(
+        const struct mli_SurfaceArray *self,
+        const char *name);
+
 #endif
 
 /* materials */
@@ -5027,13 +5043,6 @@ chk_rc mli_Materials_malloc(
 void mli_Materials_free(struct mli_Materials *self);
 struct mli_Materials mli_Materials_init(void);
 chk_rc mli_Materials_info_fprint(FILE *f, const struct mli_Materials *self);
-
-mli_bool mli_Materials__has_surface_name_cstr(
-        const struct mli_Materials *self,
-        const char *name);
-mli_bool mli_Materials__has_medium_name_cstr(
-        const struct mli_Materials *self,
-        const char *name);
 
 #endif
 
